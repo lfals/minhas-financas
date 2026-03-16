@@ -1,4 +1,4 @@
-import { CalendarClock, ReceiptText } from "lucide-react"
+import { ReceiptText } from "lucide-react"
 
 import {
   CreditCardInvoiceCardActions,
@@ -11,7 +11,6 @@ import { TransactionSettleButton } from "@/components/client/transaction-settle-
 import { TransactionListItem } from "@/components/transaction-list-item"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCompactCurrency } from "@/lib/formatters"
-import { formatCents } from "@/lib/money"
 import { cn } from "@/lib/utils"
 import type {
   TransactionAccountOption,
@@ -64,8 +63,6 @@ export function TransactionsPageView({
   metrics,
   transactions,
   invoiceExpenses,
-  categories,
-  cashflow,
   accountOptions,
   creditCardOptions,
   categoryOptions,
@@ -78,11 +75,6 @@ export function TransactionsPageView({
   defaultOccurredOn: string
   selectedDate: string
 }) {
-  const maxCashflow = Math.max(
-    1,
-    ...cashflow.flatMap((point) => [point.incomeCents, point.expenseCents])
-  )
-
   return (
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -124,7 +116,7 @@ export function TransactionsPageView({
               />
             </CardAction>
           </CardHeader>
-          <CardContent className="grid gap-6 pt-0 xl:grid-cols-[1.15fr_0.85fr]">
+          <CardContent className="pt-0">
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/45">
                 <ReceiptText className="size-4" />
@@ -202,77 +194,6 @@ export function TransactionsPageView({
                   Nenhum lançamento registrado ainda. Use o botão acima para adicionar a primeira movimentação.
                 </div>
               )}
-            </div>
-
-            <div className="space-y-6">
-              <div className="border border-white/10 bg-[#121212] p-4">
-                <div className="flex items-center gap-3">
-                  <CalendarClock className="size-4 text-[#d8f36a]" />
-                  <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                    Ritmo do caixa
-                  </p>
-                </div>
-                <p className="mt-3 text-xl font-semibold uppercase tracking-[-0.05em] text-white">
-                  Entradas e saídas por bloco.
-                </p>
-                <div className="mt-4 space-y-4">
-                  {cashflow.map((point) => (
-                    <div key={point.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="uppercase tracking-[0.18em] text-white">{point.label}</span>
-                        <span className="text-white/55">
-                          {formatCompactCurrency((point.incomeCents - point.expenseCents) / 100)}
-                        </span>
-                      </div>
-                      <div className="grid gap-2">
-                        <div className="h-3 border border-white/10 bg-white/5">
-                          <div
-                            className="h-full bg-[#d8f36a]"
-                            style={{ width: `${(point.incomeCents / maxCashflow) * 100}%` }}
-                          />
-                        </div>
-                        <div className="h-3 border border-white/10 bg-white/5">
-                          <div
-                            className="h-full bg-[#ff9c7a]"
-                            style={{ width: `${(point.expenseCents / maxCashflow) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border border-white/10 bg-[#121212] p-4">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                  Pressão por categoria
-                </p>
-                <p className="mt-3 text-xl font-semibold uppercase tracking-[-0.05em] text-white">
-                  Para onde o dinheiro está indo.
-                </p>
-                <div className="mt-4 space-y-4">
-                  {categories.length ? (
-                    categories.map((category) => (
-                      <div key={category.id} className="space-y-2">
-                        <div className="flex items-center justify-between gap-4 text-sm">
-                          <span className="uppercase tracking-[0.18em] text-white">{category.name}</span>
-                          <span className="text-white/55">{formatCents(category.amountCents)}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="h-3 flex-1 border border-white/10 bg-white/5">
-                            <div className="h-full bg-[#c4f1ff]" style={{ width: `${category.share}%` }} />
-                          </div>
-                          <span className="w-10 text-right text-sm text-white/55">{category.share}%</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="border border-dashed border-white/10 bg-[#0f0f0f] p-6 text-sm leading-7 text-white/60">
-                      As categorias aparecem conforme você registra despesas.
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
