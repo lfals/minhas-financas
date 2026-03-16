@@ -3,7 +3,7 @@ create table if not exists credit_cards (
   clerk_user_id text not null,
   client_request_id uuid not null,
   nickname text not null,
-  final_digits text not null check (final_digits ~ '^\d{4}$'),
+  final_digits text not null check (final_digits ~ '^[0-9]{4}$'),
   limit_cents bigint not null check (limit_cents >= 0),
   closing_day integer not null check (closing_day between 1 and 31),
   due_day integer not null check (due_day between 1 and 31),

@@ -19,9 +19,17 @@ async function loadMigrationStatements() {
   return Promise.all(
     migrationFiles.map(async (fileName) => {
       const filePath = path.join(migrationsDir, fileName)
-      return readFile(filePath, "utf8")
+      const statement = await readFile(filePath, "utf8")
+      return { fileName, statement }
     })
   )
+}
+
+function splitSqlStatements(sql: string): string[] {
+  return sql
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0)
 }
 
 export async function ensureDatabaseBootstrap(pool: Pool) {
@@ -36,8 +44,20 @@ export async function ensureDatabaseBootstrap(pool: Pool) {
       const client = await pool.connect()
 
       try {
-        for (const statement of statements) {
-          await client.query(statement)
+        for (const { fileName, statement } of statements) {
+          const parts = splitSqlStatements(statement)
+          for (const [index, part] of parts.entries()) {
+            try {
+              await client.query(part)
+            } catch (error) {
+              const statementLabel = `#${index + 1}`
+              const message = `migration ${fileName} (${statementLabel}) failed`
+              if (error instanceof Error) {
+                error.message = `${message}: ${error.message}`
+              }
+              throw error
+            }
+          }
         }
       } finally {
         client.release()
