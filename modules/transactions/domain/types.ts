@@ -2,6 +2,9 @@ import type {
   CreateTransactionFormInput,
   CreateTransactionInput,
   FixedExpenseFrequency,
+  InstallmentAmountInputMode,
+  RemoveTransactionInput,
+  RemoveTransactionScope,
   SettleTransactionInput,
   TransactionKind,
   TransactionListRecord,
@@ -13,6 +16,9 @@ export type {
   CreateTransactionFormInput,
   CreateTransactionInput,
   FixedExpenseFrequency,
+  InstallmentAmountInputMode,
+  RemoveTransactionInput,
+  RemoveTransactionScope,
   SettleTransactionInput,
   TransactionKind,
   TransactionListRecord,
@@ -22,6 +28,7 @@ export type {
 
 export type CreateTransactionCommand = CreateTransactionInput & {
   clerkUserId: string
+  seriesId?: string | null
 }
 
 export type TransactionListCommand = {
@@ -31,6 +38,10 @@ export type TransactionListCommand = {
 export type SettleTransactionCommand = SettleTransactionInput & {
   clerkUserId: string
   amountCents?: number
+}
+
+export type RemoveTransactionCommand = RemoveTransactionInput & {
+  clerkUserId: string
 }
 
 export type TransactionMetric = {
@@ -55,6 +66,8 @@ export type TransactionPageItem = {
   settledAmountCents?: number | null
   displayAmountCents: number
   isAmountOverridden: boolean
+  seriesId?: string | null
+  supportsFutureRemoval: boolean
   status: TransactionStatus
   statusLabel: "Compensado" | "Pendente" | "Agendado"
   kind: TransactionKind

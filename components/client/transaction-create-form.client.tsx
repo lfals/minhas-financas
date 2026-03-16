@@ -19,6 +19,7 @@ import {
 } from "@/modules/transactions/presentation/actions"
 import type {
   FixedExpenseFrequency,
+  InstallmentAmountInputMode,
   TransactionAccountOption,
   TransactionCategoryOption,
 } from "@/modules/transactions/domain/types"
@@ -53,6 +54,7 @@ function getDefaultFormValues(defaultOccurredOn: string, defaultAccountId: strin
     fixedExpenseFrequency: "monthly" as FixedExpenseFrequency,
     installmentNumber: "1",
     installmentTotal: "2",
+    installmentAmountInputMode: "installment" as InstallmentAmountInputMode,
     notes: "",
   }
 }
@@ -70,6 +72,31 @@ function formatCurrencyDigitsToInput(value: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100)
+}
+
+function parseCurrencyInputToCents(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return 0
+  }
+
+  const normalized = trimmed
+    .replace(/\s/g, "")
+    .replace(/R\$/gi, "")
+    .replace(/\./g, "")
+    .replace(",", ".")
+
+  const parsed = Number(normalized)
+
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0
+}
+
+function formatCentsToCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value / 100)
 }
 
 function getDateFromIsoDate(value: string) {
@@ -122,6 +149,13 @@ export function TransactionCreateForm({
   const fixedLabel = formValues.kind === "income" ? "Receita fixa" : "Despesa fixa"
   const installmentLabel =
     formValues.kind === "income" ? "Receita parcelada" : "Despesa parcelada"
+  const installmentTotalCount = Number(formValues.installmentTotal)
+  const installmentPreviewCents =
+    formValues.cadence === "installment" &&
+    formValues.installmentAmountInputMode === "total" &&
+    installmentTotalCount > 0
+      ? Math.floor(parseCurrencyInputToCents(formValues.amount) / installmentTotalCount)
+      : null
   const handleSuccess = useEffectEvent(() => {
     setFormValues(getDefaultFormValues(defaultOccurredOn, defaultAccountId))
     onSuccess?.()
@@ -289,7 +323,10 @@ export function TransactionCreateForm({
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_max-content]">
           <Field>
             <FieldLabel htmlFor="amount" className="text-white/80">
-              Valor
+              {formValues.cadence === "installment" &&
+              formValues.installmentAmountInputMode === "total"
+                ? "Valor total"
+                : "Valor"}
             </FieldLabel>
             <FieldContent>
               <Input
@@ -307,6 +344,11 @@ export function TransactionCreateForm({
                 }}
                 className="h-10 border-white/10 bg-white/5 text-white"
               />
+              {installmentPreviewCents !== null ? (
+                <p className="mt-2 text-xs text-white/55">
+                  Cada parcela ficará em torno de {formatCentsToCurrency(installmentPreviewCents)}.
+                </p>
+              ) : null}
               <FieldError errors={state.fieldErrors?.amount?.map((message) => ({ message }))} />
             </FieldContent>
           </Field>
@@ -387,6 +429,8 @@ export function TransactionCreateForm({
                     cadence === "fixed" ? current.fixedExpenseFrequency : "monthly",
                   installmentNumber: cadence === "installment" ? current.installmentNumber : "1",
                   installmentTotal: cadence === "installment" ? current.installmentTotal : "2",
+                  installmentAmountInputMode:
+                    cadence === "installment" ? current.installmentAmountInputMode : "installment",
                 }))
               }}
               className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
@@ -433,63 +477,92 @@ export function TransactionCreateForm({
             )}
 
             {formValues.cadence === "installment" ? (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-4">
                 <Field>
-                  <FieldLabel htmlFor="installmentNumber" className="text-white/80">
-                    Parcela inicial
+                  <FieldLabel htmlFor="installmentAmountInputMode" className="text-white/80">
+                    O valor informado corresponde a
                   </FieldLabel>
                   <FieldContent>
-                    <Input
-                      id="installmentNumber"
-                      name="installmentNumber"
-                      inputMode="numeric"
-                      min={1}
-                      value={formValues.installmentNumber}
+                    <NativeSelect
+                      id="installmentAmountInputMode"
+                      name="installmentAmountInputMode"
+                      value={formValues.installmentAmountInputMode}
                       onChange={(event) => {
-                        const digits = event.currentTarget.value.replace(/\D/g, "")
+                        const { value } = event.currentTarget
                         setFormValues((current) => ({
                           ...current,
-                          installmentNumber: digits || "",
+                          installmentAmountInputMode: value as InstallmentAmountInputMode,
                         }))
                       }}
-                      className="h-10 border-white/10 bg-white/5 text-white"
-                    />
+                      className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                    >
+                      <NativeSelectOption value="installment">Valor da parcela</NativeSelectOption>
+                      <NativeSelectOption value="total">Valor total</NativeSelectOption>
+                    </NativeSelect>
                   </FieldContent>
                 </Field>
 
-                <Field>
-                  <FieldLabel htmlFor="installmentTotal" className="text-white/80">
-                    Total de parcelas
-                  </FieldLabel>
-                  <FieldContent>
-                    <Input
-                      id="installmentTotal"
-                      name="installmentTotal"
-                      inputMode="numeric"
-                      min={1}
-                      value={formValues.installmentTotal}
-                      onChange={(event) => {
-                        const digits = event.currentTarget.value.replace(/\D/g, "")
-                        setFormValues((current) => ({
-                          ...current,
-                          installmentTotal: digits || "",
-                        }))
-                      }}
-                      className="h-10 border-white/10 bg-white/5 text-white"
-                    />
-                  </FieldContent>
-                </Field>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="installmentNumber" className="text-white/80">
+                      Parcela inicial
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="installmentNumber"
+                        name="installmentNumber"
+                        inputMode="numeric"
+                        min={1}
+                        value={formValues.installmentNumber}
+                        onChange={(event) => {
+                          const digits = event.currentTarget.value.replace(/\D/g, "")
+                          setFormValues((current) => ({
+                            ...current,
+                            installmentNumber: digits || "",
+                          }))
+                        }}
+                        className="h-10 border-white/10 bg-white/5 text-white"
+                      />
+                    </FieldContent>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel htmlFor="installmentTotal" className="text-white/80">
+                      Total de parcelas
+                    </FieldLabel>
+                    <FieldContent>
+                      <Input
+                        id="installmentTotal"
+                        name="installmentTotal"
+                        inputMode="numeric"
+                        min={1}
+                        value={formValues.installmentTotal}
+                        onChange={(event) => {
+                          const digits = event.currentTarget.value.replace(/\D/g, "")
+                          setFormValues((current) => ({
+                            ...current,
+                            installmentTotal: digits || "",
+                          }))
+                        }}
+                        className="h-10 border-white/10 bg-white/5 text-white"
+                      />
+                    </FieldContent>
+                  </Field>
+                </div>
               </div>
             ) : (
               <>
                 <input type="hidden" name="installmentNumber" value="" />
                 <input type="hidden" name="installmentTotal" value="" />
+                <input type="hidden" name="installmentAmountInputMode" value="installment" />
               </>
             )}
 
             <p className="text-xs text-white/55">
               {formValues.cadence === "installment"
-                ? "O sistema cria as parcelas restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
+                ? formValues.installmentAmountInputMode === "total"
+                  ? "O sistema divide o valor total entre as parcelas e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
+                  : "O sistema mantém o valor informado em cada parcela e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
                 : formValues.cadence === "fixed"
                   ? "A lógica de recorrência fixa do sistema é aplicada automaticamente."
                   : "Use lançamento avulso para registrar apenas esta ocorrência."}
@@ -498,6 +571,11 @@ export function TransactionCreateForm({
             <FieldError errors={state.fieldErrors?.isFixed?.map((message) => ({ message }))} />
             <FieldError errors={state.fieldErrors?.installmentNumber?.map((message) => ({ message }))} />
             <FieldError errors={state.fieldErrors?.installmentTotal?.map((message) => ({ message }))} />
+            <FieldError
+              errors={state.fieldErrors?.installmentAmountInputMode?.map((message) => ({
+                message,
+              }))}
+            />
           </FieldContent>
         </Field>
 

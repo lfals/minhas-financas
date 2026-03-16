@@ -7,6 +7,7 @@ export const listTransactionsSql = `
     t.category,
     t.kind,
     t.status,
+    t.series_id,
     t.is_fixed,
     t.fixed_expense_frequency,
     t.installment_number,
@@ -35,6 +36,7 @@ export const findTransactionByClientRequestSql = `
     category,
     kind,
     status,
+    series_id,
     is_fixed,
     fixed_expense_frequency,
     installment_number,
@@ -60,6 +62,7 @@ export const findTransactionByIdForUpdateSql = `
     category,
     kind,
     status,
+    series_id,
     is_fixed,
     fixed_expense_frequency,
     installment_number,
@@ -101,6 +104,7 @@ export const insertTransactionSql = `
     category,
     kind,
     status,
+    series_id,
     is_fixed,
     fixed_expense_frequency,
     installment_number,
@@ -108,7 +112,7 @@ export const insertTransactionSql = `
     amount_cents,
     occurred_on,
     notes
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, nullif($14, ''))
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, nullif($15, ''))
   returning
     id,
     clerk_user_id,
@@ -117,6 +121,7 @@ export const insertTransactionSql = `
     category,
     kind,
     status,
+    series_id,
     is_fixed,
     fixed_expense_frequency,
     installment_number,
@@ -145,6 +150,7 @@ export const compensateTransactionSql = `
     category,
     kind,
     status,
+    series_id,
     is_fixed,
     fixed_expense_frequency,
     installment_number,
@@ -155,6 +161,47 @@ export const compensateTransactionSql = `
     notes,
     created_at::text as created_at,
     updated_at::text as updated_at
+`
+
+export const deleteTransactionSql = `
+  delete from transactions
+  where clerk_user_id = $1
+    and id = $2
+`
+
+export const listFutureTransactionsBySeriesForUpdateSql = `
+  select
+    id,
+    clerk_user_id,
+    account_id,
+    title,
+    category,
+    kind,
+    status,
+    series_id,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
+    amount_cents::text as amount_cents,
+    settled_amount_cents::text as settled_amount_cents,
+    occurred_on::text as occurred_on,
+    notes,
+    created_at::text as created_at,
+    updated_at::text as updated_at
+  from transactions
+  where clerk_user_id = $1
+    and series_id = $2
+    and occurred_on >= $3::date
+  order by occurred_on asc, created_at asc
+  for update
+`
+
+export const deleteFutureTransactionsBySeriesSql = `
+  delete from transactions
+  where clerk_user_id = $1
+    and series_id = $2
+    and occurred_on >= $3::date
 `
 
 export const updateAccountBalanceSql = `

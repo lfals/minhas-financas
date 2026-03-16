@@ -207,6 +207,8 @@ export function buildTransactionsPageData(
         transaction.settledAmountCents !== null &&
         transaction.settledAmountCents !== undefined &&
         transaction.settledAmountCents !== transaction.amountCents,
+      seriesId: transaction.seriesId,
+      supportsFutureRemoval: transaction.seriesId !== null && transaction.seriesId !== undefined,
       status: transaction.status,
       statusLabel: getStatusLabel(transaction.status),
       kind: transaction.kind,

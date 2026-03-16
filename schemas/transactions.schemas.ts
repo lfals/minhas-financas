@@ -40,6 +40,7 @@ const optionalInstallmentNumberSchema = z.preprocess((value) => {
 export const transactionKindSchema = z.enum(["income", "expense"])
 export const transactionStatusSchema = z.enum(["compensated", "pending", "scheduled"])
 export const fixedExpenseFrequencySchema = z.enum(["daily", "weekly", "fortnightly", "monthly", "yearly"])
+export const installmentAmountInputModeSchema = z.enum(["installment", "total"])
 
 export const createTransactionInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
@@ -54,6 +55,7 @@ export const createTransactionInputSchema = z.object({
   fixedExpenseFrequency: fixedExpenseFrequencySchema.nullable().optional(),
   installmentNumber: optionalInstallmentNumberSchema,
   installmentTotal: optionalInstallmentNumberSchema,
+  installmentAmountInputMode: installmentAmountInputModeSchema.default("installment"),
   notes: z.string().trim().max(500).optional(),
 }).superRefine((value, context) => {
   if (value.isFixed && !value.fixedExpenseFrequency) {
@@ -99,6 +101,17 @@ export const createTransactionInputSchema = z.object({
       code: "custom",
       path: ["installmentNumber"],
       message: "A parcela inicial não pode ser maior que o total de parcelas.",
+    })
+  }
+
+  if (
+    (value.installmentNumber === null || value.installmentTotal === null) &&
+    value.installmentAmountInputMode !== "installment"
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentAmountInputMode"],
+      message: "Esse campo só pode ser usado em lançamentos parcelados.",
     })
   }
 })
@@ -116,6 +129,12 @@ export const createTransactionFormSchema = z.object({
     .transform((value) => (value ? value : null)),
   installmentNumber: optionalInstallmentNumberSchema,
   installmentTotal: optionalInstallmentNumberSchema,
+  installmentAmountInputMode: z.union([
+    installmentAmountInputModeSchema,
+    z.literal(""),
+    z.null(),
+    z.undefined(),
+  ]).transform((value) => (value ? value : "installment")),
   notes: z.string().trim().max(500).optional(),
 }).superRefine((value, context) => {
   if (value.isFixed && !value.fixedExpenseFrequency) {
@@ -163,6 +182,17 @@ export const createTransactionFormSchema = z.object({
       message: "A parcela inicial não pode ser maior que o total de parcelas.",
     })
   }
+
+  if (
+    (value.installmentNumber === null || value.installmentTotal === null) &&
+    value.installmentAmountInputMode !== "installment"
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentAmountInputMode"],
+      message: "Esse campo só pode ser usado em lançamentos parcelados.",
+    })
+  }
 })
 
 export const settleTransactionInputSchema = z.object({
@@ -177,6 +207,13 @@ export const settleTransactionInputSchema = z.object({
   }, z.string().nullable().optional()),
 })
 
+export const removeTransactionScopeSchema = z.enum(["single", "future"])
+
+export const removeTransactionInputSchema = z.object({
+  transactionId: z.uuid("Lançamento inválido para remoção."),
+  scope: removeTransactionScopeSchema.default("single"),
+})
+
 export const transactionRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
@@ -187,6 +224,7 @@ export const transactionRecordSchema = z.object({
   status: transactionStatusSchema,
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
+  seriesId: z.uuid().nullable().optional(),
   isFixed: z.boolean(),
   fixedExpenseFrequency: fixedExpenseFrequencySchema.nullable().optional(),
   installmentNumber: z.number().int().positive().nullable().optional(),
@@ -205,8 +243,11 @@ export const transactionListRecordSchema = transactionRecordSchema.extend({
 export type TransactionKind = z.infer<typeof transactionKindSchema>
 export type TransactionStatus = z.infer<typeof transactionStatusSchema>
 export type FixedExpenseFrequency = z.infer<typeof fixedExpenseFrequencySchema>
+export type InstallmentAmountInputMode = z.infer<typeof installmentAmountInputModeSchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
 export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema>
+export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema>
+export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>

@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight, CalendarClock, ReceiptText } from "lucide-react"
 
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
+import { TransactionRemoveButton } from "@/components/client/transaction-remove-button.client"
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -179,6 +180,13 @@ export function TransactionsPageView({
                             )}
                           </p>
                         </div>
+                        <TransactionRemoveButton
+                          transactionId={transaction.id}
+                          transactionTitle={transaction.title}
+                          isFixed={transaction.isFixed}
+                          installmentTotal={transaction.installmentTotal}
+                          supportsFutureRemoval={transaction.supportsFutureRemoval}
+                        />
                         {transaction.status !== "compensated" ? (
                           <TransactionSettleButton
                             transactionId={transaction.id}

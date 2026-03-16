@@ -6,9 +6,11 @@ import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
+import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
 import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
 import {
   createTransactionFormSchema,
+  removeTransactionInputSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
 
@@ -19,6 +21,11 @@ export type CreateTransactionActionState = {
 }
 
 export type SettleTransactionActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+}
+
+export type RemoveTransactionActionState = {
   status: "idle" | "success" | "error"
   message?: string
 }
@@ -39,6 +46,7 @@ export async function createTransactionAction(
     fixedExpenseFrequency: formData.get("fixedExpenseFrequency"),
     installmentNumber: formData.get("installmentNumber"),
     installmentTotal: formData.get("installmentTotal"),
+    installmentAmountInputMode: formData.get("installmentAmountInputMode"),
     notes: formData.get("notes"),
   })
 
@@ -66,6 +74,7 @@ export async function createTransactionAction(
       fixedExpenseFrequency: parsed.data.fixedExpenseFrequency,
       installmentNumber: parsed.data.installmentNumber,
       installmentTotal: parsed.data.installmentTotal,
+      installmentAmountInputMode: parsed.data.installmentAmountInputMode,
       notes: parsed.data.notes,
     })
 
@@ -134,6 +143,53 @@ export async function settleTransactionAction(
     return {
       status: "error",
       message: "Não foi possível efetivar o lançamento agora.",
+    }
+  }
+}
+
+export async function removeTransactionAction(
+  _previousState: RemoveTransactionActionState,
+  formData: FormData
+): Promise<RemoveTransactionActionState> {
+  const parsed = removeTransactionInputSchema.safeParse({
+    transactionId: formData.get("transactionId"),
+    scope: formData.get("scope"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Lançamento inválido para remoção.",
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await removeTransactionUseCase({
+      clerkUserId,
+      transactionId: parsed.data.transactionId,
+      scope: parsed.data.scope,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+
+    return {
+      status: "success",
+      message: "Lançamento removido com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível remover o lançamento agora.",
     }
   }
 }
