@@ -1,19 +1,39 @@
+const accountColumns = `
+  id,
+  clerk_user_id,
+  name,
+  institution,
+  type,
+  currency_code,
+  initial_balance_cents::text as initial_balance_cents,
+  (
+    initial_balance_cents::bigint +
+    coalesce(
+      (
+        select sum(
+          case
+            when t.kind = 'income' then coalesce(t.settled_amount_cents, t.amount_cents)
+            else -coalesce(t.settled_amount_cents, t.amount_cents)
+          end
+        )
+        from transactions t
+        where t.account_id = a.id
+          and t.status = 'compensated'
+      ),
+      0
+    )
+  )::text as current_balance_cents,
+  include_in_net_worth,
+  is_archived,
+  display_order,
+  created_at::text as created_at,
+  updated_at::text as updated_at
+`
+
 export const listAccountsSql = `
   select
-    id,
-    clerk_user_id,
-    name,
-    institution,
-    type,
-    currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
-    include_in_net_worth,
-    is_archived,
-    display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
-  from accounts
+    ${accountColumns}
+  from accounts a
   where clerk_user_id = $1
     and is_archived = false
   order by display_order asc, created_at asc
@@ -21,20 +41,8 @@ export const listAccountsSql = `
 
 export const listAllAccountsSql = `
   select
-    id,
-    clerk_user_id,
-    name,
-    institution,
-    type,
-    currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
-    include_in_net_worth,
-    is_archived,
-    display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
-  from accounts
+    ${accountColumns}
+  from accounts a
   where clerk_user_id = $1
   order by display_order asc, created_at asc
 `
