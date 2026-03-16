@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  CreditCard,
   Landmark,
   LayoutDashboard,
   TrendingUp,
@@ -13,6 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 
 const icons = {
+  "credit-card": CreditCard,
   landmark: Landmark,
   "layout-dashboard": LayoutDashboard,
   "trending-up": TrendingUp,
