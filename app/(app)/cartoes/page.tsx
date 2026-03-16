@@ -5,19 +5,34 @@ import { isAppError } from "@/lib/errors/app-error"
 import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
 import { listCreditCardsUseCase } from "@/modules/credit-cards/application/list-credit-cards-use-case"
 import { buildCreditCardsPageData } from "@/modules/credit-cards/presentation/view-model"
+import { listTransactionsUseCase } from "@/modules/transactions/application/list-transactions-use-case"
 import { buildTransactionAccountOptions } from "@/modules/transactions/presentation/view-model"
+import type { CreditCardInvoiceExpenseRecord } from "@/modules/transactions/domain/types"
 
 async function getCreditCardsPageState() {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
-    const [accounts, cards] = await Promise.all([
+    const [accounts, cards, cardExpensesResult] = await Promise.all([
       listAccountsUseCase({ clerkUserId }),
       listCreditCardsUseCase({ clerkUserId }),
+      listTransactionsUseCase({ clerkUserId }),
     ])
+    const cardPurchasesByCardId = cardExpensesResult.invoiceExpenses.reduce<
+      Record<string, CreditCardInvoiceExpenseRecord[]>
+    >((acc, expense) => {
+      if (!acc[expense.cardId]) {
+        acc[expense.cardId] = []
+      }
+
+      acc[expense.cardId].push(expense)
+
+      return acc
+    }, {})
 
     return {
       accountOptions: buildTransactionAccountOptions(accounts),
       pageData: buildCreditCardsPageData(cards),
+      cardPurchasesByCardId,
       error: null,
     }
   } catch (error) {
@@ -25,6 +40,7 @@ async function getCreditCardsPageState() {
       return {
         accountOptions: [],
         pageData: buildCreditCardsPageData([]),
+        cardPurchasesByCardId: {},
         error,
       }
     }
@@ -56,5 +72,11 @@ export default async function CreditCardsPage() {
     )
   }
 
-  return <CreditCardSettingsPage accountOptions={state.accountOptions} pageData={state.pageData} />
+  return (
+    <CreditCardSettingsPage
+      accountOptions={state.accountOptions}
+      pageData={state.pageData}
+      cardPurchasesByCardId={state.cardPurchasesByCardId}
+    />
+  )
 }

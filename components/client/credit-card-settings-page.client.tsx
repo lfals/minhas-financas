@@ -1,13 +1,22 @@
 "use client"
 
-import { CalendarClock, CreditCard, Wallet } from "lucide-react"
+import { CalendarClock, CreditCard, ReceiptText, Wallet } from "lucide-react"
+import { useMemo, useState } from "react"
 
 import { CreditCardCreateDialog } from "@/components/client/credit-card-create-dialog.client"
 import { CreditCardEditDialog } from "@/components/client/credit-card-edit-dialog.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { formatCents } from "@/lib/money"
 import type { CreditCardsPageData } from "@/modules/credit-cards/domain/types"
 import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
+import { TransactionListItem } from "@/components/transaction-list-item"
+import type { CreditCardInvoiceExpenseRecord } from "@/modules/transactions/domain/types"
 
 export type CreditCardFormValues = {
   cardId?: string
@@ -28,6 +37,165 @@ export const defaultCreditCardFormValues: CreditCardFormValues = {
   dueDay: "",
   expenseAccountId: "",
   autoCategorizationEnabled: true,
+}
+
+type CreditCardPurchaseItem = {
+  id: string
+  title: string
+  metadata: string
+  amountCents: number
+  badgeLabel?: string | null
+  sortDate: string
+}
+
+const installmentTitlePattern = / \d+\/\d+$/
+const installmentSuffixPattern = /(?:\s|-) (\d+)\/(\d+)$/
+
+function normalizeCardPurchaseTitle(title: string) {
+  return title.replace(installmentTitlePattern, "")
+}
+
+function parseInstallmentInfoFromTitle(title: string) {
+  const match = title.match(installmentSuffixPattern)
+
+  if (!match) {
+    return null
+  }
+
+  return {
+    number: Number(match[1]),
+    total: Number(match[2]),
+  }
+}
+
+function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditCardPurchaseItem[] {
+  if (!expenses.length) {
+    return []
+  }
+
+  const groups = new Map<string, CreditCardInvoiceExpenseRecord[]>()
+  const today = new Date().toISOString().split("T")[0]
+
+  for (const expense of expenses) {
+    if (expense.notes === "__credit_card_invoice_settlement_adjustment__") {
+      continue
+    }
+
+    const titleInstallment = parseInstallmentInfoFromTitle(expense.title)
+    const installmentTotal =
+      expense.installmentTotal ??
+      (titleInstallment?.total != null && titleInstallment.total > 0 ? titleInstallment.total : null)
+    const installmentNumber =
+      expense.installmentNumber ??
+      (titleInstallment?.number != null && titleInstallment.number > 0 ? titleInstallment.number : null)
+    const isInstallment = installmentTotal != null && installmentTotal > 1 && installmentNumber != null
+
+    const key = isInstallment
+      ? expense.seriesId ??
+        `legacy:${expense.cardId}:${normalizeCardPurchaseTitle(expense.title)}:${expense.category}:${installmentTotal}`
+      : `single:${expense.id}`
+
+    const current = groups.get(key)
+
+    if (!current) {
+      groups.set(key, [expense])
+      continue
+    }
+
+    current.push(expense)
+  }
+
+  return [...groups.values()].map((group) => {
+    const sortedByDateAsc = [...group].sort((left, right) =>
+      left.occurredOn.localeCompare(right.occurredOn),
+    )
+    const sortedByDateDesc = [...sortedByDateAsc].reverse()
+    const latest = sortedByDateDesc[0]
+
+    const latestTitleInstallment = parseInstallmentInfoFromTitle(latest.title)
+    const latestInstallmentTotal =
+      latest.installmentTotal ??
+      (latestTitleInstallment?.total != null && latestTitleInstallment.total > 0
+        ? latestTitleInstallment.total
+        : null)
+    const latestInstallmentNumber =
+      latest.installmentNumber ??
+      (latestTitleInstallment?.number != null && latestTitleInstallment.number > 0
+        ? latestTitleInstallment.number
+        : null)
+
+    const isInstallment =
+      latestInstallmentTotal != null &&
+      latestInstallmentTotal > 1 &&
+      latestInstallmentNumber != null
+
+    if (!isInstallment) {
+      return {
+        id: latest.id,
+        title: normalizeCardPurchaseTitle(latest.title),
+        metadata: `${latest.category} • ${latest.dateLabel}`,
+        amountCents: latest.amountCents,
+        badgeLabel: null,
+        sortDate: latest.occurredOn,
+      }
+    }
+
+    const totalInstallmentAmount = sortedByDateAsc.reduce(
+      (sum, purchase) => sum + purchase.amountCents,
+      0,
+    )
+
+    const installments = sortedByDateAsc.filter(
+      (purchase) =>
+        (() => {
+          const parsed = parseInstallmentInfoFromTitle(purchase.title)
+
+          const total =
+            purchase.installmentTotal ??
+            (parsed?.total != null && parsed.total > 0 ? parsed.total : null)
+          const number =
+            purchase.installmentNumber ??
+            (parsed?.number != null && parsed.number > 0 ? parsed.number : null)
+
+          return total != null && total > 1 && number != null
+        })(),
+    )
+
+    const current = installments.filter((purchase) => purchase.occurredOn <= today)
+
+    const currentInstallment = current.length ? current[current.length - 1] : installments[0]
+    const currentDateLabel = currentInstallment?.dateLabel ?? latest.dateLabel
+
+    const parsedCurrentInstallment = currentInstallment
+      ? parseInstallmentInfoFromTitle(currentInstallment.title)
+      : null
+    const installmentTotal =
+      currentInstallment?.installmentTotal ??
+      (parsedCurrentInstallment?.total != null && parsedCurrentInstallment.total > 0
+        ? parsedCurrentInstallment.total
+        : null)
+    const installmentCurrent =
+      currentInstallment?.installmentNumber ??
+      (parsedCurrentInstallment?.number != null && parsedCurrentInstallment.number > 0
+        ? parsedCurrentInstallment.number
+        : null)
+    const installmentAmount = currentInstallment?.amountCents ?? 0
+
+    return {
+      id: latest.seriesId ?? latest.id,
+      title: normalizeCardPurchaseTitle(latest.title),
+      metadata:
+        `${latest.category} • ${latest.dateLabel} • ` +
+        `Quantidade: ${installmentTotal}x • ` +
+        `Parcela atual: ${installmentCurrent}/${installmentTotal} ` +
+        `(${formatCents(installmentAmount)}) • ` +
+        `Total: ${formatCents(totalInstallmentAmount)} • Compra em ${currentDateLabel}`,
+      amountCents: totalInstallmentAmount,
+      badgeLabel: installmentCurrent != null && installmentTotal != null ? `${installmentCurrent}/${installmentTotal}` : null,
+      sortDate: latest.occurredOn,
+    }
+  })
+  .sort((left, right) => right.sortDate.localeCompare(left.sortDate))
 }
 
 function MetricCard({
@@ -59,10 +227,24 @@ function MetricCard({
 export function CreditCardSettingsPage({
   accountOptions,
   pageData,
+  cardPurchasesByCardId,
 }: {
   accountOptions: TransactionAccountOption[]
   pageData: CreditCardsPageData
+  cardPurchasesByCardId: Record<string, CreditCardInvoiceExpenseRecord[]>
 }) {
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const selectedCard = pageData.cards.find((card) => card.id === selectedCardId) ?? null
+  const selectedCardPurchases = useMemo(
+    () =>
+      selectedCardId
+        ? buildCardPurchases(cardPurchasesByCardId[selectedCardId] ?? []).sort((left, right) =>
+            right.sortDate.localeCompare(left.sortDate),
+          )
+        : [],
+    [cardPurchasesByCardId, selectedCardId],
+  )
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -93,7 +275,21 @@ export function CreditCardSettingsPage({
           <CardContent className="grid gap-4 pt-0">
             {pageData.cards.length ? (
               pageData.cards.map((card) => (
-                <div key={card.id} className="border border-white/10 bg-[#121212] p-4">
+                <div
+                  key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedCardId(card.id)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault()
+                      setSelectedCardId(card.id)
+                    }
+                  }}
+                  className="cursor-pointer border border-white/10 bg-[#121212] p-4 transition-colors hover:bg-[#161616] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4f1ff]/40"
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
@@ -107,22 +303,24 @@ export function CreditCardSettingsPage({
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <CreditCardEditDialog
-                        accountOptions={accountOptions}
-                        initialValues={{
-                          cardId: card.id,
-                          nickname: card.nickname,
-                          finalDigits: card.finalDigits,
-                          limit: new Intl.NumberFormat("pt-BR", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }).format(card.limitCents / 100),
-                          closingDay: card.closingDay,
-                          dueDay: card.dueDay,
-                          expenseAccountId: card.expenseAccountId,
-                          autoCategorizationEnabled: card.autoCategorizationEnabled,
-                        }}
-                      />
+                      <div onClick={(event) => event.stopPropagation()}>
+                        <CreditCardEditDialog
+                          accountOptions={accountOptions}
+                          initialValues={{
+                            cardId: card.id,
+                            nickname: card.nickname,
+                            finalDigits: card.finalDigits,
+                            limit: new Intl.NumberFormat("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }).format(card.limitCents / 100),
+                            closingDay: card.closingDay,
+                            dueDay: card.dueDay,
+                            expenseAccountId: card.expenseAccountId,
+                            autoCategorizationEnabled: card.autoCategorizationEnabled,
+                          }}
+                        />
+                      </div>
                       <CreditCard className="size-5 text-[#d8f36a]" />
                     </div>
                   </div>
@@ -164,6 +362,56 @@ export function CreditCardSettingsPage({
           </CardContent>
         </Card>
       </section>
+
+      <Dialog
+        open={selectedCard !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedCardId(null)
+          }
+        }}
+      >
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
+          <DialogHeader className="shrink-0 border-b border-white/10 px-6 pb-5">
+            <div className="space-y-3">
+              <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Compras do cartão</p>
+              <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+                {selectedCard ? selectedCard.nickname : "Cartão"}
+              </DialogTitle>
+              {selectedCard ? (
+                <div className="text-sm text-white/60">
+                  {selectedCard.createdAtLabel} • {selectedCard.expenseAccountLabel}
+                </div>
+              ) : null}
+            </div>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto px-6 py-5">
+            <div className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/45">
+              <ReceiptText className="size-4" />
+              {selectedCardPurchases.length} compras
+            </div>
+            {selectedCardPurchases.length ? (
+              <div className="space-y-3">
+                {selectedCardPurchases.map((purchase) => (
+                  <TransactionListItem
+                    key={purchase.id}
+                    title={purchase.title}
+                    metadata={purchase.metadata}
+                    amountCents={Math.abs(purchase.amountCents)}
+                    kind="expense"
+                    badgeLabel={purchase.badgeLabel}
+                    className="bg-[#121212]"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
+                Nenhuma compra encontrada para este cartão ainda.
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
