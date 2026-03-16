@@ -12,6 +12,7 @@ import type {
   TransactionCategoryBreakdown,
   TransactionCreditCardOption,
   TransactionListRecord,
+  TransactionPageItem,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
 
@@ -99,6 +100,37 @@ function buildCategoryBreakdown(
     }))
 }
 
+export function buildTransactionPageItem(
+  transaction: TransactionListRecord
+): TransactionPageItem {
+  return {
+    id: transaction.id,
+    title: transaction.title,
+    category: transaction.category,
+    sourceType: transaction.sourceType,
+    isFixed: transaction.isFixed,
+    fixedExpenseFrequency: transaction.fixedExpenseFrequency,
+    installmentNumber: transaction.installmentNumber,
+    installmentTotal: transaction.installmentTotal,
+    occurredOn: transaction.occurredOn,
+    accountName: transaction.accountName,
+    accountInstitution: transaction.accountInstitution,
+    dateLabel: format(new Date(`${transaction.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
+    amountCents: transaction.amountCents,
+    settledAmountCents: transaction.settledAmountCents,
+    displayAmountCents: transaction.settledAmountCents ?? transaction.amountCents,
+    isAmountOverridden:
+      transaction.settledAmountCents !== null &&
+      transaction.settledAmountCents !== undefined &&
+      transaction.settledAmountCents !== transaction.amountCents,
+    seriesId: transaction.seriesId,
+    supportsFutureRemoval: transaction.seriesId !== null && transaction.seriesId !== undefined,
+    status: transaction.status,
+    statusLabel: getStatusLabel(transaction.status),
+    kind: transaction.kind,
+  }
+}
+
 export function buildTransactionAccountOptions(accounts: AccountRecord[]): TransactionAccountOption[] {
   return accounts.map((account) => ({
     id: account.id,
@@ -143,6 +175,8 @@ export function buildTransactionsPageData(
   invoiceExpenses: CreditCardInvoiceExpenseRecord[],
   options?: {
     selectedDate?: string
+    previousTransactions?: TransactionListRecord[]
+    totalAccountBalanceCents?: number
   }
 ): TransactionsPageData {
   const getEffectiveAmount = (transaction: TransactionListRecord) =>
@@ -150,6 +184,20 @@ export function buildTransactionsPageData(
 
   const getSignedAmount = (transaction: TransactionListRecord) =>
     transaction.kind === "income" ? getEffectiveAmount(transaction) : -getEffectiveAmount(transaction)
+
+  const previousTransactions = options?.previousTransactions ?? []
+
+  const previousCompensatedIncomeCents = previousTransactions
+    .filter((transaction) => transaction.kind === "income" && transaction.status === "compensated")
+    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
+
+  const previousCompensatedExpenseCents = previousTransactions
+    .filter((transaction) => transaction.kind === "expense" && transaction.status === "compensated")
+    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
+
+  const previousPendingProjectedBalanceCents = previousTransactions
+    .filter((transaction) => transaction.status !== "compensated")
+    .reduce((sum, transaction) => sum + getSignedAmount(transaction), 0)
 
   const compensatedIncomeCents = transactions
     .filter((transaction) => transaction.kind === "income" && transaction.status === "compensated")
@@ -163,10 +211,13 @@ export function buildTransactionsPageData(
     .filter((transaction) => transaction.status !== "compensated")
     .reduce((sum, transaction) => sum + transaction.amountCents, 0)
 
-  const projectedBalanceCents = transactions.reduce(
-    (sum, transaction) => sum + getSignedAmount(transaction),
-    0
-  )
+  const projectedPendingBalanceCents = transactions
+    .filter((transaction) => transaction.status !== "compensated")
+    .reduce((sum, transaction) => sum + getSignedAmount(transaction), 0)
+
+  const totalAccountBalanceCents = options?.totalAccountBalanceCents ?? 0
+  const estimatedBalanceCents =
+    totalAccountBalanceCents + previousPendingProjectedBalanceCents + projectedPendingBalanceCents
 
   const selectedDate = options?.selectedDate ?? transactions[0]?.occurredOn ?? format(new Date(), "yyyy-MM-dd")
   const periodLabel = format(new Date(`${selectedDate}T00:00:00`), "MMMM yyyy", { locale: ptBR })
@@ -223,43 +274,31 @@ export function buildTransactionsPageData(
         tone: "neutral",
       },
       {
-        label: "Saldo líquido",
-        valueCents: compensatedIncomeCents - compensatedExpenseCents,
-        detail: "Resultado líquido do que já foi compensado",
-        tone: compensatedIncomeCents - compensatedExpenseCents >= 0 ? "income" : "expense",
+        label: "Saldo atual",
+        valueCents: totalAccountBalanceCents,
+        detail: "Saldo atual consolidado de todas as contas",
+        tone: totalAccountBalanceCents >= 0 ? "income" : "expense",
       },
       {
         label: "Saldo previsto",
-        valueCents: projectedBalanceCents,
-        detail: "Inclui lançamentos pendentes e agendados do período",
-        tone: projectedBalanceCents >= 0 ? "income" : "expense",
+        valueCents: estimatedBalanceCents,
+        detail: "Saldo atual das contas + lançamentos pendentes/acumulados",
+        tone: estimatedBalanceCents >= 0 ? "income" : "expense",
       },
     ],
-    transactions: transactions.map((transaction) => ({
-      id: transaction.id,
-      title: transaction.title,
-      category: transaction.category,
-      sourceType: transaction.sourceType,
-      isFixed: transaction.isFixed,
-      fixedExpenseFrequency: transaction.fixedExpenseFrequency,
-      installmentNumber: transaction.installmentNumber,
-      installmentTotal: transaction.installmentTotal,
-      accountName: transaction.accountName,
-      accountInstitution: transaction.accountInstitution,
-      dateLabel: format(new Date(`${transaction.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
-      amountCents: transaction.amountCents,
-      settledAmountCents: transaction.settledAmountCents,
-      displayAmountCents: getEffectiveAmount(transaction),
-      isAmountOverridden:
-        transaction.settledAmountCents !== null &&
-        transaction.settledAmountCents !== undefined &&
-        transaction.settledAmountCents !== transaction.amountCents,
-      seriesId: transaction.seriesId,
-      supportsFutureRemoval: transaction.seriesId !== null && transaction.seriesId !== undefined,
-      status: transaction.status,
-      statusLabel: getStatusLabel(transaction.status),
-      kind: transaction.kind,
-    })),
+    transactions: transactions.map((transaction) => {
+      const effectiveAmount = getEffectiveAmount(transaction)
+      const item = buildTransactionPageItem(transaction)
+
+      return {
+        ...item,
+        displayAmountCents: effectiveAmount,
+        isAmountOverridden:
+          transaction.settledAmountCents !== null &&
+          transaction.settledAmountCents !== undefined &&
+          transaction.settledAmountCents !== effectiveAmount,
+      }
+    }),
     invoiceExpenses: buildInvoiceExpenses(invoiceExpenses),
     categories: buildCategoryBreakdown(transactions),
     cashflow: [...weekly.entries()].sort((left, right) => left[0].localeCompare(right[0])).map(([id, point]) => ({

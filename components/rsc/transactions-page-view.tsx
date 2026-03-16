@@ -5,6 +5,7 @@ import {
   CreditCardInvoiceDetailsDialog,
 } from "@/components/client/credit-card-invoice-details-dialog.client"
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
+import { TransactionInstallmentsDetailsDialog } from "@/components/client/transaction-installments-details-dialog.client"
 import { TransactionRemoveButton } from "@/components/client/transaction-remove-button.client"
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
@@ -14,6 +15,7 @@ import { formatCompactCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import type {
   TransactionAccountOption,
+  TransactionPageItem,
   TransactionCategoryOption,
   TransactionCreditCardOption,
   TransactionsPageData,
@@ -22,6 +24,7 @@ import {
   getFixedExpenseFrequencyLabel,
   getInstallmentLabel,
 } from "@/modules/transactions/presentation/view-model"
+import { ClickPropagationStopper } from "@/components/client/click-propagation-stopper.client"
 
 function metricToneClass(tone: TransactionsPageData["metrics"][number]["tone"]) {
   if (tone === "income") return "text-[#d8f36a]"
@@ -62,6 +65,7 @@ export function TransactionsPageView({
   summary,
   metrics,
   transactions,
+  allTransactions,
   invoiceExpenses,
   accountOptions,
   creditCardOptions,
@@ -72,9 +76,35 @@ export function TransactionsPageView({
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
+  allTransactions: TransactionPageItem[]
   defaultOccurredOn: string
   selectedDate: string
 }) {
+  const installmentsBySeries = new Map<string, TransactionsPageData["transactions"][number][]>()
+
+  for (const transaction of allTransactions) {
+    if (!transaction.seriesId || !transaction.installmentTotal) {
+      continue
+    }
+
+    const existing = installmentsBySeries.get(transaction.seriesId) ?? []
+    existing.push(transaction)
+    installmentsBySeries.set(transaction.seriesId, existing)
+  }
+
+  for (const installments of installmentsBySeries.values()) {
+    installments.sort((left, right) => {
+      const leftInstallment = left.installmentNumber ?? Number.MAX_SAFE_INTEGER
+      const rightInstallment = right.installmentNumber ?? Number.MAX_SAFE_INTEGER
+
+      if (leftInstallment !== rightInstallment) {
+        return leftInstallment - rightInstallment
+      }
+
+      return left.occurredOn.localeCompare(right.occurredOn)
+    })
+  }
+
   return (
     <div className="space-y-6">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
@@ -125,6 +155,28 @@ export function TransactionsPageView({
               {transactions.length ? (
                 transactions.map((transaction) => {
                   const badgeLabel = getTransactionBadge(transaction)
+                  const transactionActions = (
+                    <ClickPropagationStopper>
+                      <TransactionRemoveButton
+                        transactionId={transaction.id}
+                        transactionTitle={transaction.title}
+                        isFixed={transaction.isFixed}
+                        installmentTotal={transaction.installmentTotal}
+                        supportsFutureRemoval={transaction.supportsFutureRemoval}
+                      />
+                      <TransactionSettleButton
+                        transactionId={transaction.id}
+                        originalAmountCents={transaction.amountCents}
+                        isCompensated={transaction.status === "compensated"}
+                      />
+                    </ClickPropagationStopper>
+                  )
+                  const installmentTotal = transaction.installmentTotal
+                  const installmentTransactions =
+                    installmentTotal && transaction.seriesId
+                      ? installmentsBySeries.get(transaction.seriesId) ?? []
+                      : []
+                  const shouldOpenInstallmentsDialog = Boolean(installmentTotal)
 
                   return (
                     transaction.sourceType === "credit_card_invoice" ? (
@@ -157,6 +209,28 @@ export function TransactionsPageView({
                           />
                         </div>
                       </CreditCardInvoiceDetailsDialog>
+                    ) : shouldOpenInstallmentsDialog ? (
+                      <TransactionInstallmentsDetailsDialog
+                        key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
+                        transaction={transaction}
+                        installments={installmentTransactions.length ? installmentTransactions : [transaction]}
+                      >
+                        <div className="block w-full text-left">
+                          <TransactionListItem
+                            title={transaction.title}
+                            badgeLabel={badgeLabel}
+                            statusLabel={transaction.statusLabel}
+                            statusClassName={statusTone(transaction.statusLabel)}
+                            metadata={`${transaction.category} • ${transaction.accountName} • ${transaction.dateLabel}`}
+                            amountCents={transaction.amountCents}
+                            displayAmountCents={transaction.displayAmountCents}
+                            isAmountOverridden={transaction.isAmountOverridden}
+                            kind={transaction.kind}
+                            className="cursor-pointer transition-colors hover:bg-[#161616]"
+                            actions={transactionActions}
+                          />
+                        </div>
+                      </TransactionInstallmentsDetailsDialog>
                     ) : (
                       <TransactionListItem
                         key={transaction.id}
@@ -169,22 +243,7 @@ export function TransactionsPageView({
                         displayAmountCents={transaction.displayAmountCents}
                         isAmountOverridden={transaction.isAmountOverridden}
                         kind={transaction.kind}
-                        actions={
-                          <>
-                            <TransactionRemoveButton
-                              transactionId={transaction.id}
-                              transactionTitle={transaction.title}
-                              isFixed={transaction.isFixed}
-                              installmentTotal={transaction.installmentTotal}
-                              supportsFutureRemoval={transaction.supportsFutureRemoval}
-                            />
-                            <TransactionSettleButton
-                              transactionId={transaction.id}
-                              originalAmountCents={transaction.amountCents}
-                              isCompensated={transaction.status === "compensated"}
-                            />
-                          </>
-                        }
+                        actions={transactionActions}
                       />
                     )
                   )

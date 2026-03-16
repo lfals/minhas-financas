@@ -86,6 +86,7 @@ export type TransactionPageItem = {
   fixedExpenseFrequency?: FixedExpenseFrequency | null
   installmentNumber?: number | null
   installmentTotal?: number | null
+  occurredOn: string
   accountName: string
   accountInstitution: string
   dateLabel: string

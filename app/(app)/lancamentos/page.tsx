@@ -12,6 +12,7 @@ import {
   buildTransactionAccountOptions,
   buildTransactionCategoryOptions,
   buildTransactionCreditCardOptions,
+  buildTransactionPageItem,
   buildTransactionsPageData,
 } from "@/modules/transactions/presentation/view-model"
 
@@ -48,9 +49,24 @@ async function getTransactionsPageState(selectedDate: string) {
     const transactionsInMonth = transactions.transactions.filter((transaction) =>
       transaction.occurredOn.startsWith(selectedMonth)
     )
+    const previousTransactions = transactions.transactions.filter(
+      (transaction) => transaction.occurredOn < `${selectedMonth}-01`
+    )
 
     return {
-      data: buildTransactionsPageData(transactionsInMonth, transactions.invoiceExpenses, { selectedDate }),
+      data: buildTransactionsPageData(
+        transactionsInMonth,
+        transactions.invoiceExpenses,
+        {
+          selectedDate,
+          previousTransactions,
+          totalAccountBalanceCents: accounts.reduce(
+            (sum, account) => sum + account.currentBalanceCents,
+            0
+          ),
+        }
+      ),
+      allTransactions: transactions.transactions.map(buildTransactionPageItem),
       accountOptions: buildTransactionAccountOptions(accounts),
       creditCardOptions: buildTransactionCreditCardOptions(cards),
       categoryOptions: buildTransactionCategoryOptions(categories),
@@ -103,6 +119,7 @@ export default async function TransactionsPage({
   return (
     <TransactionsPageView
       {...state.data}
+      allTransactions={state.allTransactions}
       accountOptions={state.accountOptions}
       creditCardOptions={state.creditCardOptions}
       categoryOptions={state.categoryOptions}
