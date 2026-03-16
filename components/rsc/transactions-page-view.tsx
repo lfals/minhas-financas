@@ -1,6 +1,9 @@
 import { CalendarClock, ReceiptText } from "lucide-react"
 
-import { CreditCardInvoiceDetailsDialog } from "@/components/client/credit-card-invoice-details-dialog.client"
+import {
+  CreditCardInvoiceCardActions,
+  CreditCardInvoiceDetailsDialog,
+} from "@/components/client/credit-card-invoice-details-dialog.client"
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
 import { TransactionRemoveButton } from "@/components/client/transaction-remove-button.client"
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
@@ -29,7 +32,7 @@ function metricToneClass(tone: TransactionsPageData["metrics"][number]["tone"]) 
 
 function statusTone(status: TransactionsPageData["transactions"][number]["statusLabel"]) {
   if (status === "Compensado") return "border-white/10 bg-white/5 text-white/70"
-  if (status === "Pendente") return "border-[#ffe07a]/30 bg-[#ffe07a]/10 text-[#ffe07a]"
+  if (status === null) return ""
   return "border-[#c4f1ff]/30 bg-[#c4f1ff]/10 text-[#c4f1ff]"
 }
 
@@ -140,7 +143,7 @@ export function TransactionsPageView({
                         statusClassName={statusTone(transaction.statusLabel)}
                         expenses={invoiceExpenses[transaction.id] ?? []}
                       >
-                        <button type="button" className="block w-full text-left">
+                        <div className="block w-full text-left">
                           <TransactionListItem
                             title={transaction.title}
                             badgeLabel={badgeLabel}
@@ -151,9 +154,16 @@ export function TransactionsPageView({
                             displayAmountCents={transaction.displayAmountCents}
                             isAmountOverridden={transaction.isAmountOverridden}
                             kind={transaction.kind}
-                            className="transition-colors hover:bg-[#161616]"
+                            className="cursor-pointer transition-colors hover:bg-[#161616]"
+                            actions={
+                              <CreditCardInvoiceCardActions
+                                transactionId={transaction.id}
+                                originalAmountCents={transaction.amountCents}
+                                isCompensated={transaction.status === "compensated"}
+                              />
+                            }
                           />
-                        </button>
+                        </div>
                       </CreditCardInvoiceDetailsDialog>
                     ) : (
                       <TransactionListItem
@@ -176,12 +186,11 @@ export function TransactionsPageView({
                               installmentTotal={transaction.installmentTotal}
                               supportsFutureRemoval={transaction.supportsFutureRemoval}
                             />
-                            {transaction.status !== "compensated" ? (
-                              <TransactionSettleButton
-                                transactionId={transaction.id}
-                                originalAmountCents={transaction.amountCents}
-                              />
-                            ) : null}
+                            <TransactionSettleButton
+                              transactionId={transaction.id}
+                              originalAmountCents={transaction.amountCents}
+                              isCompensated={transaction.status === "compensated"}
+                            />
                           </>
                         }
                       />

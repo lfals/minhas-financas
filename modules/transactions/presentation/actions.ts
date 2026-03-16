@@ -7,10 +7,12 @@ import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
+import { reopenTransactionUseCase } from "@/modules/transactions/application/reopen-transaction-use-case"
 import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
 import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
 import {
   createTransactionFormSchema,
+  reopenTransactionInputSchema,
   removeTransactionInputSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
@@ -22,6 +24,11 @@ export type CreateTransactionActionState = {
 }
 
 export type SettleTransactionActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+}
+
+export type ReopenTransactionActionState = {
   status: "idle" | "success" | "error"
   message?: string
 }
@@ -162,6 +169,51 @@ export async function settleTransactionAction(
     return {
       status: "error",
       message: "Não foi possível efetivar o lançamento agora.",
+    }
+  }
+}
+
+export async function reopenTransactionAction(
+  _previousState: ReopenTransactionActionState,
+  formData: FormData
+): Promise<ReopenTransactionActionState> {
+  const parsed = reopenTransactionInputSchema.safeParse({
+    transactionId: formData.get("transactionId"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Lançamento inválido para reabertura.",
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await reopenTransactionUseCase({
+      clerkUserId,
+      transactionId: parsed.data.transactionId,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+
+    return {
+      status: "success",
+      message: "Pagamento reaberto com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível reabrir o pagamento agora.",
     }
   }
 }

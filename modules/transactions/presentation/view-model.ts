@@ -16,7 +16,7 @@ import type {
 
 function getStatusLabel(status: TransactionListRecord["status"]) {
   if (status === "compensated") return "Compensado"
-  if (status === "pending") return "Pendente"
+  if (status === "pending") return null
   return "Agendado"
 }
 

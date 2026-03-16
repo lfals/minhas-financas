@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import { ReceiptText } from "lucide-react"
 
+import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { TransactionListItem } from "@/components/transaction-list-item"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { formatCompactCurrency } from "@/lib/formatters"
@@ -11,8 +12,6 @@ import type {
   CreditCardInvoiceExpensePageItem,
   TransactionPageItem,
 } from "@/modules/transactions/domain/types"
-
-const invoiceItemStatusClassName = "border-[#c4f1ff]/30 bg-[#c4f1ff]/10 text-[#c4f1ff]"
 
 function InvoiceExpenseList({
   expenses,
@@ -57,6 +56,10 @@ export function CreditCardInvoiceDetailsDialog({
 }) {
   const [open, setOpen] = useState(false)
   const totalInvoiceAmount = transaction.displayAmountCents
+
+  useEffect(() => {
+    setOpen(false)
+  }, [transaction.status])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -104,5 +107,29 @@ export function CreditCardInvoiceDetailsDialog({
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+export function CreditCardInvoiceCardActions({
+  transactionId,
+  originalAmountCents,
+  isCompensated,
+}: {
+  transactionId: string
+  originalAmountCents: number
+  isCompensated: boolean
+}) {
+  return (
+    <div
+      onClick={(event) => {
+        event.stopPropagation()
+      }}
+    >
+      <TransactionSettleButton
+        transactionId={transactionId}
+        originalAmountCents={originalAmountCents}
+        isCompensated={isCompensated}
+      />
+    </div>
   )
 }

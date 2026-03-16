@@ -167,6 +167,18 @@ export const compensateTransactionSql = `
     ${transactionColumns}
 `
 
+export const reopenTransactionSql = `
+  update transactions
+  set
+    status = 'pending',
+    settled_amount_cents = null,
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+  returning
+    ${transactionColumns}
+`
+
 export const deleteTransactionSql = `
   delete from transactions
   where clerk_user_id = $1

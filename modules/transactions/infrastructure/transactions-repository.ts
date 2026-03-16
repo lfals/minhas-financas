@@ -11,6 +11,7 @@ import type {
   CreateCreditCardExpenseCommand,
   CreateTransactionCommand,
   CreateTransactionResult,
+  ReopenTransactionCommand,
   RemoveTransactionCommand,
   SettleTransactionCommand,
   TransactionListCommand,
@@ -34,6 +35,7 @@ import {
   listCreditCardInvoiceExpensesSql,
   listFutureTransactionsBySeriesForUpdateSql,
   listTransactionsSql,
+  reopenTransactionSql,
   updateAccountBalanceSql,
   updateCreditCardInvoiceSql,
 } from "@/modules/transactions/infrastructure/transactions-sql"
@@ -621,6 +623,69 @@ export class TransactionsRepository {
         command.clerkUserId,
         "user",
         "transaction.compensated",
+        "transactions",
+        transaction.id,
+        JSON.stringify(existingTransaction),
+        JSON.stringify(transaction),
+        null,
+        null,
+      ])
+
+      return transaction
+    })
+  }
+
+  async reopenTransaction(command: ReopenTransactionCommand) {
+    return withTransaction(async (client) => {
+      const existingTransaction = await queryOne(client, findTransactionByIdForUpdateSql, [
+        command.clerkUserId,
+        command.transactionId,
+      ])
+
+      if (!existingTransaction) {
+        throw new NotFoundAppError("Lançamento não encontrado.")
+      }
+
+      if (existingTransaction.status !== "compensated") {
+        throw new ValidationAppError("Somente lançamentos compensados podem ser reabertos.")
+      }
+
+      const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
+        command.clerkUserId,
+        existingTransaction.accountId,
+      ])
+
+      const account = accountResult.rows[0]
+
+      if (!account || account.is_archived) {
+        throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
+      }
+
+      const effectiveAmountCents =
+        existingTransaction.settledAmountCents ?? existingTransaction.amountCents
+
+      const nextBalanceCents =
+        existingTransaction.kind === "income"
+          ? Number(account.current_balance_cents) - effectiveAmountCents
+          : Number(account.current_balance_cents) + effectiveAmountCents
+
+      const updated = await client.query<DbTransactionRow>(reopenTransactionSql, [
+        command.clerkUserId,
+        command.transactionId,
+      ])
+
+      const transaction = mapTransactionRow(updated.rows[0])
+
+      await client.query(updateAccountBalanceSql, [
+        command.clerkUserId,
+        existingTransaction.accountId,
+        nextBalanceCents,
+      ])
+
+      await client.query(insertTransactionAuditLogSql, [
+        command.clerkUserId,
+        "user",
+        "transaction.reopened",
         "transactions",
         transaction.id,
         JSON.stringify(existingTransaction),

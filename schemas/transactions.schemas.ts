@@ -312,6 +312,10 @@ export const settleTransactionInputSchema = z.object({
   }, z.string().nullable().optional()),
 })
 
+export const reopenTransactionInputSchema = z.object({
+  transactionId: z.uuid("Lançamento inválido para reabertura."),
+})
+
 export const removeTransactionScopeSchema = z.enum(["single", "future"])
 
 export const removeTransactionInputSchema = z.object({
@@ -372,6 +376,7 @@ export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
 export type CreateCreditCardExpenseInput = z.infer<typeof createCreditCardExpenseInputSchema>
 export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema>
+export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema>
 export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema>
 export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>

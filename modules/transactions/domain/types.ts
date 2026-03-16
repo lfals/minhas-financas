@@ -5,6 +5,7 @@ import type {
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
+  ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveTransactionScope,
   SettleTransactionInput,
@@ -23,6 +24,7 @@ export type {
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
+  ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveTransactionScope,
   SettleTransactionInput,
@@ -50,6 +52,10 @@ export type TransactionListCommand = {
 export type SettleTransactionCommand = SettleTransactionInput & {
   clerkUserId: string
   amountCents?: number
+}
+
+export type ReopenTransactionCommand = ReopenTransactionInput & {
+  clerkUserId: string
 }
 
 export type RemoveTransactionCommand = RemoveTransactionInput & {
@@ -82,7 +88,7 @@ export type TransactionPageItem = {
   seriesId?: string | null
   supportsFutureRemoval: boolean
   status: TransactionStatus
-  statusLabel: "Compensado" | "Pendente" | "Agendado"
+  statusLabel: "Compensado" | "Agendado" | null
   kind: TransactionKind
 }
 
