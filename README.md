@@ -1,21 +1,35 @@
-# Next.js template
+# Sistema Financeiro Pessoal
 
-This is a Next.js template with shadcn/ui.
+Este repositório contém a **documentação base para desenvolvimento assistido por Codex** de um sistema de gestão financeira pessoal.
 
-## Adding components
+## Stack
 
-To add components to your app, run the following command:
+- Next.js (App Router)
+- TypeScript
+- TailwindCSS
+- shadcn/ui
+- Clerk (auth)
+- PostgreSQL
+- SQL manual
+- Zod
+- Effect (backend)
 
-```bash
-npx shadcn@latest add button
-```
+## Princípios
 
-This will place the ui components in the `components` directory.
+- Performance first
+- Server Components por padrão
+- Prefetch de rotas principais
+- SQL explícito
+- Validação com Zod
+- Sem ORM
+- Dinheiro armazenado em centavos
 
-## Using components
+## Configuração local
 
-To use the components in your app, import them as follows:
+1. Copie `.env.example` para `.env.local`.
+2. Suba o banco com `docker compose up -d`.
+3. O projeto já inclui `DATABASE_URL` apontando para o PostgreSQL local em `compose.yaml`.
+4. Preencha as credenciais do Clerk.
+5. Rode `npm run dev`.
 
-```tsx
-import { Button } from "@/components/ui/button";
-```
+O schema inicial de contas é aplicado automaticamente a partir de `db/migrations/` na primeira conexão com o banco.
