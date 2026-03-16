@@ -1,6 +1,7 @@
 import type {
   CreateTransactionFormInput,
   CreateCreditCardExpenseInput,
+  CreditCardInvoiceExpenseRecord,
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
@@ -18,6 +19,7 @@ import type {
 export type {
   CreateTransactionFormInput,
   CreateCreditCardExpenseInput,
+  CreditCardInvoiceExpenseRecord,
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
@@ -84,6 +86,17 @@ export type TransactionPageItem = {
   kind: TransactionKind
 }
 
+export type CreditCardInvoiceExpensePageItem = {
+  id: string
+  invoiceTransactionId: string
+  title: string
+  category: string
+  cardName: string
+  dateLabel: string
+  amountCents: number
+  notes?: string | null
+}
+
 export type TransactionCategoryBreakdown = {
   id: string
   name: string
@@ -120,6 +133,7 @@ export type TransactionsPageData = {
   }
   metrics: TransactionMetric[]
   transactions: TransactionPageItem[]
+  invoiceExpenses: Record<string, CreditCardInvoiceExpensePageItem[]>
   categories: TransactionCategoryBreakdown[]
   cashflow: CashflowPoint[]
 }
@@ -127,4 +141,9 @@ export type TransactionsPageData = {
 export type CreateTransactionResult = {
   transaction: TransactionRecord
   created: boolean
+}
+
+export type TransactionsListResult = {
+  transactions: TransactionListRecord[]
+  invoiceExpenses: CreditCardInvoiceExpenseRecord[]
 }

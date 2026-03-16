@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale"
 import type { AccountRecord } from "@/modules/accounts/domain/types"
 import type { CreditCardRecord } from "@/modules/credit-cards/domain/types"
 import type {
+  CreditCardInvoiceExpenseRecord,
   FixedExpenseFrequency,
   TransactionAccountOption,
   TransactionCategoryOption,
@@ -17,6 +18,31 @@ function getStatusLabel(status: TransactionListRecord["status"]) {
   if (status === "compensated") return "Compensado"
   if (status === "pending") return "Pendente"
   return "Agendado"
+}
+
+function buildInvoiceExpenses(
+  invoiceExpenses: CreditCardInvoiceExpenseRecord[]
+): TransactionsPageData["invoiceExpenses"] {
+  return invoiceExpenses.reduce<TransactionsPageData["invoiceExpenses"]>((accumulator, expense) => {
+    const item = {
+      id: expense.id,
+      invoiceTransactionId: expense.invoiceTransactionId,
+      title: expense.title,
+      category: expense.category,
+      cardName: expense.cardName,
+      dateLabel: format(new Date(`${expense.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
+      amountCents: expense.amountCents,
+      notes: expense.notes,
+    }
+
+    if (!accumulator[item.invoiceTransactionId]) {
+      accumulator[item.invoiceTransactionId] = []
+    }
+
+    accumulator[item.invoiceTransactionId].push(item)
+
+    return accumulator
+  }, {})
 }
 
 export function getFixedExpenseFrequencyLabel(frequency?: FixedExpenseFrequency | null) {
@@ -108,6 +134,7 @@ export function buildTransactionCreditCardOptions(
 
 export function buildTransactionsPageData(
   transactions: TransactionListRecord[],
+  invoiceExpenses: CreditCardInvoiceExpenseRecord[],
   options?: {
     selectedDate?: string
   }
@@ -227,6 +254,7 @@ export function buildTransactionsPageData(
       statusLabel: getStatusLabel(transaction.status),
       kind: transaction.kind,
     })),
+    invoiceExpenses: buildInvoiceExpenses(invoiceExpenses),
     categories: buildCategoryBreakdown(transactions),
     cashflow: [...weekly.entries()].sort((left, right) => left[0].localeCompare(right[0])).map(([id, point]) => ({
       id,

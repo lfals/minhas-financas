@@ -348,6 +348,20 @@ export const transactionListRecordSchema = transactionRecordSchema.extend({
   accountInstitution: z.string(),
 })
 
+export const creditCardInvoiceExpenseRecordSchema = z.object({
+  id: z.uuid(),
+  cardId: z.uuid(),
+  cardName: z.string(),
+  invoiceTransactionId: z.uuid(),
+  title: z.string(),
+  category: z.string(),
+  amountCents: centsSchema,
+  occurredOn: isoDateSchema,
+  notes: z.string().nullable().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+})
+
 export type TransactionKind = z.infer<typeof transactionKindSchema>
 export type TransactionFormKind = z.infer<typeof transactionFormKindSchema>
 export type TransactionStatus = z.infer<typeof transactionStatusSchema>
@@ -362,3 +376,4 @@ export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema
 export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>
+export type CreditCardInvoiceExpenseRecord = z.infer<typeof creditCardInvoiceExpenseRecordSchema>

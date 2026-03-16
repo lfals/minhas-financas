@@ -7,6 +7,7 @@ import { queryDb } from "@/lib/db/pool"
 import { withTransaction } from "@/lib/db/tx"
 import { NotFoundAppError, ValidationAppError } from "@/lib/errors/app-error"
 import type {
+  CreditCardInvoiceExpenseRecord,
   CreateCreditCardExpenseCommand,
   CreateTransactionCommand,
   CreateTransactionResult,
@@ -14,6 +15,7 @@ import type {
   SettleTransactionCommand,
   TransactionListCommand,
   TransactionListRecord,
+  TransactionsListResult,
   TransactionRecord,
 } from "@/modules/transactions/domain/types"
 import {
@@ -29,12 +31,17 @@ import {
   insertCreditCardExpenseSql,
   insertTransactionAuditLogSql,
   insertTransactionSql,
+  listCreditCardInvoiceExpensesSql,
   listFutureTransactionsBySeriesForUpdateSql,
   listTransactionsSql,
   updateAccountBalanceSql,
   updateCreditCardInvoiceSql,
 } from "@/modules/transactions/infrastructure/transactions-sql"
-import { transactionListRecordSchema, transactionRecordSchema } from "@/schemas/transactions.schemas"
+import {
+  creditCardInvoiceExpenseRecordSchema,
+  transactionListRecordSchema,
+  transactionRecordSchema,
+} from "@/schemas/transactions.schemas"
 
 type DbTransactionRow = {
   id: string
@@ -83,6 +90,20 @@ type DbCreditCardExpenseRow = {
   is_archived: boolean
 }
 
+type DbCreditCardInvoiceExpenseListRow = {
+  id: string
+  card_id: string
+  card_name: string
+  invoice_transaction_id: string
+  title: string
+  category: string
+  amount_cents: string
+  occurred_on: string
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 function mapTransactionRow(row: DbTransactionRow): TransactionRecord {
   return transactionRecordSchema.parse({
     id: row.id,
@@ -114,6 +135,24 @@ function mapTransactionListRow(row: DbTransactionListRow): TransactionListRecord
     ...mapTransactionRow(row),
     accountName: row.account_name,
     accountInstitution: row.account_institution,
+  })
+}
+
+function mapCreditCardInvoiceExpenseRow(
+  row: DbCreditCardInvoiceExpenseListRow
+): CreditCardInvoiceExpenseRecord {
+  return creditCardInvoiceExpenseRecordSchema.parse({
+    id: row.id,
+    cardId: row.card_id,
+    cardName: row.card_name,
+    invoiceTransactionId: row.invoice_transaction_id,
+    title: row.title,
+    category: row.category,
+    amountCents: row.amount_cents,
+    occurredOn: row.occurred_on,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   })
 }
 
@@ -264,9 +303,16 @@ async function queryMany(client: PoolClient, text: string, params: readonly unkn
 }
 
 export class TransactionsRepository {
-  async listByUser(command: TransactionListCommand) {
-    const result = await queryDb<DbTransactionListRow>(listTransactionsSql, [command.clerkUserId])
-    return result.rows.map(mapTransactionListRow)
+  async listByUser(command: TransactionListCommand): Promise<TransactionsListResult> {
+    const [transactionsResult, invoiceExpensesResult] = await Promise.all([
+      queryDb<DbTransactionListRow>(listTransactionsSql, [command.clerkUserId]),
+      queryDb<DbCreditCardInvoiceExpenseListRow>(listCreditCardInvoiceExpensesSql, [command.clerkUserId]),
+    ])
+
+    return {
+      transactions: transactionsResult.rows.map(mapTransactionListRow),
+      invoiceExpenses: invoiceExpensesResult.rows.map(mapCreditCardInvoiceExpenseRow),
+    }
   }
 
   async create(command: CreateTransactionCommand): Promise<CreateTransactionResult> {

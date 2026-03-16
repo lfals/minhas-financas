@@ -43,15 +43,15 @@ async function getTransactionsPageState(selectedDate: string) {
       listTransactionsUseCase({ clerkUserId }),
     ])
     const selectedMonth = selectedDate.slice(0, 7)
-    const transactionsInMonth = transactions.filter((transaction) =>
+    const transactionsInMonth = transactions.transactions.filter((transaction) =>
       transaction.occurredOn.startsWith(selectedMonth)
     )
 
     return {
-      data: buildTransactionsPageData(transactionsInMonth, { selectedDate }),
+      data: buildTransactionsPageData(transactionsInMonth, transactions.invoiceExpenses, { selectedDate }),
       accountOptions: buildTransactionAccountOptions(accounts),
       creditCardOptions: buildTransactionCreditCardOptions(cards),
-      categoryOptions: buildTransactionCategoryOptions(transactions),
+      categoryOptions: buildTransactionCategoryOptions(transactions.transactions),
       error: null,
     }
   } catch (error) {

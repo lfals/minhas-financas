@@ -1,9 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, CalendarClock, ReceiptText } from "lucide-react"
+import { CalendarClock, ReceiptText } from "lucide-react"
 
+import { CreditCardInvoiceDetailsDialog } from "@/components/client/credit-card-invoice-details-dialog.client"
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
 import { TransactionRemoveButton } from "@/components/client/transaction-remove-button.client"
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
+import { TransactionListItem } from "@/components/transaction-list-item"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCompactCurrency } from "@/lib/formatters"
 import { formatCents } from "@/lib/money"
@@ -58,6 +60,7 @@ export function TransactionsPageView({
   summary,
   metrics,
   transactions,
+  invoiceExpenses,
   categories,
   cashflow,
   accountOptions,
@@ -129,82 +132,60 @@ export function TransactionsPageView({
                   const badgeLabel = getTransactionBadge(transaction)
 
                   return (
-                    <div
-                      key={transaction.id}
-                      className="grid gap-4 border border-white/10 bg-[#121212] p-4 md:grid-cols-[1fr_auto]"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm uppercase tracking-[0.18em] text-white">
-                            {transaction.title}
-                          </p>
-                          {badgeLabel ? (
-                            <span className="border border-[#c4f1ff]/30 bg-[#c4f1ff]/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[#c4f1ff]">
-                              {badgeLabel}
-                            </span>
-                          ) : null}
-                          <span
-                            className={cn(
-                              "border px-2 py-1 text-[10px] uppercase tracking-[0.18em]",
-                              statusTone(transaction.statusLabel)
-                            )}
-                          >
-                            {transaction.statusLabel}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-white/55">
-                          {transaction.category} • {transaction.accountName} • {transaction.dateLabel}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 md:text-right">
-                        <div className="flex items-center gap-3">
-                          {transaction.kind === "income" ? (
-                            <ArrowUpRight className="size-4 text-[#d8f36a]" />
-                          ) : (
-                            <ArrowDownRight className="size-4 text-[#ff9c7a]" />
-                          )}
-                          <p
-                            className={cn(
-                              "text-lg font-semibold tracking-[-0.05em]",
-                              transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
-                            )}
-                          >
-                            {transaction.isAmountOverridden ? (
-                              <span className="flex flex-col items-start md:items-end">
-                                <span className="text-sm font-medium text-white/35 line-through decoration-white/35">
-                                  {transaction.kind === "income" ? "+" : "-"}
-                                  {formatCents(transaction.amountCents)}
-                                </span>
-                                <span>
-                                  {transaction.kind === "income" ? "+" : "-"}
-                                  {formatCents(transaction.displayAmountCents)}
-                                </span>
-                              </span>
-                            ) : (
-                              <>
-                                {transaction.kind === "income" ? "+" : "-"}
-                                {formatCents(transaction.displayAmountCents)}
-                              </>
-                            )}
-                          </p>
-                        </div>
-                        {transaction.sourceType !== "credit_card_invoice" ? (
-                          <TransactionRemoveButton
-                            transactionId={transaction.id}
-                            transactionTitle={transaction.title}
-                            isFixed={transaction.isFixed}
-                            installmentTotal={transaction.installmentTotal}
-                            supportsFutureRemoval={transaction.supportsFutureRemoval}
+                    transaction.sourceType === "credit_card_invoice" ? (
+                      <CreditCardInvoiceDetailsDialog
+                        key={transaction.id}
+                        transaction={transaction}
+                        badgeLabel={badgeLabel}
+                        statusClassName={statusTone(transaction.statusLabel)}
+                        expenses={invoiceExpenses[transaction.id] ?? []}
+                      >
+                        <button type="button" className="block w-full text-left">
+                          <TransactionListItem
+                            title={transaction.title}
+                            badgeLabel={badgeLabel}
+                            statusLabel={transaction.statusLabel}
+                            statusClassName={statusTone(transaction.statusLabel)}
+                            metadata={`${transaction.category} • ${transaction.accountName} • ${transaction.dateLabel}`}
+                            amountCents={transaction.amountCents}
+                            displayAmountCents={transaction.displayAmountCents}
+                            isAmountOverridden={transaction.isAmountOverridden}
+                            kind={transaction.kind}
+                            className="transition-colors hover:bg-[#161616]"
                           />
-                        ) : null}
-                        {transaction.status !== "compensated" ? (
-                          <TransactionSettleButton
-                            transactionId={transaction.id}
-                            originalAmountCents={transaction.amountCents}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
+                        </button>
+                      </CreditCardInvoiceDetailsDialog>
+                    ) : (
+                      <TransactionListItem
+                        key={transaction.id}
+                        title={transaction.title}
+                        badgeLabel={badgeLabel}
+                        statusLabel={transaction.statusLabel}
+                        statusClassName={statusTone(transaction.statusLabel)}
+                        metadata={`${transaction.category} • ${transaction.accountName} • ${transaction.dateLabel}`}
+                        amountCents={transaction.amountCents}
+                        displayAmountCents={transaction.displayAmountCents}
+                        isAmountOverridden={transaction.isAmountOverridden}
+                        kind={transaction.kind}
+                        actions={
+                          <>
+                            <TransactionRemoveButton
+                              transactionId={transaction.id}
+                              transactionTitle={transaction.title}
+                              isFixed={transaction.isFixed}
+                              installmentTotal={transaction.installmentTotal}
+                              supportsFutureRemoval={transaction.supportsFutureRemoval}
+                            />
+                            {transaction.status !== "compensated" ? (
+                              <TransactionSettleButton
+                                transactionId={transaction.id}
+                                originalAmountCents={transaction.amountCents}
+                              />
+                            ) : null}
+                          </>
+                        }
+                      />
+                    )
                   )
                 })
               ) : (

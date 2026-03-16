@@ -58,6 +58,25 @@ export const listTransactionsSql = `
   order by t.occurred_on desc, t.created_at desc
 `
 
+export const listCreditCardInvoiceExpensesSql = `
+  select
+    e.id,
+    e.card_id,
+    c.nickname as card_name,
+    e.invoice_transaction_id,
+    e.title,
+    e.category,
+    e.amount_cents::text as amount_cents,
+    e.occurred_on::text as occurred_on,
+    e.notes,
+    e.created_at::text as created_at,
+    e.updated_at::text as updated_at
+  from credit_card_expenses e
+  inner join credit_cards c on c.id = e.card_id
+  where e.clerk_user_id = $1
+  order by e.occurred_on desc, e.created_at desc
+`
+
 export const findTransactionByClientRequestSql = `
   select
     ${transactionColumns}
