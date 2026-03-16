@@ -6,10 +6,10 @@ import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
-import { settlePendingExpenseUseCase } from "@/modules/transactions/application/settle-pending-expense-use-case"
+import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
 import {
   createTransactionFormSchema,
-  settlePendingExpenseInputSchema,
+  settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
 
 export type CreateTransactionActionState = {
@@ -18,7 +18,7 @@ export type CreateTransactionActionState = {
   fieldErrors?: Record<string, string[] | undefined>
 }
 
-export type SettlePendingExpenseActionState = {
+export type SettleTransactionActionState = {
   status: "idle" | "success" | "error"
   message?: string
 }
@@ -91,27 +91,29 @@ export async function createTransactionAction(
   }
 }
 
-export async function settlePendingExpenseAction(
-  _previousState: SettlePendingExpenseActionState,
+export async function settleTransactionAction(
+  _previousState: SettleTransactionActionState,
   formData: FormData
-): Promise<SettlePendingExpenseActionState> {
-  const parsed = settlePendingExpenseInputSchema.safeParse({
+): Promise<SettleTransactionActionState> {
+  const parsed = settleTransactionInputSchema.safeParse({
     transactionId: formData.get("transactionId"),
+    amount: formData.get("amount"),
   })
 
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Despesa inválida para efetivação.",
+      message: "Lançamento inválido para efetivação.",
     }
   }
 
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
 
-    await settlePendingExpenseUseCase({
+    await settleTransactionUseCase({
       clerkUserId,
       transactionId: parsed.data.transactionId,
+      amount: parsed.data.amount ?? undefined,
     })
 
     revalidatePath("/lancamentos")
@@ -119,7 +121,7 @@ export async function settlePendingExpenseAction(
 
     return {
       status: "success",
-      message: "Despesa efetivada com sucesso.",
+      message: "Lançamento efetivado com sucesso.",
     }
   } catch (error) {
     if (isAppError(error)) {
@@ -131,7 +133,7 @@ export async function settlePendingExpenseAction(
 
     return {
       status: "error",
-      message: "Não foi possível efetivar a despesa agora.",
+      message: "Não foi possível efetivar o lançamento agora.",
     }
   }
 }

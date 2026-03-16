@@ -99,17 +99,28 @@ export function buildTransactionsPageData(
     selectedDate?: string
   }
 ): TransactionsPageData {
+  const getEffectiveAmount = (transaction: TransactionListRecord) =>
+    transaction.settledAmountCents ?? transaction.amountCents
+
+  const getSignedAmount = (transaction: TransactionListRecord) =>
+    transaction.kind === "income" ? getEffectiveAmount(transaction) : -getEffectiveAmount(transaction)
+
   const compensatedIncomeCents = transactions
     .filter((transaction) => transaction.kind === "income" && transaction.status === "compensated")
-    .reduce((sum, transaction) => sum + transaction.amountCents, 0)
+    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
 
   const compensatedExpenseCents = transactions
     .filter((transaction) => transaction.kind === "expense" && transaction.status === "compensated")
-    .reduce((sum, transaction) => sum + transaction.amountCents, 0)
+    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
 
   const pendingAmountCents = transactions
     .filter((transaction) => transaction.status !== "compensated")
     .reduce((sum, transaction) => sum + transaction.amountCents, 0)
+
+  const projectedBalanceCents = transactions.reduce(
+    (sum, transaction) => sum + getSignedAmount(transaction),
+    0
+  )
 
   const selectedDate = options?.selectedDate ?? transactions[0]?.occurredOn ?? format(new Date(), "yyyy-MM-dd")
   const periodLabel = format(new Date(`${selectedDate}T00:00:00`), "MMMM yyyy", { locale: ptBR })
@@ -133,9 +144,9 @@ export function buildTransactionsPageData(
 
     const current = weekly.get(key)!
     if (transaction.kind === "income") {
-      current.incomeCents += transaction.amountCents
+      current.incomeCents += getEffectiveAmount(transaction)
     } else {
-      current.expenseCents += transaction.amountCents
+      current.expenseCents += getEffectiveAmount(transaction)
     }
   }
 
@@ -171,6 +182,12 @@ export function buildTransactionsPageData(
         detail: "Resultado líquido do que já foi compensado",
         tone: compensatedIncomeCents - compensatedExpenseCents >= 0 ? "income" : "expense",
       },
+      {
+        label: "Saldo previsto",
+        valueCents: projectedBalanceCents,
+        detail: "Inclui lançamentos pendentes e agendados do período",
+        tone: projectedBalanceCents >= 0 ? "income" : "expense",
+      },
     ],
     transactions: transactions.map((transaction) => ({
       id: transaction.id,
@@ -184,6 +201,12 @@ export function buildTransactionsPageData(
       accountInstitution: transaction.accountInstitution,
       dateLabel: format(new Date(`${transaction.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
       amountCents: transaction.amountCents,
+      settledAmountCents: transaction.settledAmountCents,
+      displayAmountCents: getEffectiveAmount(transaction),
+      isAmountOverridden:
+        transaction.settledAmountCents !== null &&
+        transaction.settledAmountCents !== undefined &&
+        transaction.settledAmountCents !== transaction.amountCents,
       status: transaction.status,
       statusLabel: getStatusLabel(transaction.status),
       kind: transaction.kind,

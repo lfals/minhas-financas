@@ -9,7 +9,7 @@ import { withTransaction } from "@/lib/db/tx"
 import type {
   CreateTransactionCommand,
   CreateTransactionResult,
-  SettlePendingExpenseCommand,
+  SettleTransactionCommand,
   TransactionListCommand,
   TransactionListRecord,
   TransactionRecord,
@@ -42,6 +42,7 @@ type DbTransactionRow = {
   installment_number: number | null
   installment_total: number | null
   amount_cents: string
+  settled_amount_cents: string | null
   occurred_on: string
   notes: string | null
   created_at: string
@@ -76,6 +77,7 @@ function mapTransactionRow(row: DbTransactionRow): TransactionRecord {
     installmentNumber: row.installment_number,
     installmentTotal: row.installment_total,
     amountCents: row.amount_cents,
+    settledAmountCents: row.settled_amount_cents,
     occurredOn: row.occurred_on,
     notes: row.notes,
     createdAt: row.created_at,
@@ -108,8 +110,8 @@ function addMonthsToIsoDate(isoDate: string, monthOffset: number) {
     .slice(0, 10)
 }
 
-function buildFixedExpenseOccurrences(command: CreateTransactionCommand) {
-  if (!command.isFixed || command.kind !== "expense") {
+function buildFixedOccurrences(command: CreateTransactionCommand) {
+  if (!command.isFixed) {
     return [
       {
         ...command,
@@ -126,7 +128,12 @@ function buildFixedExpenseOccurrences(command: CreateTransactionCommand) {
       ...command,
       clientRequestId: monthIndex === startMonthIndex ? command.clientRequestId : randomUUID(),
       occurredOn: addMonthsToIsoDate(command.occurredOn, monthIndex - startMonthIndex),
-      status: "pending",
+      status:
+        monthIndex === startMonthIndex
+          ? command.status
+          : command.kind === "expense"
+            ? "pending"
+            : "scheduled",
     })
   }
 
@@ -207,7 +214,7 @@ export class TransactionsRepository {
       const occurrences =
         command.installmentNumber != null && command.installmentTotal != null
           ? buildInstallmentOccurrences(command)
-          : buildFixedExpenseOccurrences(command)
+          : buildFixedOccurrences(command)
       const firstOccurrence = occurrences[0]
       const currentBalanceCents = Number(account.current_balance_cents)
       const signedAmountCents = command.kind === "income" ? command.amountCents : -command.amountCents
@@ -270,7 +277,7 @@ export class TransactionsRepository {
     })
   }
 
-  async settlePendingExpense(command: SettlePendingExpenseCommand) {
+  async settleTransaction(command: SettleTransactionCommand) {
     return withTransaction(async (client) => {
       const existingTransaction = await queryOne(client, findTransactionByIdForUpdateSql, [
         command.clerkUserId,
@@ -278,11 +285,11 @@ export class TransactionsRepository {
       ])
 
       if (!existingTransaction) {
-        throw new NotFoundAppError("Despesa pendente não encontrada.")
+        throw new NotFoundAppError("Lançamento não encontrado.")
       }
 
-      if (existingTransaction.kind !== "expense" || existingTransaction.status !== "pending") {
-        throw new ValidationAppError("Somente despesas pendentes podem ser efetivadas.")
+      if (existingTransaction.status === "compensated") {
+        throw new ValidationAppError("Somente lançamentos não compensados podem ser efetivados.")
       }
 
       const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
@@ -293,15 +300,18 @@ export class TransactionsRepository {
       const account = accountResult.rows[0]
 
       if (!account || account.is_archived) {
-        throw new NotFoundAppError("Selecione uma conta válida para a despesa.")
+        throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
       }
 
       const nextBalanceCents =
-        Number(account.current_balance_cents) - existingTransaction.amountCents
+        existingTransaction.kind === "income"
+          ? Number(account.current_balance_cents) + (command.amountCents ?? existingTransaction.amountCents)
+          : Number(account.current_balance_cents) - (command.amountCents ?? existingTransaction.amountCents)
 
       const updated = await client.query<DbTransactionRow>(compensateTransactionSql, [
         command.clerkUserId,
         command.transactionId,
+        command.amountCents ?? existingTransaction.amountCents,
       ])
 
       const transaction = mapTransactionRow(updated.rows[0])

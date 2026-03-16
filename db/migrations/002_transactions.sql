@@ -20,3 +20,7 @@ create index if not exists transactions_user_occurred_idx
 
 create index if not exists transactions_user_account_idx
   on transactions (clerk_user_id, account_id, occurred_on desc);
+
+alter table transactions
+  add column if not exists settled_amount_cents bigint
+  check (settled_amount_cents is null or settled_amount_cents > 0);

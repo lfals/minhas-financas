@@ -165,8 +165,16 @@ export const createTransactionFormSchema = z.object({
   }
 })
 
-export const settlePendingExpenseInputSchema = z.object({
-  transactionId: z.uuid("Despesa inválida para efetivação."),
+export const settleTransactionInputSchema = z.object({
+  transactionId: z.uuid("Lançamento inválido para efetivação."),
+  amount: z.preprocess((value) => {
+    if (value === null || value === undefined) {
+      return null
+    }
+
+    const normalized = String(value).trim()
+    return normalized ? normalized : null
+  }, z.string().nullable().optional()),
 })
 
 export const transactionRecordSchema = z.object({
@@ -184,6 +192,7 @@ export const transactionRecordSchema = z.object({
   installmentNumber: z.number().int().positive().nullable().optional(),
   installmentTotal: z.number().int().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
+  settledAmountCents: centsSchema.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -198,6 +207,6 @@ export type TransactionStatus = z.infer<typeof transactionStatusSchema>
 export type FixedExpenseFrequency = z.infer<typeof fixedExpenseFrequencySchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
-export type SettlePendingExpenseInput = z.infer<typeof settlePendingExpenseInputSchema>
+export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>

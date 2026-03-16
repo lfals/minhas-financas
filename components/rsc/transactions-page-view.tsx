@@ -71,7 +71,7 @@ export function TransactionsPageView({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {metrics.map((metric) => (
           <Card key={metric.label} className="border border-white/10 bg-[#151515] ring-0">
             <CardHeader className="gap-3">
@@ -160,12 +160,30 @@ export function TransactionsPageView({
                               transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
                             )}
                           >
-                            {transaction.kind === "income" ? "+" : "-"}
-                            {formatCents(transaction.amountCents)}
+                            {transaction.isAmountOverridden ? (
+                              <span className="flex flex-col items-start md:items-end">
+                                <span className="text-sm font-medium text-white/35 line-through decoration-white/35">
+                                  {transaction.kind === "income" ? "+" : "-"}
+                                  {formatCents(transaction.amountCents)}
+                                </span>
+                                <span>
+                                  {transaction.kind === "income" ? "+" : "-"}
+                                  {formatCents(transaction.displayAmountCents)}
+                                </span>
+                              </span>
+                            ) : (
+                              <>
+                                {transaction.kind === "income" ? "+" : "-"}
+                                {formatCents(transaction.displayAmountCents)}
+                              </>
+                            )}
                           </p>
                         </div>
-                        {transaction.kind === "expense" && transaction.status === "pending" ? (
-                          <TransactionSettleButton transactionId={transaction.id} />
+                        {transaction.status !== "compensated" ? (
+                          <TransactionSettleButton
+                            transactionId={transaction.id}
+                            originalAmountCents={transaction.amountCents}
+                          />
                         ) : null}
                       </div>
                     </div>

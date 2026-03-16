@@ -12,6 +12,7 @@ export const listTransactionsSql = `
     t.installment_number,
     t.installment_total,
     t.amount_cents::text as amount_cents,
+    t.settled_amount_cents::text as settled_amount_cents,
     t.occurred_on::text as occurred_on,
     t.notes,
     t.created_at::text as created_at,
@@ -39,6 +40,7 @@ export const findTransactionByClientRequestSql = `
     installment_number,
     installment_total,
     amount_cents::text as amount_cents,
+    settled_amount_cents::text as settled_amount_cents,
     occurred_on::text as occurred_on,
     notes,
     created_at::text as created_at,
@@ -63,6 +65,7 @@ export const findTransactionByIdForUpdateSql = `
     installment_number,
     installment_total,
     amount_cents::text as amount_cents,
+    settled_amount_cents::text as settled_amount_cents,
     occurred_on::text as occurred_on,
     notes,
     created_at::text as created_at,
@@ -119,6 +122,7 @@ export const insertTransactionSql = `
     installment_number,
     installment_total,
     amount_cents::text as amount_cents,
+    settled_amount_cents::text as settled_amount_cents,
     occurred_on::text as occurred_on,
     notes,
     created_at::text as created_at,
@@ -129,6 +133,7 @@ export const compensateTransactionSql = `
   update transactions
   set
     status = 'compensated',
+    settled_amount_cents = $3,
     updated_at = now()
   where clerk_user_id = $1
     and id = $2
@@ -145,6 +150,7 @@ export const compensateTransactionSql = `
     installment_number,
     installment_total,
     amount_cents::text as amount_cents,
+    settled_amount_cents::text as settled_amount_cents,
     occurred_on::text as occurred_on,
     notes,
     created_at::text as created_at,
