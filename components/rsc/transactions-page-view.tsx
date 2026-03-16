@@ -137,7 +137,7 @@ export function TransactionsPageView({
                   return (
                     transaction.sourceType === "credit_card_invoice" ? (
                       <CreditCardInvoiceDetailsDialog
-                        key={transaction.id}
+                        key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
                         transaction={transaction}
                         badgeLabel={badgeLabel}
                         statusClassName={statusTone(transaction.statusLabel)}

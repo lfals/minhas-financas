@@ -15,6 +15,36 @@ const centsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((val
   return parsed
 })
 
+const signedCentsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((value) => {
+  const parsed =
+    typeof value === "bigint"
+      ? Number(value)
+      : typeof value === "string"
+        ? Number(value)
+        : value
+
+  if (!Number.isSafeInteger(parsed) || parsed === 0) {
+    throw new Error("Valor monetário inválido.")
+  }
+
+  return parsed
+})
+
+const nonNegativeCentsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((value) => {
+  const parsed =
+    typeof value === "bigint"
+      ? Number(value)
+      : typeof value === "string"
+        ? Number(value)
+        : value
+
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error("Valor monetário inválido.")
+  }
+
+  return parsed
+})
+
 const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.")
@@ -342,7 +372,7 @@ export const transactionRecordSchema = z.object({
   sourceType: transactionSourceTypeSchema.default("manual"),
   creditCardId: z.uuid().nullable().optional(),
   invoiceMonth: isoDateSchema.nullable().optional(),
-  settledAmountCents: centsSchema.nullable().optional(),
+  settledAmountCents: nonNegativeCentsSchema.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -359,7 +389,7 @@ export const creditCardInvoiceExpenseRecordSchema = z.object({
   invoiceTransactionId: z.uuid(),
   title: z.string(),
   category: z.string(),
-  amountCents: centsSchema,
+  amountCents: signedCentsSchema,
   occurredOn: isoDateSchema,
   notes: z.string().nullable().optional(),
   createdAt: z.string(),

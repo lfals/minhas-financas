@@ -179,6 +179,13 @@ export const reopenTransactionSql = `
     ${transactionColumns}
 `
 
+export const deleteCreditCardInvoiceSettlementAdjustmentsSql = `
+  delete from credit_card_expenses
+  where clerk_user_id = $1
+    and invoice_transaction_id = $2
+    and notes = $3
+`
+
 export const deleteTransactionSql = `
   delete from transactions
   where clerk_user_id = $1

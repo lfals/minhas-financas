@@ -21,6 +21,7 @@ import type {
 } from "@/modules/transactions/domain/types"
 import {
   compensateTransactionSql,
+  deleteCreditCardInvoiceSettlementAdjustmentsSql,
   deleteFutureTransactionsBySeriesSql,
   deleteTransactionSql,
   findAccountForTransactionSql,
@@ -302,6 +303,38 @@ async function queryOne(client: PoolClient, text: string, params: readonly unkno
 async function queryMany(client: PoolClient, text: string, params: readonly unknown[]) {
   const result = await client.query<DbTransactionRow>(text, params as unknown[])
   return result.rows.map(mapTransactionRow)
+}
+
+const CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE = "__credit_card_invoice_settlement_adjustment__"
+
+async function syncCreditCardInvoiceSettlementAdjustment(
+  client: PoolClient,
+  transaction: TransactionRecord,
+  adjustedAmountCents: number
+) {
+  await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
+    transaction.clerkUserId,
+    transaction.id,
+    CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
+  ])
+
+  const differenceCents = adjustedAmountCents - transaction.amountCents
+
+  if (differenceCents === 0) {
+    return
+  }
+
+  await client.query(insertCreditCardExpenseSql, [
+    transaction.clerkUserId,
+    randomUUID(),
+    transaction.creditCardId,
+    transaction.id,
+    differenceCents > 0 ? "Ajuste" : "Estorno",
+    "Cartão de crédito",
+    differenceCents,
+    transaction.occurredOn,
+    CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
+  ])
 }
 
 export class TransactionsRepository {
@@ -600,15 +633,29 @@ export class TransactionsRepository {
         throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
       }
 
+      const effectiveAmountCents = command.amountCents ?? existingTransaction.amountCents
+
+      if (effectiveAmountCents < 0) {
+        throw new ValidationAppError("O valor efetivado não pode ser negativo.")
+      }
+
+      if (existingTransaction.sourceType === "credit_card_invoice") {
+        if (!existingTransaction.creditCardId) {
+          throw new ValidationAppError("A fatura selecionada não está vinculada a um cartão válido.")
+        }
+
+        await syncCreditCardInvoiceSettlementAdjustment(client, existingTransaction, effectiveAmountCents)
+      }
+
       const nextBalanceCents =
         existingTransaction.kind === "income"
-          ? Number(account.current_balance_cents) + (command.amountCents ?? existingTransaction.amountCents)
-          : Number(account.current_balance_cents) - (command.amountCents ?? existingTransaction.amountCents)
+          ? Number(account.current_balance_cents) + effectiveAmountCents
+          : Number(account.current_balance_cents) - effectiveAmountCents
 
       const updated = await client.query<DbTransactionRow>(compensateTransactionSql, [
         command.clerkUserId,
         command.transactionId,
-        command.amountCents ?? existingTransaction.amountCents,
+        effectiveAmountCents,
       ])
 
       const transaction = mapTransactionRow(updated.rows[0])
@@ -675,6 +722,14 @@ export class TransactionsRepository {
       ])
 
       const transaction = mapTransactionRow(updated.rows[0])
+
+      if (existingTransaction.sourceType === "credit_card_invoice") {
+        await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
+          command.clerkUserId,
+          command.transactionId,
+          CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
+        ])
+      }
 
       await client.query(updateAccountBalanceSql, [
         command.clerkUserId,

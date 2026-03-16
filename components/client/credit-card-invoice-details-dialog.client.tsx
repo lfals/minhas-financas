@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { ReactNode } from "react"
 import { ReceiptText } from "lucide-react"
 
@@ -21,7 +21,7 @@ function InvoiceExpenseList({
   if (!expenses.length) {
     return (
       <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
-        Nenhuma despesa foi encontrada para esta fatura.
+        Nenhum lançamento foi encontrado para esta fatura.
       </div>
     )
   }
@@ -33,8 +33,8 @@ function InvoiceExpenseList({
           key={expense.id}
           title={expense.title}
           metadata={`${expense.category} • ${expense.cardName} • ${expense.dateLabel}`}
-          amountCents={expense.amountCents}
-          kind="expense"
+          amountCents={Math.abs(expense.amountCents)}
+          kind={expense.amountCents < 0 ? "income" : "expense"}
         />
       ))}
     </div>
@@ -56,10 +56,6 @@ export function CreditCardInvoiceDetailsDialog({
 }) {
   const [open, setOpen] = useState(false)
   const totalInvoiceAmount = transaction.displayAmountCents
-
-  useEffect(() => {
-    setOpen(false)
-  }, [transaction.status])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -101,7 +97,7 @@ export function CreditCardInvoiceDetailsDialog({
         <div className="min-h-0 overflow-y-auto px-6 py-5">
           <div className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/45">
             <ReceiptText className="size-4" />
-            {expenses.length} despesas na fatura
+            {expenses.length} lançamentos na fatura
           </div>
           <InvoiceExpenseList expenses={expenses} />
         </div>
