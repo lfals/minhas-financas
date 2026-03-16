@@ -1,12 +1,21 @@
 import { ArrowDownRight, ArrowUpRight, CalendarClock, ReceiptText } from "lucide-react"
 
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
-import { Badge } from "@/components/ui/badge"
+import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
+import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCompactCurrency } from "@/lib/formatters"
 import { formatCents } from "@/lib/money"
 import { cn } from "@/lib/utils"
-import type { TransactionAccountOption, TransactionsPageData } from "@/modules/transactions/domain/types"
+import type {
+  TransactionAccountOption,
+  TransactionCategoryOption,
+  TransactionsPageData,
+} from "@/modules/transactions/domain/types"
+import {
+  getFixedExpenseFrequencyLabel,
+  getInstallmentLabel,
+} from "@/modules/transactions/presentation/view-model"
 
 function metricToneClass(tone: TransactionsPageData["metrics"][number]["tone"]) {
   if (tone === "income") return "text-[#d8f36a]"
@@ -20,18 +29,40 @@ function statusTone(status: TransactionsPageData["transactions"][number]["status
   return "border-[#c4f1ff]/30 bg-[#c4f1ff]/10 text-[#c4f1ff]"
 }
 
+function getTransactionBadge(
+  transaction: TransactionsPageData["transactions"][number]
+) {
+  const installmentLabel = getInstallmentLabel(
+    transaction.installmentNumber,
+    transaction.installmentTotal
+  )
+
+  if (installmentLabel) {
+    return installmentLabel
+  }
+
+  if (transaction.isFixed) {
+    return getFixedExpenseFrequencyLabel(transaction.fixedExpenseFrequency) ?? "Fixa"
+  }
+
+  return null
+}
+
 export function TransactionsPageView({
-  periodLabel,
   summary,
   metrics,
   transactions,
   categories,
   cashflow,
   accountOptions,
+  categoryOptions,
   defaultOccurredOn,
+  selectedDate,
 }: TransactionsPageData & {
   accountOptions: TransactionAccountOption[]
+  categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
+  selectedDate: string
 }) {
   const maxCashflow = Math.max(
     1,
@@ -70,11 +101,10 @@ export function TransactionsPageView({
               </div>
             </div>
             <CardAction className="flex flex-wrap items-center gap-3">
-              <Badge className="bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-black">
-                {periodLabel}
-              </Badge>
+              <TransactionsPeriodControls selectedDate={selectedDate} />
               <TransactionCreateDialog
                 accountOptions={accountOptions}
+                categoryOptions={categoryOptions}
                 defaultOccurredOn={defaultOccurredOn}
               />
             </CardAction>
@@ -86,47 +116,61 @@ export function TransactionsPageView({
                 {transactions.length} lançamentos
               </div>
               {transactions.length ? (
-                transactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="grid gap-4 border border-white/10 bg-[#121212] p-4 md:grid-cols-[1fr_auto]"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm uppercase tracking-[0.18em] text-white">
-                          {transaction.title}
+                transactions.map((transaction) => {
+                  const badgeLabel = getTransactionBadge(transaction)
+
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="grid gap-4 border border-white/10 bg-[#121212] p-4 md:grid-cols-[1fr_auto]"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm uppercase tracking-[0.18em] text-white">
+                            {transaction.title}
+                          </p>
+                          {badgeLabel ? (
+                            <span className="border border-[#c4f1ff]/30 bg-[#c4f1ff]/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[#c4f1ff]">
+                              {badgeLabel}
+                            </span>
+                          ) : null}
+                          <span
+                            className={cn(
+                              "border px-2 py-1 text-[10px] uppercase tracking-[0.18em]",
+                              statusTone(transaction.statusLabel)
+                            )}
+                          >
+                            {transaction.statusLabel}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-white/55">
+                          {transaction.category} • {transaction.accountName} • {transaction.dateLabel}
                         </p>
-                        <span
-                          className={cn(
-                            "border px-2 py-1 text-[10px] uppercase tracking-[0.18em]",
-                            statusTone(transaction.statusLabel)
-                          )}
-                        >
-                          {transaction.statusLabel}
-                        </span>
                       </div>
-                      <p className="mt-2 text-sm text-white/55">
-                        {transaction.category} • {transaction.accountName} • {transaction.dateLabel}
-                      </p>
+                      <div className="flex items-center gap-3 md:text-right">
+                        <div className="flex items-center gap-3">
+                          {transaction.kind === "income" ? (
+                            <ArrowUpRight className="size-4 text-[#d8f36a]" />
+                          ) : (
+                            <ArrowDownRight className="size-4 text-[#ff9c7a]" />
+                          )}
+                          <p
+                            className={cn(
+                              "text-lg font-semibold tracking-[-0.05em]",
+                              transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
+                            )}
+                          >
+                            {transaction.kind === "income" ? "+" : "-"}
+                            {formatCents(transaction.amountCents)}
+                          </p>
+                        </div>
+                        {transaction.kind === "expense" && transaction.status === "pending" ? (
+                          <TransactionSettleButton transactionId={transaction.id} />
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 md:text-right">
-                      {transaction.kind === "income" ? (
-                        <ArrowUpRight className="size-4 text-[#d8f36a]" />
-                      ) : (
-                        <ArrowDownRight className="size-4 text-[#ff9c7a]" />
-                      )}
-                      <p
-                        className={cn(
-                          "text-lg font-semibold tracking-[-0.05em]",
-                          transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
-                        )}
-                      >
-                        {transaction.kind === "income" ? "+" : "-"}
-                        {formatCents(transaction.amountCents)}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  )
+                })
               ) : (
                 <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
                   Nenhum lançamento registrado ainda. Use o botão acima para adicionar a primeira movimentação.

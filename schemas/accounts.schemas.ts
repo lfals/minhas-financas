@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-const centsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((value) => {
+const signedCentsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((value) => {
   const parsed =
     typeof value === "bigint"
       ? Number(value)
@@ -8,7 +8,7 @@ const centsSchema = z.union([z.number(), z.string(), z.bigint()]).transform((val
         ? Number(value)
         : value
 
-  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+  if (!Number.isSafeInteger(parsed)) {
     throw new Error("Valor monetário inválido.")
   }
 
@@ -30,7 +30,7 @@ export const createAccountInputSchema = z.object({
   institution: z.string().trim().min(1, "Informe a instituição.").max(80),
   type: accountTypeSchema,
   currencyCode: z.string().trim().length(3).default("BRL").transform((value) => value.toUpperCase()),
-  initialBalanceCents: centsSchema,
+  initialBalanceCents: signedCentsSchema,
   includeInNetWorth: optionalBooleanSchema.default(true),
   displayOrder: z.coerce.number().int().min(0).max(9999).default(0),
 })
@@ -58,8 +58,8 @@ export const accountRecordSchema = z.object({
   institution: z.string(),
   type: accountTypeSchema,
   currencyCode: z.string().length(3),
-  initialBalanceCents: centsSchema,
-  currentBalanceCents: centsSchema,
+  initialBalanceCents: signedCentsSchema,
+  currentBalanceCents: signedCentsSchema,
   includeInNetWorth: z.boolean(),
   isArchived: z.boolean(),
   displayOrder: z.number().int(),

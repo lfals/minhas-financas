@@ -20,8 +20,26 @@ const isoDateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.")
   .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Informe uma data válida.")
 
+const booleanInputSchema = z
+  .union([z.boolean(), z.literal("true"), z.literal("false"), z.literal("on"), z.null(), z.undefined()])
+  .transform((value) => value === true || value === "true" || value === "on")
+
+const optionalInstallmentNumberSchema = z.preprocess((value) => {
+  if (value === null || value === undefined || value === "") {
+    return null
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value)
+    return Number.isNaN(parsed) ? value : parsed
+  }
+
+  return value
+}, z.number().int("Informe um número inteiro.").positive("Informe um valor maior que zero.").nullable())
+
 export const transactionKindSchema = z.enum(["income", "expense"])
 export const transactionStatusSchema = z.enum(["compensated", "pending", "scheduled"])
+export const fixedExpenseFrequencySchema = z.enum(["daily", "weekly", "fortnightly", "monthly", "yearly"])
 
 export const createTransactionInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
@@ -32,7 +50,57 @@ export const createTransactionInputSchema = z.object({
   status: transactionStatusSchema,
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
+  isFixed: booleanInputSchema,
+  fixedExpenseFrequency: fixedExpenseFrequencySchema.nullable().optional(),
+  installmentNumber: optionalInstallmentNumberSchema,
+  installmentTotal: optionalInstallmentNumberSchema,
   notes: z.string().trim().max(500).optional(),
+}).superRefine((value, context) => {
+  if (value.isFixed && !value.fixedExpenseFrequency) {
+    context.addIssue({
+      code: "custom",
+      path: ["fixedExpenseFrequency"],
+      message: "Selecione a recorrência do lançamento fixo.",
+    })
+  }
+
+  if (!value.isFixed && value.fixedExpenseFrequency) {
+    context.addIssue({
+      code: "custom",
+      path: ["fixedExpenseFrequency"],
+      message: "A recorrência só pode ser informada para lançamentos fixos.",
+    })
+  }
+
+  const hasInstallmentData = value.installmentNumber !== null || value.installmentTotal !== null
+
+  if (value.isFixed && hasInstallmentData) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "Lançamentos fixos não podem ser parcelados.",
+    })
+  }
+
+  if (hasInstallmentData && (value.installmentNumber === null || value.installmentTotal === null)) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "Informe a parcela inicial e o total de parcelas.",
+    })
+  }
+
+  if (
+    value.installmentNumber !== null &&
+    value.installmentTotal !== null &&
+    value.installmentNumber > value.installmentTotal
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "A parcela inicial não pode ser maior que o total de parcelas.",
+    })
+  }
 })
 
 export const createTransactionFormSchema = z.object({
@@ -43,7 +111,62 @@ export const createTransactionFormSchema = z.object({
   status: transactionStatusSchema,
   amount: z.string().trim().min(1, "Informe o valor."),
   occurredOn: isoDateSchema,
+  isFixed: booleanInputSchema,
+  fixedExpenseFrequency: z.union([fixedExpenseFrequencySchema, z.literal(""), z.null(), z.undefined()])
+    .transform((value) => (value ? value : null)),
+  installmentNumber: optionalInstallmentNumberSchema,
+  installmentTotal: optionalInstallmentNumberSchema,
   notes: z.string().trim().max(500).optional(),
+}).superRefine((value, context) => {
+  if (value.isFixed && !value.fixedExpenseFrequency) {
+    context.addIssue({
+      code: "custom",
+      path: ["fixedExpenseFrequency"],
+      message: "Selecione a recorrência do lançamento fixo.",
+    })
+  }
+
+  if (!value.isFixed && value.fixedExpenseFrequency) {
+    context.addIssue({
+      code: "custom",
+      path: ["fixedExpenseFrequency"],
+      message: "A recorrência só pode ser informada para lançamentos fixos.",
+    })
+  }
+
+  const hasInstallmentData = value.installmentNumber !== null || value.installmentTotal !== null
+
+  if (value.isFixed && hasInstallmentData) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "Lançamentos fixos não podem ser parcelados.",
+    })
+  }
+
+  if (hasInstallmentData && (value.installmentNumber === null || value.installmentTotal === null)) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "Informe a parcela inicial e o total de parcelas.",
+    })
+  }
+
+  if (
+    value.installmentNumber !== null &&
+    value.installmentTotal !== null &&
+    value.installmentNumber > value.installmentTotal
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "A parcela inicial não pode ser maior que o total de parcelas.",
+    })
+  }
+})
+
+export const settlePendingExpenseInputSchema = z.object({
+  transactionId: z.uuid("Despesa inválida para efetivação."),
 })
 
 export const transactionRecordSchema = z.object({
@@ -56,6 +179,10 @@ export const transactionRecordSchema = z.object({
   status: transactionStatusSchema,
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
+  isFixed: z.boolean(),
+  fixedExpenseFrequency: fixedExpenseFrequencySchema.nullable().optional(),
+  installmentNumber: z.number().int().positive().nullable().optional(),
+  installmentTotal: z.number().int().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -68,7 +195,9 @@ export const transactionListRecordSchema = transactionRecordSchema.extend({
 
 export type TransactionKind = z.infer<typeof transactionKindSchema>
 export type TransactionStatus = z.infer<typeof transactionStatusSchema>
+export type FixedExpenseFrequency = z.infer<typeof fixedExpenseFrequencySchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
+export type SettlePendingExpenseInput = z.infer<typeof settlePendingExpenseInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>

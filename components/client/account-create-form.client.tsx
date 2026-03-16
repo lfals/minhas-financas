@@ -24,18 +24,20 @@ const defaultFormValues = {
 }
 
 function formatCurrencyDigitsToInput(value: string) {
+  const isNegative = value.trim().startsWith("-")
   const digits = value.replace(/\D/g, "")
 
   if (!digits) {
-    return ""
+    return isNegative ? "-" : ""
   }
 
   const cents = Number(digits)
-
-  return new Intl.NumberFormat("pt-BR", {
+  const formattedValue = new Intl.NumberFormat("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(cents / 100)
+
+  return isNegative ? `-${formattedValue}` : formattedValue
 }
 
 function SubmitButton() {
@@ -65,7 +67,6 @@ export function AccountCreateForm({
 
   useEffect(() => {
     if (state.status === "success") {
-      formRef.current?.reset()
       setFormValues(defaultFormValues)
       onSuccess?.()
     }
@@ -100,126 +101,132 @@ function AccountCreateFormContent({
 }) {
   const content = (
     <form ref={formRef} action={formAction} className="space-y-5">
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="name" className="text-white/80">
-            Nome da conta
-          </FieldLabel>
-          <FieldContent>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Conta principal"
-              value={formValues.name}
-              onChange={(event) => {
-                const { value } = event.currentTarget
-                onFormValuesChange((current) => ({
-                  ...current,
-                  name: value,
-                }))
-              }}
-              className="h-10 border-white/10 bg-white/5 text-white"
-            />
-            <FieldError errors={state.fieldErrors?.name?.map((message) => ({ message }))} />
-          </FieldContent>
-        </Field>
+      <FieldGroup className="gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="name" className="text-white/80">
+              Nome da conta
+            </FieldLabel>
+            <FieldContent>
+              <Input
+                id="name"
+                name="name"
+                placeholder="Conta principal"
+                value={formValues.name}
+                onChange={(event) => {
+                  const { value } = event.currentTarget
+                  onFormValuesChange((current) => ({
+                    ...current,
+                    name: value,
+                  }))
+                }}
+                className="h-10 border-white/10 bg-white/5 text-white"
+              />
+              <FieldError errors={state.fieldErrors?.name?.map((message) => ({ message }))} />
+            </FieldContent>
+          </Field>
 
-        <Field>
-          <FieldLabel htmlFor="institution" className="text-white/80">
-            Instituição
-          </FieldLabel>
-          <FieldContent>
-            <Input
-              id="institution"
-              name="institution"
-              placeholder="Nubank"
-              value={formValues.institution}
-              onChange={(event) => {
-                const { value } = event.currentTarget
-                onFormValuesChange((current) => ({
-                  ...current,
-                  institution: value,
-                }))
-              }}
-              className="h-10 border-white/10 bg-white/5 text-white"
-            />
-            <FieldError errors={state.fieldErrors?.institution?.map((message) => ({ message }))} />
-          </FieldContent>
-        </Field>
+          <Field>
+            <FieldLabel htmlFor="institution" className="text-white/80">
+              Instituição
+            </FieldLabel>
+            <FieldContent>
+              <Input
+                id="institution"
+                name="institution"
+                placeholder="Nubank"
+                value={formValues.institution}
+                onChange={(event) => {
+                  const { value } = event.currentTarget
+                  onFormValuesChange((current) => ({
+                    ...current,
+                    institution: value,
+                  }))
+                }}
+                className="h-10 border-white/10 bg-white/5 text-white"
+              />
+              <FieldError
+                errors={state.fieldErrors?.institution?.map((message) => ({ message }))}
+              />
+            </FieldContent>
+          </Field>
+        </div>
 
-        <Field>
-          <FieldLabel htmlFor="type" className="text-white/80">
-            Tipo
-          </FieldLabel>
-          <FieldContent>
-            <NativeSelect
-              id="type"
-              name="type"
-              value={formValues.type}
-              onChange={(event) => {
-                const { value } = event.currentTarget
-                onFormValuesChange((current) => ({
-                  ...current,
-                  type: value,
-                }))
-              }}
-              className="h-10 border-white/10 bg-white/5 text-sm text-white"
-            >
-              <NativeSelectOption value="checking">Conta corrente</NativeSelectOption>
-              <NativeSelectOption value="savings">Poupança</NativeSelectOption>
-              <NativeSelectOption value="cash">Carteira</NativeSelectOption>
-              <NativeSelectOption value="investment">Investimento</NativeSelectOption>
-            </NativeSelect>
-            <FieldError errors={state.fieldErrors?.type?.map((message) => ({ message }))} />
-          </FieldContent>
-        </Field>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="type" className="text-white/80">
+              Tipo
+            </FieldLabel>
+            <FieldContent>
+              <NativeSelect
+                id="type"
+                name="type"
+                value={formValues.type}
+                onChange={(event) => {
+                  const { value } = event.currentTarget
+                  onFormValuesChange((current) => ({
+                    ...current,
+                    type: value,
+                  }))
+                }}
+                className="h-10 border-white/10 bg-white/5 text-sm text-white"
+              >
+                <NativeSelectOption value="checking">Conta corrente</NativeSelectOption>
+                <NativeSelectOption value="savings">Poupança</NativeSelectOption>
+                <NativeSelectOption value="cash">Carteira</NativeSelectOption>
+                <NativeSelectOption value="investment">Investimento</NativeSelectOption>
+              </NativeSelect>
+              <FieldError errors={state.fieldErrors?.type?.map((message) => ({ message }))} />
+            </FieldContent>
+          </Field>
 
-        <Field>
-          <FieldLabel htmlFor="initialBalance" className="text-white/80">
-            Saldo inicial
-          </FieldLabel>
-          <FieldContent>
-            <Input
-              id="initialBalance"
-              name="initialBalance"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={formValues.initialBalance}
-              onChange={(event) => {
-                const formattedValue = formatCurrencyDigitsToInput(event.currentTarget.value)
-                onFormValuesChange((current) => ({
-                  ...current,
-                  initialBalance: formattedValue,
-                }))
-              }}
-              className="h-10 border-white/10 bg-white/5 text-white"
-            />
-            <FieldError
-              errors={state.fieldErrors?.initialBalance?.map((message) => ({ message }))}
-            />
-          </FieldContent>
-        </Field>
+          <Field>
+            <FieldLabel htmlFor="initialBalance" className="text-white/80">
+              Saldo inicial
+            </FieldLabel>
+            <FieldContent>
+              <Input
+                id="initialBalance"
+                name="initialBalance"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={formValues.initialBalance}
+                onChange={(event) => {
+                  const formattedValue = formatCurrencyDigitsToInput(event.currentTarget.value)
+                  onFormValuesChange((current) => ({
+                    ...current,
+                    initialBalance: formattedValue,
+                  }))
+                }}
+                className="h-10 border-white/10 bg-white/5 text-white"
+              />
+              <FieldError
+                errors={state.fieldErrors?.initialBalance?.map((message) => ({ message }))}
+              />
+            </FieldContent>
+          </Field>
+        </div>
+
+        <div className="flex items-center gap-3 border border-white/10 bg-white/5 px-3 py-3">
+          <input
+            id="includeInNetWorth"
+            name="includeInNetWorth"
+            type="checkbox"
+            checked={formValues.includeInNetWorth}
+            onChange={(event) => {
+              const { checked } = event.currentTarget
+              onFormValuesChange((current) => ({
+                ...current,
+                includeInNetWorth: checked,
+              }))
+            }}
+            className="size-4 rounded-none border border-white/20 bg-transparent accent-[#d8f36a]"
+          />
+          <Label htmlFor="includeInNetWorth" className="text-sm text-white/78">
+            Incluir essa conta no patrimônio consolidado
+          </Label>
+        </div>
       </FieldGroup>
-
-      <div className="flex items-center gap-3 border border-white/10 bg-white/5 px-3 py-3">
-        <input
-          id="includeInNetWorth"
-          name="includeInNetWorth"
-          type="checkbox"
-          checked={formValues.includeInNetWorth}
-          onChange={(event) => {
-            const { checked } = event.currentTarget
-            onFormValuesChange((current) => ({
-              ...current,
-              includeInNetWorth: checked,
-            }))
-          }}
-          className="size-4 rounded-none border border-white/20 bg-transparent accent-[#d8f36a]"
-        />
-        <Label htmlFor="includeInNetWorth" className="text-sm text-white/78">
-          Incluir essa conta no patrimônio consolidado
-        </Label>
-      </div>
 
       {state.message ? (
         <p

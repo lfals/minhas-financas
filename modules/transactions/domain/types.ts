@@ -1,6 +1,8 @@
 import type {
   CreateTransactionFormInput,
   CreateTransactionInput,
+  FixedExpenseFrequency,
+  SettlePendingExpenseInput,
   TransactionKind,
   TransactionListRecord,
   TransactionRecord,
@@ -10,6 +12,8 @@ import type {
 export type {
   CreateTransactionFormInput,
   CreateTransactionInput,
+  FixedExpenseFrequency,
+  SettlePendingExpenseInput,
   TransactionKind,
   TransactionListRecord,
   TransactionRecord,
@@ -24,6 +28,10 @@ export type TransactionListCommand = {
   clerkUserId: string
 }
 
+export type SettlePendingExpenseCommand = SettlePendingExpenseInput & {
+  clerkUserId: string
+}
+
 export type TransactionMetric = {
   label: string
   valueCents: number
@@ -35,10 +43,15 @@ export type TransactionPageItem = {
   id: string
   title: string
   category: string
+  isFixed: boolean
+  fixedExpenseFrequency?: FixedExpenseFrequency | null
+  installmentNumber?: number | null
+  installmentTotal?: number | null
   accountName: string
   accountInstitution: string
   dateLabel: string
   amountCents: number
+  status: TransactionStatus
   statusLabel: "Compensado" | "Pendente" | "Agendado"
   kind: TransactionKind
 }
@@ -60,6 +73,10 @@ export type CashflowPoint = {
 export type TransactionAccountOption = {
   id: string
   label: string
+}
+
+export type TransactionCategoryOption = {
+  value: string
 }
 
 export type TransactionsPageData = {

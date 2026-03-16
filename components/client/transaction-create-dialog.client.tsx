@@ -6,19 +6,23 @@ import { Plus } from "lucide-react"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { TransactionCreateForm } from "@/components/client/transaction-create-form.client"
-import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
+import type {
+  TransactionAccountOption,
+  TransactionCategoryOption,
+} from "@/modules/transactions/domain/types"
 
 export function TransactionCreateDialog({
   accountOptions,
+  categoryOptions,
   defaultOccurredOn,
 }: {
   accountOptions: TransactionAccountOption[]
+  categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
 }) {
   const [open, setOpen] = useState(false)
@@ -34,18 +38,16 @@ export function TransactionCreateDialog({
           Adicionar lançamento
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl border border-white/10 bg-[#141414] p-0 text-white ring-0">
-        <DialogHeader className="border-b border-white/10 px-6 py-5">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0">
+        <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
           <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
             Novo lançamento
           </DialogTitle>
-          <DialogDescription className="text-sm leading-7 text-white/65">
-            Registre uma movimentação e atualize a leitura do caixa sem sair da tela.
-          </DialogDescription>
         </DialogHeader>
-        <div className="px-6 py-5">
+        <div className="min-h-0 overflow-y-auto px-6 py-5">
           <TransactionCreateForm
             accountOptions={accountOptions}
+            categoryOptions={categoryOptions}
             defaultOccurredOn={defaultOccurredOn}
             mode="flat"
             onSuccess={() => setOpen(false)}

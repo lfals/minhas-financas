@@ -27,8 +27,8 @@ export function AccountCreateDialog() {
           Adicionar conta
         </button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl border border-white/10 bg-[#141414] p-0 text-white ring-0">
-        <DialogHeader className="border-b border-white/10 px-6 py-5">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0">
+        <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
           <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
             Nova conta
           </DialogTitle>
@@ -36,7 +36,7 @@ export function AccountCreateDialog() {
             Cadastre uma origem de saldo sem sair da visão de contas.
           </DialogDescription>
         </DialogHeader>
-        <div className="px-6 py-5">
+        <div className="min-h-0 overflow-y-auto px-6 py-5">
           <AccountCreateForm mode="flat" onSuccess={() => setOpen(false)} />
         </div>
       </DialogContent>

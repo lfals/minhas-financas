@@ -1,3 +1,5 @@
+import { format } from "date-fns"
+
 import { TransactionsPageView } from "@/components/rsc/transactions-page-view"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
@@ -6,20 +8,46 @@ import { listAccountsUseCase } from "@/modules/accounts/application/list-account
 import { listTransactionsUseCase } from "@/modules/transactions/application/list-transactions-use-case"
 import {
   buildTransactionAccountOptions,
+  buildTransactionCategoryOptions,
   buildTransactionsPageData,
 } from "@/modules/transactions/presentation/view-model"
 
-async function getTransactionsPageState() {
+function getTodayIsoDate() {
+  return format(new Date(), "yyyy-MM-dd")
+}
+
+function getSelectedDate(value?: string | string[]) {
+  const rawValue = Array.isArray(value) ? value[0] : value
+
+  if (!rawValue || !/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+    return getTodayIsoDate()
+  }
+
+  const parsedDate = new Date(`${rawValue}T00:00:00`)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return getTodayIsoDate()
+  }
+
+  return rawValue
+}
+
+async function getTransactionsPageState(selectedDate: string) {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
     const [accounts, transactions] = await Promise.all([
       listAccountsUseCase({ clerkUserId }),
       listTransactionsUseCase({ clerkUserId }),
     ])
+    const selectedMonth = selectedDate.slice(0, 7)
+    const transactionsInMonth = transactions.filter((transaction) =>
+      transaction.occurredOn.startsWith(selectedMonth)
+    )
 
     return {
-      data: buildTransactionsPageData(transactions),
+      data: buildTransactionsPageData(transactionsInMonth, { selectedDate }),
       accountOptions: buildTransactionAccountOptions(accounts),
+      categoryOptions: buildTransactionCategoryOptions(transactions),
       error: null,
     }
   } catch (error) {
@@ -27,6 +55,7 @@ async function getTransactionsPageState() {
       return {
         data: null,
         accountOptions: [],
+        categoryOptions: [],
         error,
       }
     }
@@ -35,8 +64,14 @@ async function getTransactionsPageState() {
   }
 }
 
-export default async function TransactionsPage() {
-  const state = await getTransactionsPageState()
+export default async function TransactionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string | string[] }>
+}) {
+  const resolvedSearchParams = await searchParams
+  const selectedDate = getSelectedDate(resolvedSearchParams.date)
+  const state = await getTransactionsPageState(selectedDate)
 
   if (state.error) {
     return (
@@ -62,7 +97,9 @@ export default async function TransactionsPage() {
     <TransactionsPageView
       {...state.data}
       accountOptions={state.accountOptions}
-      defaultOccurredOn={new Date().toISOString().slice(0, 10)}
+      categoryOptions={state.categoryOptions}
+      defaultOccurredOn={selectedDate}
+      selectedDate={selectedDate}
     />
   )
 }

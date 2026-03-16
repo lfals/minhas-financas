@@ -7,6 +7,10 @@ export const listTransactionsSql = `
     t.category,
     t.kind,
     t.status,
+    t.is_fixed,
+    t.fixed_expense_frequency,
+    t.installment_number,
+    t.installment_total,
     t.amount_cents::text as amount_cents,
     t.occurred_on::text as occurred_on,
     t.notes,
@@ -30,6 +34,10 @@ export const findTransactionByClientRequestSql = `
     category,
     kind,
     status,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
     amount_cents::text as amount_cents,
     occurred_on::text as occurred_on,
     notes,
@@ -39,6 +47,31 @@ export const findTransactionByClientRequestSql = `
   where clerk_user_id = $1
     and client_request_id = $2
   limit 1
+`
+
+export const findTransactionByIdForUpdateSql = `
+  select
+    id,
+    clerk_user_id,
+    account_id,
+    title,
+    category,
+    kind,
+    status,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
+    amount_cents::text as amount_cents,
+    occurred_on::text as occurred_on,
+    notes,
+    created_at::text as created_at,
+    updated_at::text as updated_at
+  from transactions
+  where clerk_user_id = $1
+    and id = $2
+  limit 1
+  for update
 `
 
 export const findAccountForTransactionSql = `
@@ -65,10 +98,14 @@ export const insertTransactionSql = `
     category,
     kind,
     status,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
     amount_cents,
     occurred_on,
     notes
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, nullif($10, ''))
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, nullif($14, ''))
   returning
     id,
     clerk_user_id,
@@ -77,6 +114,36 @@ export const insertTransactionSql = `
     category,
     kind,
     status,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
+    amount_cents::text as amount_cents,
+    occurred_on::text as occurred_on,
+    notes,
+    created_at::text as created_at,
+    updated_at::text as updated_at
+`
+
+export const compensateTransactionSql = `
+  update transactions
+  set
+    status = 'compensated',
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+  returning
+    id,
+    clerk_user_id,
+    account_id,
+    title,
+    category,
+    kind,
+    status,
+    is_fixed,
+    fixed_expense_frequency,
+    installment_number,
+    installment_total,
     amount_cents::text as amount_cents,
     occurred_on::text as occurred_on,
     notes,
