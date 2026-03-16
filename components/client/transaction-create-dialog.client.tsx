@@ -14,14 +14,17 @@ import { TransactionCreateForm } from "@/components/client/transaction-create-fo
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionCreditCardOption,
 } from "@/modules/transactions/domain/types"
 
 export function TransactionCreateDialog({
   accountOptions,
+  creditCardOptions,
   categoryOptions,
   defaultOccurredOn,
 }: {
   accountOptions: TransactionAccountOption[]
+  creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
 }) {
@@ -47,6 +50,7 @@ export function TransactionCreateDialog({
         <div className="min-h-0 overflow-y-auto px-6 py-5">
           <TransactionCreateForm
             accountOptions={accountOptions}
+            creditCardOptions={creditCardOptions}
             categoryOptions={categoryOptions}
             defaultOccurredOn={defaultOccurredOn}
             mode="flat"

@@ -1,34 +1,44 @@
 import type {
   CreateTransactionFormInput,
+  CreateCreditCardExpenseInput,
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
   RemoveTransactionInput,
   RemoveTransactionScope,
   SettleTransactionInput,
+  TransactionFormKind,
   TransactionKind,
   TransactionListRecord,
   TransactionRecord,
+  TransactionSourceType,
   TransactionStatus,
 } from "@/schemas/transactions.schemas"
 
 export type {
   CreateTransactionFormInput,
+  CreateCreditCardExpenseInput,
   CreateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
   RemoveTransactionInput,
   RemoveTransactionScope,
   SettleTransactionInput,
+  TransactionFormKind,
   TransactionKind,
   TransactionListRecord,
   TransactionRecord,
+  TransactionSourceType,
   TransactionStatus,
 }
 
 export type CreateTransactionCommand = CreateTransactionInput & {
   clerkUserId: string
   seriesId?: string | null
+}
+
+export type CreateCreditCardExpenseCommand = CreateCreditCardExpenseInput & {
+  clerkUserId: string
 }
 
 export type TransactionListCommand = {
@@ -55,6 +65,7 @@ export type TransactionPageItem = {
   id: string
   title: string
   category: string
+  sourceType: TransactionSourceType
   isFixed: boolean
   fixedExpenseFrequency?: FixedExpenseFrequency | null
   installmentNumber?: number | null
@@ -94,6 +105,11 @@ export type TransactionAccountOption = {
 
 export type TransactionCategoryOption = {
   value: string
+}
+
+export type TransactionCreditCardOption = {
+  id: string
+  label: string
 }
 
 export type TransactionsPageData = {

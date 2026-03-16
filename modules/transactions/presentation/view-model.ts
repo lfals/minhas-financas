@@ -2,11 +2,13 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 import type { AccountRecord } from "@/modules/accounts/domain/types"
+import type { CreditCardRecord } from "@/modules/credit-cards/domain/types"
 import type {
   FixedExpenseFrequency,
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionCategoryBreakdown,
+  TransactionCreditCardOption,
   TransactionListRecord,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
@@ -91,6 +93,17 @@ export function buildTransactionCategoryOptions(
   return [...categoryMap.values()]
     .sort((left, right) => left.localeCompare(right, "pt-BR"))
     .map((value) => ({ value }))
+}
+
+export function buildTransactionCreditCardOptions(
+  cards: CreditCardRecord[]
+): TransactionCreditCardOption[] {
+  return cards
+    .filter((card) => !card.isArchived)
+    .map((card) => ({
+      id: card.id,
+      label: `${card.nickname} • ${card.finalDigits}`,
+    }))
 }
 
 export function buildTransactionsPageData(
@@ -193,6 +206,7 @@ export function buildTransactionsPageData(
       id: transaction.id,
       title: transaction.title,
       category: transaction.category,
+      sourceType: transaction.sourceType,
       isFixed: transaction.isFixed,
       fixedExpenseFrequency: transaction.fixedExpenseFrequency,
       installmentNumber: transaction.installmentNumber,

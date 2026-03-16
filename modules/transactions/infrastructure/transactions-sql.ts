@@ -1,23 +1,54 @@
+const transactionColumns = `
+  id,
+  clerk_user_id,
+  account_id,
+  title,
+  category,
+  kind,
+  status,
+  source_type,
+  credit_card_id,
+  invoice_month::text as invoice_month,
+  series_id,
+  is_fixed,
+  fixed_expense_frequency,
+  installment_number,
+  installment_total,
+  amount_cents::text as amount_cents,
+  settled_amount_cents::text as settled_amount_cents,
+  occurred_on::text as occurred_on,
+  notes,
+  created_at::text as created_at,
+  updated_at::text as updated_at
+`
+
+const transactionColumnsWithAlias = `
+  t.id,
+  t.clerk_user_id,
+  t.account_id,
+  t.title,
+  t.category,
+  t.kind,
+  t.status,
+  t.source_type,
+  t.credit_card_id,
+  t.invoice_month::text as invoice_month,
+  t.series_id,
+  t.is_fixed,
+  t.fixed_expense_frequency,
+  t.installment_number,
+  t.installment_total,
+  t.amount_cents::text as amount_cents,
+  t.settled_amount_cents::text as settled_amount_cents,
+  t.occurred_on::text as occurred_on,
+  t.notes,
+  t.created_at::text as created_at,
+  t.updated_at::text as updated_at
+`
+
 export const listTransactionsSql = `
   select
-    t.id,
-    t.clerk_user_id,
-    t.account_id,
-    t.title,
-    t.category,
-    t.kind,
-    t.status,
-    t.series_id,
-    t.is_fixed,
-    t.fixed_expense_frequency,
-    t.installment_number,
-    t.installment_total,
-    t.amount_cents::text as amount_cents,
-    t.settled_amount_cents::text as settled_amount_cents,
-    t.occurred_on::text as occurred_on,
-    t.notes,
-    t.created_at::text as created_at,
-    t.updated_at::text as updated_at,
+    ${transactionColumnsWithAlias},
     a.name as account_name,
     a.institution as account_institution
   from transactions t
@@ -29,24 +60,7 @@ export const listTransactionsSql = `
 
 export const findTransactionByClientRequestSql = `
   select
-    id,
-    clerk_user_id,
-    account_id,
-    title,
-    category,
-    kind,
-    status,
-    series_id,
-    is_fixed,
-    fixed_expense_frequency,
-    installment_number,
-    installment_total,
-    amount_cents::text as amount_cents,
-    settled_amount_cents::text as settled_amount_cents,
-    occurred_on::text as occurred_on,
-    notes,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    ${transactionColumns}
   from transactions
   where clerk_user_id = $1
     and client_request_id = $2
@@ -55,24 +69,7 @@ export const findTransactionByClientRequestSql = `
 
 export const findTransactionByIdForUpdateSql = `
   select
-    id,
-    clerk_user_id,
-    account_id,
-    title,
-    category,
-    kind,
-    status,
-    series_id,
-    is_fixed,
-    fixed_expense_frequency,
-    installment_number,
-    installment_total,
-    amount_cents::text as amount_cents,
-    settled_amount_cents::text as settled_amount_cents,
-    occurred_on::text as occurred_on,
-    notes,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    ${transactionColumns}
   from transactions
   where clerk_user_id = $1
     and id = $2
@@ -104,6 +101,9 @@ export const insertTransactionSql = `
     category,
     kind,
     status,
+    source_type,
+    credit_card_id,
+    invoice_month,
     series_id,
     is_fixed,
     fixed_expense_frequency,
@@ -112,26 +112,28 @@ export const insertTransactionSql = `
     amount_cents,
     occurred_on,
     notes
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, nullif($15, ''))
+  ) values (
+    $1,
+    $2,
+    $3,
+    $4,
+    $5,
+    $6,
+    $7,
+    $8,
+    $9,
+    $10,
+    $11,
+    $12,
+    $13,
+    $14,
+    $15,
+    $16,
+    $17,
+    nullif($18, '')
+  )
   returning
-    id,
-    clerk_user_id,
-    account_id,
-    title,
-    category,
-    kind,
-    status,
-    series_id,
-    is_fixed,
-    fixed_expense_frequency,
-    installment_number,
-    installment_total,
-    amount_cents::text as amount_cents,
-    settled_amount_cents::text as settled_amount_cents,
-    occurred_on::text as occurred_on,
-    notes,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    ${transactionColumns}
 `
 
 export const compensateTransactionSql = `
@@ -143,24 +145,7 @@ export const compensateTransactionSql = `
   where clerk_user_id = $1
     and id = $2
   returning
-    id,
-    clerk_user_id,
-    account_id,
-    title,
-    category,
-    kind,
-    status,
-    series_id,
-    is_fixed,
-    fixed_expense_frequency,
-    installment_number,
-    installment_total,
-    amount_cents::text as amount_cents,
-    settled_amount_cents::text as settled_amount_cents,
-    occurred_on::text as occurred_on,
-    notes,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    ${transactionColumns}
 `
 
 export const deleteTransactionSql = `
@@ -171,24 +156,7 @@ export const deleteTransactionSql = `
 
 export const listFutureTransactionsBySeriesForUpdateSql = `
   select
-    id,
-    clerk_user_id,
-    account_id,
-    title,
-    category,
-    kind,
-    status,
-    series_id,
-    is_fixed,
-    fixed_expense_frequency,
-    installment_number,
-    installment_total,
-    amount_cents::text as amount_cents,
-    settled_amount_cents::text as settled_amount_cents,
-    occurred_on::text as occurred_on,
-    notes,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    ${transactionColumns}
   from transactions
   where clerk_user_id = $1
     and series_id = $2
@@ -225,4 +193,70 @@ export const insertTransactionAuditLogSql = `
     request_id,
     idempotency_key
   ) values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)
+`
+
+export const findCreditCardForExpenseSql = `
+  select
+    c.id,
+    c.nickname,
+    c.closing_day,
+    c.due_day,
+    c.expense_account_id,
+    c.is_archived
+  from credit_cards c
+  where c.clerk_user_id = $1
+    and c.id = $2
+  limit 1
+  for update
+`
+
+export const findCreditCardExpenseByClientRequestSql = `
+  select
+    ${transactionColumnsWithAlias}
+  from credit_card_expenses e
+  inner join transactions t on t.id = e.invoice_transaction_id
+  where e.clerk_user_id = $1
+    and e.client_request_id = $2
+  limit 1
+`
+
+export const findCreditCardInvoiceByMonthForUpdateSql = `
+  select
+    ${transactionColumns}
+  from transactions
+  where clerk_user_id = $1
+    and source_type = 'credit_card_invoice'
+    and credit_card_id = $2
+    and invoice_month = $3::date
+  limit 1
+  for update
+`
+
+export const updateCreditCardInvoiceSql = `
+  update transactions
+  set
+    account_id = $3,
+    title = $4,
+    category = $5,
+    amount_cents = amount_cents + $6,
+    occurred_on = $7::date,
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+  returning
+    ${transactionColumns}
+`
+
+export const insertCreditCardExpenseSql = `
+  insert into credit_card_expenses (
+    clerk_user_id,
+    client_request_id,
+    card_id,
+    invoice_transaction_id,
+    title,
+    category,
+    amount_cents,
+    occurred_on,
+    notes
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, nullif($9, ''))
 `

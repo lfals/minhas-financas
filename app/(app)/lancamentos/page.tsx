@@ -5,10 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
+import { listCreditCardsUseCase } from "@/modules/credit-cards/application/list-credit-cards-use-case"
 import { listTransactionsUseCase } from "@/modules/transactions/application/list-transactions-use-case"
 import {
   buildTransactionAccountOptions,
   buildTransactionCategoryOptions,
+  buildTransactionCreditCardOptions,
   buildTransactionsPageData,
 } from "@/modules/transactions/presentation/view-model"
 
@@ -35,8 +37,9 @@ function getSelectedDate(value?: string | string[]) {
 async function getTransactionsPageState(selectedDate: string) {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
-    const [accounts, transactions] = await Promise.all([
+    const [accounts, cards, transactions] = await Promise.all([
       listAccountsUseCase({ clerkUserId }),
+      listCreditCardsUseCase({ clerkUserId }),
       listTransactionsUseCase({ clerkUserId }),
     ])
     const selectedMonth = selectedDate.slice(0, 7)
@@ -47,6 +50,7 @@ async function getTransactionsPageState(selectedDate: string) {
     return {
       data: buildTransactionsPageData(transactionsInMonth, { selectedDate }),
       accountOptions: buildTransactionAccountOptions(accounts),
+      creditCardOptions: buildTransactionCreditCardOptions(cards),
       categoryOptions: buildTransactionCategoryOptions(transactions),
       error: null,
     }
@@ -55,6 +59,7 @@ async function getTransactionsPageState(selectedDate: string) {
       return {
         data: null,
         accountOptions: [],
+        creditCardOptions: [],
         categoryOptions: [],
         error,
       }
@@ -97,6 +102,7 @@ export default async function TransactionsPage({
     <TransactionsPageView
       {...state.data}
       accountOptions={state.accountOptions}
+      creditCardOptions={state.creditCardOptions}
       categoryOptions={state.categoryOptions}
       defaultOccurredOn={selectedDate}
       selectedDate={selectedDate}

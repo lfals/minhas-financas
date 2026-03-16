@@ -22,6 +22,8 @@ import type {
   InstallmentAmountInputMode,
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionCreditCardOption,
+  TransactionFormKind,
 } from "@/modules/transactions/domain/types"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -43,9 +45,10 @@ type TransactionCadence = "single" | "fixed" | "installment"
 function getDefaultFormValues(defaultOccurredOn: string, defaultAccountId: string) {
   return {
     accountId: defaultAccountId,
+    cardId: "",
     title: "",
     category: "",
-    kind: "expense",
+    kind: "expense" as TransactionFormKind,
     status: "compensated",
     amount: "",
     occurredOn: defaultOccurredOn,
@@ -129,12 +132,14 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
 
 export function TransactionCreateForm({
   accountOptions,
+  creditCardOptions,
   categoryOptions,
   defaultOccurredOn,
   mode = "card",
   onSuccess,
 }: {
   accountOptions: TransactionAccountOption[]
+  creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
   mode?: "card" | "flat"
@@ -142,13 +147,16 @@ export function TransactionCreateForm({
 }) {
   const [state, formAction] = useActionState(createTransactionAction, initialState)
   const defaultAccountId = accountOptions[0]?.id ?? ""
-  const [formValues, setFormValues] = useState(() =>
-    getDefaultFormValues(defaultOccurredOn, defaultAccountId)
-  )
-  const forcePendingStatus = formValues.cadence === "fixed" && formValues.kind === "expense"
+  const defaultCardId = creditCardOptions[0]?.id ?? ""
+  const [formValues, setFormValues] = useState(() => ({
+    ...getDefaultFormValues(defaultOccurredOn, defaultAccountId),
+    cardId: defaultCardId,
+  }))
+  const isCardExpense = formValues.kind === "card-expense"
+  const forcePendingStatus =
+    isCardExpense || (formValues.cadence === "fixed" && formValues.kind === "expense")
   const fixedLabel = formValues.kind === "income" ? "Receita fixa" : "Despesa fixa"
-  const installmentLabel =
-    formValues.kind === "income" ? "Receita parcelada" : "Despesa parcelada"
+  const installmentLabel = formValues.kind === "income" ? "Receita parcelada" : "Despesa parcelada"
   const installmentTotalCount = Number(formValues.installmentTotal)
   const installmentPreviewCents =
     formValues.cadence === "installment" &&
@@ -157,7 +165,10 @@ export function TransactionCreateForm({
       ? Math.floor(parseCurrencyInputToCents(formValues.amount) / installmentTotalCount)
       : null
   const handleSuccess = useEffectEvent(() => {
-    setFormValues(getDefaultFormValues(defaultOccurredOn, defaultAccountId))
+    setFormValues({
+      ...getDefaultFormValues(defaultOccurredOn, defaultAccountId),
+      cardId: defaultCardId,
+    })
     onSuccess?.()
   })
 
@@ -195,34 +206,67 @@ export function TransactionCreateForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="accountId" className="text-white/80">
-              Conta
+            <FieldLabel htmlFor={isCardExpense ? "cardId" : "accountId"} className="text-white/80">
+              {isCardExpense ? "Cartão" : "Conta"}
             </FieldLabel>
             <FieldContent>
-              <NativeSelect
-                id="accountId"
-                name="accountId"
-                value={formValues.accountId}
-                onChange={(event) => {
-                  const { value } = event.currentTarget
-                  setFormValues((current) => ({
-                    ...current,
-                    accountId: value,
-                  }))
-                }}
-                className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-                disabled={!accountOptions.length}
-              >
-                {accountOptions.length ? null : (
-                  <NativeSelectOption value="">Nenhuma conta disponível</NativeSelectOption>
-                )}
-                {accountOptions.map((option) => (
-                  <NativeSelectOption key={option.id} value={option.id}>
-                    {option.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <FieldError errors={state.fieldErrors?.accountId?.map((message) => ({ message }))} />
+              {isCardExpense ? (
+                <>
+                  <NativeSelect
+                    id="cardId"
+                    name="cardId"
+                    value={formValues.cardId}
+                    onChange={(event) => {
+                      const { value } = event.currentTarget
+                      setFormValues((current) => ({
+                        ...current,
+                        cardId: value,
+                      }))
+                    }}
+                    className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                    disabled={!creditCardOptions.length}
+                  >
+                    {creditCardOptions.length ? null : (
+                      <NativeSelectOption value="">Nenhum cartão disponível</NativeSelectOption>
+                    )}
+                    {creditCardOptions.map((option) => (
+                      <NativeSelectOption key={option.id} value={option.id}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <input type="hidden" name="accountId" value="" />
+                  <FieldError errors={state.fieldErrors?.cardId?.map((message) => ({ message }))} />
+                </>
+              ) : (
+                <>
+                  <NativeSelect
+                    id="accountId"
+                    name="accountId"
+                    value={formValues.accountId}
+                    onChange={(event) => {
+                      const { value } = event.currentTarget
+                      setFormValues((current) => ({
+                        ...current,
+                        accountId: value,
+                      }))
+                    }}
+                    className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                    disabled={!accountOptions.length}
+                  >
+                    {accountOptions.length ? null : (
+                      <NativeSelectOption value="">Nenhuma conta disponível</NativeSelectOption>
+                    )}
+                    {accountOptions.map((option) => (
+                      <NativeSelectOption key={option.id} value={option.id}>
+                        {option.label}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                  <input type="hidden" name="cardId" value="" />
+                  <FieldError errors={state.fieldErrors?.accountId?.map((message) => ({ message }))} />
+                </>
+              )}
             </FieldContent>
           </Field>
 
@@ -270,14 +314,30 @@ export function TransactionCreateForm({
                   const { value } = event.currentTarget
                   setFormValues((current) => ({
                     ...current,
-                    kind: value,
+                    kind: value as TransactionFormKind,
+                    cardId: value === "card-expense" ? current.cardId || defaultCardId : "",
                     status:
-                      value === "expense" && current.cadence === "fixed" ? "pending" : current.status,
+                      value === "card-expense"
+                        ? "pending"
+                        : value === "expense" && current.cadence === "fixed"
+                          ? "pending"
+                          : current.status,
+                    cadence:
+                      value === "card-expense" && current.cadence === "fixed"
+                        ? "single"
+                        : current.cadence,
+                    isFixed: value === "card-expense" ? false : current.isFixed,
+                    fixedExpenseFrequency: value === "card-expense" ? "monthly" : current.fixedExpenseFrequency,
+                    installmentNumber: value === "card-expense" ? "1" : current.installmentNumber,
+                    installmentTotal: value === "card-expense" ? "2" : current.installmentTotal,
+                    installmentAmountInputMode:
+                      value === "card-expense" ? "installment" : current.installmentAmountInputMode,
                   }))
                 }}
                 className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
               >
                 <NativeSelectOption value="expense">Despesa</NativeSelectOption>
+                <NativeSelectOption value="card-expense">Despesa cartão</NativeSelectOption>
                 <NativeSelectOption value="income">Receita</NativeSelectOption>
               </NativeSelect>
               <FieldError errors={state.fieldErrors?.kind?.map((message) => ({ message }))} />
@@ -313,7 +373,9 @@ export function TransactionCreateForm({
               <FieldError errors={state.fieldErrors?.status?.map((message) => ({ message }))} />
               {forcePendingStatus ? (
                 <p className="text-xs text-white/55">
-                  Despesas fixas sao criadas como pendentes em todos os meses.
+                  {isCardExpense
+                    ? "Compras no cartão entram na fatura e ficam pendentes até o pagamento da fatura."
+                    : "Despesas fixas sao criadas como pendentes em todos os meses."}
                 </p>
               ) : null}
             </FieldContent>
@@ -435,12 +497,18 @@ export function TransactionCreateForm({
               }}
               className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
             >
-              <NativeSelectOption value="single">Lançamento avulso</NativeSelectOption>
-              <NativeSelectOption value="fixed">{fixedLabel}</NativeSelectOption>
-              <NativeSelectOption value="installment">{installmentLabel}</NativeSelectOption>
+              <NativeSelectOption value="single">
+                {isCardExpense ? "À vista" : "Lançamento avulso"}
+              </NativeSelectOption>
+              {isCardExpense ? null : (
+                <NativeSelectOption value="fixed">{fixedLabel}</NativeSelectOption>
+              )}
+              <NativeSelectOption value="installment">
+                {isCardExpense ? "Parcelado" : installmentLabel}
+              </NativeSelectOption>
             </NativeSelect>
 
-            {formValues.cadence === "fixed" ? (
+            {formValues.cadence === "fixed" && !isCardExpense ? (
               <Field className="w-full">
                 <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
                   Recorrência
@@ -496,7 +564,9 @@ export function TransactionCreateForm({
                       }}
                       className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
                     >
-                      <NativeSelectOption value="installment">Valor da parcela</NativeSelectOption>
+                      <NativeSelectOption value="installment">
+                        {isCardExpense ? "Valor de cada parcela" : "Valor da parcela"}
+                      </NativeSelectOption>
                       <NativeSelectOption value="total">Valor total</NativeSelectOption>
                     </NativeSelect>
                   </FieldContent>
@@ -559,7 +629,13 @@ export function TransactionCreateForm({
             )}
 
             <p className="text-xs text-white/55">
-              {formValues.cadence === "installment"
+              {isCardExpense
+                ? formValues.cadence === "installment"
+                  ? formValues.installmentAmountInputMode === "total"
+                    ? "O sistema divide o valor total entre as parcelas e lança cada uma na fatura correspondente dos próximos meses."
+                    : "O sistema mantém o valor informado em cada parcela e lança cada uma na fatura correspondente dos próximos meses."
+                  : "A compra é registrada no cartão e consolidada automaticamente na fatura do mês de vencimento."
+                : formValues.cadence === "installment"
                 ? formValues.installmentAmountInputMode === "total"
                   ? "O sistema divide o valor total entre as parcelas e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
                   : "O sistema mantém o valor informado em cada parcela e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
@@ -603,9 +679,15 @@ export function TransactionCreateForm({
         </Field>
       </FieldGroup>
 
-      {!accountOptions.length ? (
+      {!accountOptions.length && !isCardExpense ? (
         <p className="text-sm text-[#ff9c7a]">
           Cadastre uma conta antes de adicionar o primeiro lançamento.
+        </p>
+      ) : null}
+
+      {!creditCardOptions.length && isCardExpense ? (
+        <p className="text-sm text-[#ff9c7a]">
+          Cadastre um cartão antes de registrar compras na fatura.
         </p>
       ) : null}
 
@@ -619,7 +701,7 @@ export function TransactionCreateForm({
         </p>
       ) : null}
 
-      <SubmitButton disabled={!accountOptions.length} />
+      <SubmitButton disabled={isCardExpense ? !creditCardOptions.length : !accountOptions.length} />
     </form>
   )
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
+import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
 import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
 import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
@@ -36,6 +37,7 @@ export async function createTransactionAction(
 ): Promise<CreateTransactionActionState> {
   const parsed = createTransactionFormSchema.safeParse({
     accountId: formData.get("accountId"),
+    cardId: formData.get("cardId"),
     title: formData.get("title"),
     category: formData.get("category"),
     kind: formData.get("kind"),
@@ -60,23 +62,40 @@ export async function createTransactionAction(
 
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
+    const amountCents = parseCurrencyInputToCents(parsed.data.amount)
 
-    await createTransactionUseCase({
-      clerkUserId,
-      accountId: parsed.data.accountId,
-      title: parsed.data.title,
-      category: parsed.data.category,
-      kind: parsed.data.kind,
-      status: parsed.data.status,
-      amountCents: parseCurrencyInputToCents(parsed.data.amount),
-      occurredOn: parsed.data.occurredOn,
-      isFixed: parsed.data.isFixed,
-      fixedExpenseFrequency: parsed.data.fixedExpenseFrequency,
-      installmentNumber: parsed.data.installmentNumber,
-      installmentTotal: parsed.data.installmentTotal,
-      installmentAmountInputMode: parsed.data.installmentAmountInputMode,
-      notes: parsed.data.notes,
-    })
+    if (parsed.data.kind === "card-expense") {
+      await createCreditCardExpenseUseCase({
+        clerkUserId,
+        cardId: parsed.data.cardId!,
+        title: parsed.data.title,
+        category: parsed.data.category,
+        amountCents,
+        occurredOn: parsed.data.occurredOn,
+        installmentNumber: parsed.data.installmentNumber,
+        installmentTotal: parsed.data.installmentTotal,
+        installmentAmountInputMode: parsed.data.installmentAmountInputMode,
+        notes: parsed.data.notes,
+      })
+    } else {
+      await createTransactionUseCase({
+        clerkUserId,
+        accountId: parsed.data.accountId!,
+        title: parsed.data.title,
+        category: parsed.data.category,
+        kind: parsed.data.kind,
+        status: parsed.data.status!,
+        sourceType: "manual",
+        amountCents,
+        occurredOn: parsed.data.occurredOn,
+        isFixed: parsed.data.isFixed,
+        fixedExpenseFrequency: parsed.data.fixedExpenseFrequency,
+        installmentNumber: parsed.data.installmentNumber,
+        installmentTotal: parsed.data.installmentTotal,
+        installmentAmountInputMode: parsed.data.installmentAmountInputMode,
+        notes: parsed.data.notes,
+      })
+    }
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")

@@ -3,10 +3,11 @@ import "server-only"
 import { randomUUID } from "node:crypto"
 import type { PoolClient } from "pg"
 
-import { NotFoundAppError, ValidationAppError } from "@/lib/errors/app-error"
 import { queryDb } from "@/lib/db/pool"
 import { withTransaction } from "@/lib/db/tx"
+import { NotFoundAppError, ValidationAppError } from "@/lib/errors/app-error"
 import type {
+  CreateCreditCardExpenseCommand,
   CreateTransactionCommand,
   CreateTransactionResult,
   RemoveTransactionCommand,
@@ -17,21 +18,23 @@ import type {
 } from "@/modules/transactions/domain/types"
 import {
   compensateTransactionSql,
-  deleteTransactionSql,
   deleteFutureTransactionsBySeriesSql,
+  deleteTransactionSql,
   findAccountForTransactionSql,
+  findCreditCardExpenseByClientRequestSql,
+  findCreditCardForExpenseSql,
+  findCreditCardInvoiceByMonthForUpdateSql,
   findTransactionByClientRequestSql,
   findTransactionByIdForUpdateSql,
+  insertCreditCardExpenseSql,
   insertTransactionAuditLogSql,
   insertTransactionSql,
   listFutureTransactionsBySeriesForUpdateSql,
   listTransactionsSql,
   updateAccountBalanceSql,
+  updateCreditCardInvoiceSql,
 } from "@/modules/transactions/infrastructure/transactions-sql"
-import {
-  transactionListRecordSchema,
-  transactionRecordSchema,
-} from "@/schemas/transactions.schemas"
+import { transactionListRecordSchema, transactionRecordSchema } from "@/schemas/transactions.schemas"
 
 type DbTransactionRow = {
   id: string
@@ -41,6 +44,9 @@ type DbTransactionRow = {
   category: string
   kind: string
   status: string
+  source_type: string
+  credit_card_id: string | null
+  invoice_month: string | null
   series_id: string | null
   is_fixed: boolean
   fixed_expense_frequency: string | null
@@ -68,6 +74,15 @@ type DbAccountBalanceRow = {
   is_archived: boolean
 }
 
+type DbCreditCardExpenseRow = {
+  id: string
+  nickname: string
+  closing_day: number
+  due_day: number
+  expense_account_id: string
+  is_archived: boolean
+}
+
 function mapTransactionRow(row: DbTransactionRow): TransactionRecord {
   return transactionRecordSchema.parse({
     id: row.id,
@@ -77,6 +92,9 @@ function mapTransactionRow(row: DbTransactionRow): TransactionRecord {
     category: row.category,
     kind: row.kind,
     status: row.status,
+    sourceType: row.source_type,
+    creditCardId: row.credit_card_id,
+    invoiceMonth: row.invoice_month,
     seriesId: row.series_id,
     isFixed: row.is_fixed,
     fixedExpenseFrequency: row.fixed_expense_frequency,
@@ -118,11 +136,7 @@ function addMonthsToIsoDate(isoDate: string, monthOffset: number) {
 
 function buildFixedOccurrences(command: CreateTransactionCommand) {
   if (!command.isFixed) {
-    return [
-      {
-        ...command,
-      },
-    ]
+    return [{ ...command }]
   }
 
   const [year] = command.occurredOn.split("-").map(Number)
@@ -148,11 +162,7 @@ function buildFixedOccurrences(command: CreateTransactionCommand) {
 
 function buildInstallmentOccurrences(command: CreateTransactionCommand) {
   if (command.installmentNumber == null || command.installmentTotal == null) {
-    return [
-      {
-        ...command,
-      },
-    ]
+    return [{ ...command }]
   }
 
   const remainingInstallments = command.installmentTotal - command.installmentNumber
@@ -186,20 +196,69 @@ function buildInstallmentOccurrences(command: CreateTransactionCommand) {
   return occurrences
 }
 
-async function queryOne(
-  client: PoolClient,
-  text: string,
-  params: readonly unknown[]
-) {
+function buildCreditCardInstallmentOccurrences(command: CreateCreditCardExpenseCommand) {
+  if (command.installmentNumber == null || command.installmentTotal == null) {
+    return [
+      {
+        ...command,
+      },
+    ]
+  }
+
+  const remainingInstallments = command.installmentTotal - command.installmentNumber
+  const occurrences: CreateCreditCardExpenseCommand[] = []
+  const baseAmountCents = Math.floor(command.amountCents / command.installmentTotal)
+  const remainderCents = command.amountCents % command.installmentTotal
+
+  for (let monthOffset = 0; monthOffset <= remainingInstallments; monthOffset += 1) {
+    const installmentNumber = command.installmentNumber + monthOffset
+    const amountCents =
+      command.installmentAmountInputMode === "total"
+        ? baseAmountCents + (installmentNumber <= remainderCents ? 1 : 0)
+        : command.amountCents
+
+    occurrences.push({
+      ...command,
+      clientRequestId: monthOffset === 0 ? command.clientRequestId : randomUUID(),
+      occurredOn: addMonthsToIsoDate(command.occurredOn, monthOffset),
+      installmentNumber,
+      installmentTotal: command.installmentTotal,
+      amountCents,
+    })
+  }
+
+  return occurrences
+}
+
+function getCreditCardInvoiceCompetenceMonth(occurredOn: string, closingDay: number) {
+  const [, , purchaseDay] = occurredOn.split("-").map(Number)
+  return purchaseDay <= closingDay ? occurredOn.slice(0, 7) : addMonthsToIsoDate(occurredOn, 1).slice(0, 7)
+}
+
+function getCreditCardInvoiceMonth(competenceMonth: string, closingDay: number, dueDay: number) {
+  const baseDate = `${competenceMonth}-01`
+  return dueDay > closingDay ? competenceMonth : addMonthsToIsoDate(baseDate, 1).slice(0, 7)
+}
+
+function buildInvoiceDate(invoiceMonth: string, dueDay: number) {
+  const [year, month] = invoiceMonth.split("-").map(Number)
+  const monthIndex = month - 1
+  const clampedDay = Math.min(dueDay, getDaysInMonth(year, monthIndex))
+
+  return new Date(Date.UTC(year, monthIndex, clampedDay)).toISOString().slice(0, 10)
+}
+
+function buildCreditCardInvoiceTitle(cardNickname: string, invoiceMonth: string) {
+  const [year, month] = invoiceMonth.split("-")
+  return `Fatura ${cardNickname} • ${month}/${year}`
+}
+
+async function queryOne(client: PoolClient, text: string, params: readonly unknown[]) {
   const result = await client.query<DbTransactionRow>(text, params as unknown[])
   return result.rows[0] ? mapTransactionRow(result.rows[0]) : null
 }
 
-async function queryMany(
-  client: PoolClient,
-  text: string,
-  params: readonly unknown[]
-) {
+async function queryMany(client: PoolClient, text: string, params: readonly unknown[]) {
   const result = await client.query<DbTransactionRow>(text, params as unknown[])
   return result.rows.map(mapTransactionRow)
 }
@@ -262,6 +321,9 @@ export class TransactionsRepository {
           occurrence.category,
           occurrence.kind,
           occurrence.status,
+          occurrence.sourceType ?? "manual",
+          occurrence.creditCardId ?? null,
+          occurrence.invoiceMonth ?? null,
           seriesId,
           occurrence.isFixed,
           occurrence.fixedExpenseFrequency ?? null,
@@ -306,6 +368,128 @@ export class TransactionsRepository {
     })
   }
 
+  async createCreditCardExpense(command: CreateCreditCardExpenseCommand): Promise<CreateTransactionResult> {
+    return withTransaction(async (client) => {
+      const existingByRequest = await queryOne(client, findCreditCardExpenseByClientRequestSql, [
+        command.clerkUserId,
+        command.clientRequestId,
+      ])
+
+      if (existingByRequest) {
+        return {
+          transaction: existingByRequest,
+          created: false,
+        }
+      }
+
+      const cardResult = await client.query<DbCreditCardExpenseRow>(findCreditCardForExpenseSql, [
+        command.clerkUserId,
+        command.cardId,
+      ])
+      const card = cardResult.rows[0]
+
+      if (!card || card.is_archived) {
+        throw new NotFoundAppError("Selecione um cartão válido para a despesa.")
+      }
+
+      const occurrences = buildCreditCardInstallmentOccurrences(command)
+      let firstInvoiceTransaction: TransactionRecord | null = null
+
+      for (const occurrence of occurrences) {
+        const competenceMonth = getCreditCardInvoiceCompetenceMonth(occurrence.occurredOn, card.closing_day)
+        const invoiceMonth = getCreditCardInvoiceMonth(competenceMonth, card.closing_day, card.due_day)
+        const invoiceDate = buildInvoiceDate(invoiceMonth, card.due_day)
+        const invoiceKey = `${invoiceMonth}-01`
+        const invoiceTitle = buildCreditCardInvoiceTitle(card.nickname, invoiceMonth)
+        const invoiceCategory = "Cartão de crédito"
+
+        const existingInvoice = await queryOne(client, findCreditCardInvoiceByMonthForUpdateSql, [
+          command.clerkUserId,
+          command.cardId,
+          invoiceKey,
+        ])
+
+        if (existingInvoice?.status === "compensated") {
+          throw new ValidationAppError("A fatura deste cartão já foi compensada para este mês.")
+        }
+
+        const invoiceTransaction = existingInvoice
+          ? mapTransactionRow(
+              (
+                await client.query<DbTransactionRow>(updateCreditCardInvoiceSql, [
+                  command.clerkUserId,
+                  existingInvoice.id,
+                  card.expense_account_id,
+                  invoiceTitle,
+                  invoiceCategory,
+                  occurrence.amountCents,
+                  invoiceDate,
+                ])
+              ).rows[0]
+            )
+          : mapTransactionRow(
+              (
+                await client.query<DbTransactionRow>(insertTransactionSql, [
+                  command.clerkUserId,
+                  randomUUID(),
+                  card.expense_account_id,
+                  invoiceTitle,
+                  invoiceCategory,
+                  "expense",
+                  "pending",
+                  "credit_card_invoice",
+                  command.cardId,
+                  invoiceKey,
+                  null,
+                  false,
+                  null,
+                  null,
+                  null,
+                  occurrence.amountCents,
+                  invoiceDate,
+                  "",
+                ])
+              ).rows[0]
+            )
+
+        await client.query(insertCreditCardExpenseSql, [
+          command.clerkUserId,
+          occurrence.clientRequestId,
+          command.cardId,
+          invoiceTransaction.id,
+          occurrence.installmentTotal
+            ? `${command.title} ${occurrence.installmentNumber}/${occurrence.installmentTotal}`
+            : command.title,
+          command.category,
+          occurrence.amountCents,
+          occurrence.occurredOn,
+          command.notes ?? "",
+        ])
+
+        await client.query(insertTransactionAuditLogSql, [
+          command.clerkUserId,
+          "user",
+          existingInvoice ? "credit_card_invoice.updated" : "credit_card_invoice.created",
+          "transactions",
+          invoiceTransaction.id,
+          existingInvoice ? JSON.stringify(existingInvoice) : null,
+          JSON.stringify(invoiceTransaction),
+          occurrence.clientRequestId,
+          occurrence.clientRequestId,
+        ])
+
+        if (!firstInvoiceTransaction) {
+          firstInvoiceTransaction = invoiceTransaction
+        }
+      }
+
+      return {
+        transaction: firstInvoiceTransaction!,
+        created: true,
+      }
+    })
+  }
+
   async findById(clerkUserId: string, transactionId: string) {
     const result = await queryDb<DbTransactionRow>(
       `
@@ -317,6 +501,9 @@ export class TransactionsRepository {
           category,
           kind,
           status,
+          source_type,
+          credit_card_id,
+          invoice_month::text as invoice_month,
           series_id,
           is_fixed,
           fixed_expense_frequency,
@@ -411,6 +598,10 @@ export class TransactionsRepository {
         throw new NotFoundAppError("Lançamento não encontrado.")
       }
 
+      if (existingTransaction.sourceType === "credit_card_invoice") {
+        throw new ValidationAppError("Remova compras do cartão pelo fluxo de fatura, não pelo lançamento consolidado.")
+      }
+
       const transactionsToRemove =
         command.scope === "future" && existingTransaction.seriesId
           ? await queryMany(client, listFutureTransactionsBySeriesForUpdateSql, [
@@ -428,8 +619,7 @@ export class TransactionsRepository {
         }
 
         const effectiveAmountCents = transaction.settledAmountCents ?? transaction.amountCents
-        const balanceDelta =
-          transaction.kind === "income" ? -effectiveAmountCents : effectiveAmountCents
+        const balanceDelta = transaction.kind === "income" ? -effectiveAmountCents : effectiveAmountCents
 
         balanceDeltasByAccount.set(
           transaction.accountId,
@@ -442,7 +632,6 @@ export class TransactionsRepository {
           command.clerkUserId,
           accountId,
         ])
-
         const account = accountResult.rows[0]
 
         if (!account || account.is_archived) {

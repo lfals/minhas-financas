@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionCreditCardOption,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
 import {
@@ -33,6 +34,10 @@ function statusTone(status: TransactionsPageData["transactions"][number]["status
 function getTransactionBadge(
   transaction: TransactionsPageData["transactions"][number]
 ) {
+  if (transaction.sourceType === "credit_card_invoice") {
+    return "Fatura"
+  }
+
   const installmentLabel = getInstallmentLabel(
     transaction.installmentNumber,
     transaction.installmentTotal
@@ -56,11 +61,13 @@ export function TransactionsPageView({
   categories,
   cashflow,
   accountOptions,
+  creditCardOptions,
   categoryOptions,
   defaultOccurredOn,
   selectedDate,
 }: TransactionsPageData & {
   accountOptions: TransactionAccountOption[]
+  creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
   selectedDate: string
@@ -105,6 +112,7 @@ export function TransactionsPageView({
               <TransactionsPeriodControls selectedDate={selectedDate} />
               <TransactionCreateDialog
                 accountOptions={accountOptions}
+                creditCardOptions={creditCardOptions}
                 categoryOptions={categoryOptions}
                 defaultOccurredOn={defaultOccurredOn}
               />
@@ -180,13 +188,15 @@ export function TransactionsPageView({
                             )}
                           </p>
                         </div>
-                        <TransactionRemoveButton
-                          transactionId={transaction.id}
-                          transactionTitle={transaction.title}
-                          isFixed={transaction.isFixed}
-                          installmentTotal={transaction.installmentTotal}
-                          supportsFutureRemoval={transaction.supportsFutureRemoval}
-                        />
+                        {transaction.sourceType !== "credit_card_invoice" ? (
+                          <TransactionRemoveButton
+                            transactionId={transaction.id}
+                            transactionTitle={transaction.title}
+                            isFixed={transaction.isFixed}
+                            installmentTotal={transaction.installmentTotal}
+                            supportsFutureRemoval={transaction.supportsFutureRemoval}
+                          />
+                        ) : null}
                         {transaction.status !== "compensated" ? (
                           <TransactionSettleButton
                             transactionId={transaction.id}
