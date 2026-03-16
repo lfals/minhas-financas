@@ -9,7 +9,7 @@ export function buildCreditCardsPageData(cards: CreditCardRecord[]): CreditCards
     nickname: card.nickname,
     finalDigits: card.finalDigits,
     limitCents: card.limitCents,
-    availableLimitCents: card.limitCents,
+    availableLimitCents: Math.max(card.limitCents - card.usedLimitCents, 0),
     closingDay: String(card.closingDay).padStart(2, "0"),
     dueDay: String(card.dueDay).padStart(2, "0"),
     expenseAccountId: card.expenseAccountId,
@@ -19,11 +19,12 @@ export function buildCreditCardsPageData(cards: CreditCardRecord[]): CreditCards
   }))
 
   const totalLimitCents = items.reduce((sum, card) => sum + card.limitCents, 0)
+  const totalAvailableLimitCents = items.reduce((sum, card) => sum + card.availableLimitCents, 0)
 
   return {
     cards: items,
     activeCount: items.length,
     totalLimitCents,
-    availableLimitCents: totalLimitCents,
+    availableLimitCents: totalAvailableLimitCents,
   }
 }

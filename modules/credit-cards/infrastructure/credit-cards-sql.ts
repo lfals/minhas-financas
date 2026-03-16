@@ -4,6 +4,7 @@ export const creditCardSelectColumnsSql = `
   c.nickname,
   c.final_digits,
   c.limit_cents::text as limit_cents,
+  coalesce(open_invoices.used_limit_cents, 0)::text as used_limit_cents,
   c.closing_day,
   c.due_day,
   c.expense_account_id,
@@ -21,6 +22,18 @@ export const listCreditCardsSql = `
   from credit_cards c
   inner join accounts a
     on a.id = c.expense_account_id
+  left join (
+    select
+      credit_card_id,
+      sum(amount_cents) as used_limit_cents
+    from transactions
+    where clerk_user_id = $1
+      and source_type = 'credit_card_invoice'
+      and status != 'compensated'
+      and credit_card_id is not null
+    group by credit_card_id
+  ) open_invoices
+    on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
     and c.is_archived = false
   order by c.created_at desc
@@ -32,6 +45,18 @@ export const findCreditCardByIdSql = `
   from credit_cards c
   inner join accounts a
     on a.id = c.expense_account_id
+  left join (
+    select
+      credit_card_id,
+      sum(amount_cents) as used_limit_cents
+    from transactions
+    where clerk_user_id = $1
+      and source_type = 'credit_card_invoice'
+      and status != 'compensated'
+      and credit_card_id is not null
+    group by credit_card_id
+  ) open_invoices
+    on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
     and c.id = $2
   limit 1
@@ -43,6 +68,18 @@ export const findCreditCardByNicknameSql = `
   from credit_cards c
   inner join accounts a
     on a.id = c.expense_account_id
+  left join (
+    select
+      credit_card_id,
+      sum(amount_cents) as used_limit_cents
+    from transactions
+    where clerk_user_id = $1
+      and source_type = 'credit_card_invoice'
+      and status != 'compensated'
+      and credit_card_id is not null
+    group by credit_card_id
+  ) open_invoices
+    on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
     and lower(c.nickname) = lower($2)
     and c.is_archived = false
@@ -55,6 +92,18 @@ export const findCreditCardByClientRequestSql = `
   from credit_cards c
   inner join accounts a
     on a.id = c.expense_account_id
+  left join (
+    select
+      credit_card_id,
+      sum(amount_cents) as used_limit_cents
+    from transactions
+    where clerk_user_id = $1
+      and source_type = 'credit_card_invoice'
+      and status != 'compensated'
+      and credit_card_id is not null
+    group by credit_card_id
+  ) open_invoices
+    on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
     and c.client_request_id = $2
   limit 1

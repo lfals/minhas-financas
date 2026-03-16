@@ -30,6 +30,7 @@ type DbCreditCardRow = {
   nickname: string
   final_digits: string
   limit_cents: string
+  used_limit_cents: string
   closing_day: number
   due_day: number
   expense_account_id: string
@@ -56,6 +57,7 @@ function mapCreditCardRow(row: DbCreditCardRow): CreditCardRecord {
     nickname: row.nickname,
     finalDigits: row.final_digits,
     limitCents: row.limit_cents,
+    usedLimitCents: row.used_limit_cents,
     closingDay: row.closing_day,
     dueDay: row.due_day,
     expenseAccountId: row.expense_account_id,
@@ -87,6 +89,7 @@ async function hydrateCreditCard(
 
   return mapCreditCardRow({
     ...row,
+    used_limit_cents: "0",
     expense_account_name: account.name,
     expense_account_institution: account.institution,
   })

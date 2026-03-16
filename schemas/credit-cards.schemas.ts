@@ -68,6 +68,7 @@ export const creditCardRecordSchema = z.object({
   nickname: z.string(),
   finalDigits: z.string().length(4),
   limitCents: centsSchema,
+  usedLimitCents: centsSchema,
   closingDay: z.number().int(),
   dueDay: z.number().int(),
   expenseAccountId: z.uuid(),
