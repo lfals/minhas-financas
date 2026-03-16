@@ -30,9 +30,11 @@ export type AccountFormValues = {
   includeInNetWorth: boolean
 }
 
+const DEFAULT_ACCOUNT_INSTITUTION = "Sem instituição"
+
 export const defaultAccountFormValues: AccountFormValues = {
   name: "",
-  institution: "",
+  institution: DEFAULT_ACCOUNT_INSTITUTION,
   type: "checking",
   initialBalance: "",
   includeInNetWorth: true,
@@ -138,9 +140,10 @@ function AccountCreateFormContent({
       {actionType === "update" && formValues.accountId ? (
         <input type="hidden" name="accountId" value={formValues.accountId} />
       ) : null}
+      <input type="hidden" name="institution" value={formValues.institution} />
 
       <FieldGroup className="gap-4">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-1">
           <Field>
             <FieldLabel htmlFor="name" className="text-white/80">
               Nome da conta
@@ -161,31 +164,6 @@ function AccountCreateFormContent({
                 className="h-10 border-white/10 bg-white/5 text-white"
               />
               <FieldError errors={state.fieldErrors?.name?.map((message) => ({ message }))} />
-            </FieldContent>
-          </Field>
-
-          <Field>
-            <FieldLabel htmlFor="institution" className="text-white/80">
-              Instituição
-            </FieldLabel>
-            <FieldContent>
-              <Input
-                id="institution"
-                name="institution"
-                placeholder="Nubank"
-                value={formValues.institution}
-                onChange={(event) => {
-                  const { value } = event.currentTarget
-                  onFormValuesChange((current) => ({
-                    ...current,
-                    institution: value,
-                  }))
-                }}
-                className="h-10 border-white/10 bg-white/5 text-white"
-              />
-              <FieldError
-                errors={state.fieldErrors?.institution?.map((message) => ({ message }))}
-              />
             </FieldContent>
           </Field>
         </div>
