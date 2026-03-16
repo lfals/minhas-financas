@@ -4,6 +4,7 @@ const transactionColumns = `
   account_id,
   title,
   category,
+  category_id,
   kind,
   status,
   source_type,
@@ -28,6 +29,7 @@ const transactionColumnsWithAlias = `
   t.account_id,
   t.title,
   t.category,
+  t.category_id,
   t.kind,
   t.status,
   t.source_type,
@@ -64,8 +66,10 @@ export const listCreditCardInvoiceExpensesSql = `
     e.card_id,
     c.nickname as card_name,
     e.invoice_transaction_id,
+    e.series_id,
     e.title,
     e.category,
+    e.category_id,
     e.amount_cents::text as amount_cents,
     e.occurred_on::text as occurred_on,
     e.notes,
@@ -118,6 +122,7 @@ export const insertTransactionSql = `
     account_id,
     title,
     category,
+    category_id,
     kind,
     status,
     source_type,
@@ -149,7 +154,8 @@ export const insertTransactionSql = `
     $15,
     $16,
     $17,
-    nullif($18, '')
+    $18,
+    nullif($19, '')
   )
   returning
     ${transactionColumns}
@@ -190,6 +196,76 @@ export const deleteTransactionSql = `
   delete from transactions
   where clerk_user_id = $1
     and id = $2
+`
+
+export const findCreditCardExpenseByIdForUpdateSql = `
+  select
+    e.id,
+    e.card_id,
+    c.nickname as card_name,
+    e.invoice_transaction_id,
+    e.series_id,
+    e.title,
+    e.category,
+    e.amount_cents::text as amount_cents,
+    e.occurred_on::text as occurred_on,
+    e.notes,
+    e.created_at::text as created_at,
+    e.updated_at::text as updated_at
+  from credit_card_expenses e
+  inner join credit_cards c on c.id = e.card_id
+  where e.clerk_user_id = $1
+    and e.id = $2
+  limit 1
+  for update
+`
+
+export const listFutureCreditCardExpensesBySeriesForUpdateSql = `
+  select
+    e.id,
+    e.card_id,
+    c.nickname as card_name,
+    e.invoice_transaction_id,
+    e.series_id,
+    e.title,
+    e.category,
+    e.amount_cents::text as amount_cents,
+    e.occurred_on::text as occurred_on,
+    e.notes,
+    e.created_at::text as created_at,
+    e.updated_at::text as updated_at
+  from credit_card_expenses e
+  inner join credit_cards c on c.id = e.card_id
+  where e.clerk_user_id = $1
+    and e.series_id = $2
+    and e.occurred_on >= $3::date
+  order by e.occurred_on asc, e.created_at asc
+  for update
+`
+
+export const deleteCreditCardExpenseSql = `
+  delete from credit_card_expenses
+  where clerk_user_id = $1
+    and id = $2
+`
+
+export const deleteFutureCreditCardExpensesBySeriesSql = `
+  delete from credit_card_expenses
+  where clerk_user_id = $1
+    and series_id = $2
+    and occurred_on >= $3::date
+`
+
+export const updateCreditCardInvoiceTotalsSql = `
+  update transactions
+  set
+    amount_cents = $3,
+    settled_amount_cents = $4,
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+  returning
+    ${transactionColumns}
 `
 
 export const listFutureTransactionsBySeriesForUpdateSql = `
@@ -276,8 +352,9 @@ export const updateCreditCardInvoiceSql = `
     account_id = $3,
     title = $4,
     category = $5,
-    amount_cents = amount_cents + $6,
-    occurred_on = $7::date,
+    category_id = $6,
+    amount_cents = amount_cents + $7,
+    occurred_on = $8::date,
     updated_at = now()
   where clerk_user_id = $1
     and id = $2
@@ -291,10 +368,41 @@ export const insertCreditCardExpenseSql = `
     client_request_id,
     card_id,
     invoice_transaction_id,
+    series_id,
     title,
     category,
+    category_id,
     amount_cents,
     occurred_on,
     notes
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, nullif($9, ''))
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, nullif($11, ''))
+`
+
+export const listTransactionCategoriesSql = `
+  select
+    id,
+    name
+  from transaction_categories
+  where clerk_user_id = $1
+  order by name asc
+`
+
+export const upsertTransactionCategorySql = `
+  insert into transaction_categories (clerk_user_id, name)
+  select $1, $2
+  where not exists (
+    select 1
+    from transaction_categories c
+    where c.clerk_user_id = $1
+      and lower(trim(c.name)) = lower(trim($2))
+  )
+  returning id
+`
+
+export const findTransactionCategoryByNormalizedNameSql = `
+  select id
+  from transaction_categories
+  where clerk_user_id = $1
+    and lower(trim(name)) = lower(trim($2))
+  limit 1
 `

@@ -7,6 +7,7 @@ import type {
   CreditCardInvoiceExpenseRecord,
   FixedExpenseFrequency,
   TransactionAccountOption,
+  TransactionCategoryRecord,
   TransactionCategoryOption,
   TransactionCategoryBreakdown,
   TransactionCreditCardOption,
@@ -27,11 +28,15 @@ function buildInvoiceExpenses(
     const item = {
       id: expense.id,
       invoiceTransactionId: expense.invoiceTransactionId,
+      seriesId: expense.seriesId,
       title: expense.title,
       category: expense.category,
       cardName: expense.cardName,
       dateLabel: format(new Date(`${expense.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
       amountCents: expense.amountCents,
+      installmentNumber: expense.installmentNumber,
+      installmentTotal: expense.installmentTotal,
+      supportsFutureRemoval: expense.seriesId !== null && expense.seriesId !== undefined,
       notes: expense.notes,
     }
 
@@ -102,18 +107,19 @@ export function buildTransactionAccountOptions(accounts: AccountRecord[]): Trans
 }
 
 export function buildTransactionCategoryOptions(
-  transactions: TransactionListRecord[]
+  categories: TransactionCategoryRecord[]
 ): TransactionCategoryOption[] {
   const categoryMap = new Map<string, string>()
 
-  for (const transaction of transactions) {
-    const normalized = transaction.category.trim().toLocaleLowerCase("pt-BR")
+  for (const category of categories) {
+    const trimmed = category.name.trim()
+    const normalized = trimmed.toLocaleLowerCase("pt-BR")
 
     if (!normalized || categoryMap.has(normalized)) {
       continue
     }
 
-    categoryMap.set(normalized, transaction.category.trim())
+    categoryMap.set(normalized, trimmed)
   }
 
   return [...categoryMap.values()]

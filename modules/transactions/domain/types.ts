@@ -7,6 +7,7 @@ import type {
   InstallmentAmountInputMode,
   ReopenTransactionInput,
   RemoveTransactionInput,
+  RemoveCreditCardExpenseInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
@@ -15,6 +16,7 @@ import type {
   TransactionRecord,
   TransactionSourceType,
   TransactionStatus,
+  TransactionCategoryRecord,
 } from "@/schemas/transactions.schemas"
 
 export type {
@@ -26,11 +28,13 @@ export type {
   InstallmentAmountInputMode,
   ReopenTransactionInput,
   RemoveTransactionInput,
+  RemoveCreditCardExpenseInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
   TransactionKind,
   TransactionListRecord,
+  TransactionCategoryRecord,
   TransactionRecord,
   TransactionSourceType,
   TransactionStatus,
@@ -59,6 +63,10 @@ export type ReopenTransactionCommand = ReopenTransactionInput & {
 }
 
 export type RemoveTransactionCommand = RemoveTransactionInput & {
+  clerkUserId: string
+}
+
+export type RemoveCreditCardExpenseCommand = RemoveCreditCardExpenseInput & {
   clerkUserId: string
 }
 
@@ -95,11 +103,15 @@ export type TransactionPageItem = {
 export type CreditCardInvoiceExpensePageItem = {
   id: string
   invoiceTransactionId: string
+  seriesId?: string | null
   title: string
   category: string
   cardName: string
   dateLabel: string
   amountCents: number
+  installmentNumber?: number | null
+  installmentTotal?: number | null
+  supportsFutureRemoval: boolean
   notes?: string | null
 }
 

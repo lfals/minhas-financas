@@ -353,6 +353,11 @@ export const removeTransactionInputSchema = z.object({
   scope: removeTransactionScopeSchema.default("single"),
 })
 
+export const removeCreditCardExpenseInputSchema = z.object({
+  expenseId: z.uuid("Lançamento inválido para remoção."),
+  scope: removeTransactionScopeSchema.default("single"),
+})
+
 export const transactionRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
@@ -387,13 +392,21 @@ export const creditCardInvoiceExpenseRecordSchema = z.object({
   cardId: z.uuid(),
   cardName: z.string(),
   invoiceTransactionId: z.uuid(),
+  seriesId: z.uuid().nullable().optional(),
   title: z.string(),
   category: z.string(),
   amountCents: signedCentsSchema,
   occurredOn: isoDateSchema,
+  installmentNumber: z.number().int().positive().nullable().optional(),
+  installmentTotal: z.number().int().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+})
+
+export const transactionCategoryRecordSchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
 })
 
 export type TransactionKind = z.infer<typeof transactionKindSchema>
@@ -409,6 +422,8 @@ export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema
 export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema>
 export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema>
 export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
+export type RemoveCreditCardExpenseInput = z.infer<typeof removeCreditCardExpenseInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>
 export type CreditCardInvoiceExpenseRecord = z.infer<typeof creditCardInvoiceExpenseRecordSchema>
+export type TransactionCategoryRecord = z.infer<typeof transactionCategoryRecordSchema>

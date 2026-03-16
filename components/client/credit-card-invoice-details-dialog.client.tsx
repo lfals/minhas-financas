@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { ReactNode } from "react"
 import { ReceiptText } from "lucide-react"
 
+import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { TransactionListItem } from "@/components/transaction-list-item"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -35,6 +36,16 @@ function InvoiceExpenseList({
           metadata={`${expense.category} • ${expense.cardName} • ${expense.dateLabel}`}
           amountCents={Math.abs(expense.amountCents)}
           kind={expense.amountCents < 0 ? "income" : "expense"}
+          actions={
+            expense.notes === "__credit_card_invoice_settlement_adjustment__" ? null : (
+              <CreditCardExpenseRemoveButton
+                expenseId={expense.id}
+                expenseTitle={expense.title}
+                installmentTotal={expense.installmentTotal}
+                supportsFutureRemoval={expense.supportsFutureRemoval}
+              />
+            )
+          }
         />
       ))}
     </div>

@@ -6,6 +6,7 @@ import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
+import { removeCreditCardExpenseUseCase } from "@/modules/transactions/application/remove-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
 import { reopenTransactionUseCase } from "@/modules/transactions/application/reopen-transaction-use-case"
 import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
@@ -14,6 +15,7 @@ import {
   createTransactionFormSchema,
   reopenTransactionInputSchema,
   removeTransactionInputSchema,
+  removeCreditCardExpenseInputSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
 
@@ -34,6 +36,11 @@ export type ReopenTransactionActionState = {
 }
 
 export type RemoveTransactionActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+}
+
+export type RemoveCreditCardExpenseActionState = {
   status: "idle" | "success" | "error"
   message?: string
 }
@@ -240,6 +247,53 @@ export async function removeTransactionAction(
     await removeTransactionUseCase({
       clerkUserId,
       transactionId: parsed.data.transactionId,
+      scope: parsed.data.scope,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+
+    return {
+      status: "success",
+      message: "Lançamento removido com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível remover o lançamento agora.",
+    }
+  }
+}
+
+export async function removeCreditCardExpenseAction(
+  _previousState: RemoveCreditCardExpenseActionState,
+  formData: FormData
+): Promise<RemoveCreditCardExpenseActionState> {
+  const parsed = removeCreditCardExpenseInputSchema.safeParse({
+    expenseId: formData.get("expenseId"),
+    scope: formData.get("scope"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Lançamento inválido para remoção.",
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await removeCreditCardExpenseUseCase({
+      clerkUserId,
+      expenseId: parsed.data.expenseId,
       scope: parsed.data.scope,
     })
 

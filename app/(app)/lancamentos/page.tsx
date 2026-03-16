@@ -6,6 +6,7 @@ import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
 import { listCreditCardsUseCase } from "@/modules/credit-cards/application/list-credit-cards-use-case"
+import { listTransactionCategoriesUseCase } from "@/modules/transactions/application/list-categories-use-case"
 import { listTransactionsUseCase } from "@/modules/transactions/application/list-transactions-use-case"
 import {
   buildTransactionAccountOptions,
@@ -37,10 +38,11 @@ function getSelectedDate(value?: string | string[]) {
 async function getTransactionsPageState(selectedDate: string) {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
-    const [accounts, cards, transactions] = await Promise.all([
+    const [accounts, cards, transactions, categories] = await Promise.all([
       listAccountsUseCase({ clerkUserId }),
       listCreditCardsUseCase({ clerkUserId }),
       listTransactionsUseCase({ clerkUserId }),
+      listTransactionCategoriesUseCase({ clerkUserId }),
     ])
     const selectedMonth = selectedDate.slice(0, 7)
     const transactionsInMonth = transactions.transactions.filter((transaction) =>
@@ -51,7 +53,7 @@ async function getTransactionsPageState(selectedDate: string) {
       data: buildTransactionsPageData(transactionsInMonth, transactions.invoiceExpenses, { selectedDate }),
       accountOptions: buildTransactionAccountOptions(accounts),
       creditCardOptions: buildTransactionCreditCardOptions(cards),
-      categoryOptions: buildTransactionCategoryOptions(transactions.transactions),
+      categoryOptions: buildTransactionCategoryOptions(categories),
       error: null,
     }
   } catch (error) {
