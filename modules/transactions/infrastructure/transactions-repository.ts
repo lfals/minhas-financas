@@ -1024,7 +1024,40 @@ export class TransactionsRepository {
           throw new ValidationAppError("Não foi possível recalcular o valor da fatura.")
         }
 
-        let nextEffectiveAmount: number | null = null
+        const shouldDeleteInvoice = nextAmountCents === 0
+
+        if (shouldDeleteInvoice) {
+          if (affectedInvoiceTransaction.status === "compensated") {
+            const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.accountId,
+            ])
+            const account = accountResult.rows[0]
+
+            if (!account || account.is_archived) {
+              throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
+            }
+
+            await client.query(updateAccountBalanceSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.accountId,
+              Number(account.current_balance_cents) + removedInvoiceAmountCents,
+            ])
+
+            await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.id,
+              CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
+            ])
+          }
+
+          await client.query(deleteTransactionSql, [
+            command.clerkUserId,
+            affectedInvoiceTransaction.id,
+          ])
+
+          continue
+        }
 
         if (affectedInvoiceTransaction.status === "compensated") {
           const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
@@ -1037,7 +1070,7 @@ export class TransactionsRepository {
             throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
           }
 
-          nextEffectiveAmount = getNextCreditCardInvoiceEffectiveAmount(
+          const nextEffectiveAmount = getNextCreditCardInvoiceEffectiveAmount(
             affectedInvoiceTransaction,
             removedInvoiceAmountCents
           )
@@ -1060,17 +1093,6 @@ export class TransactionsRepository {
             affectedInvoiceTransaction.id,
             nextAmountCents,
             null,
-          ])
-        }
-
-        const shouldDeleteInvoice =
-          nextAmountCents === 0 &&
-          (affectedInvoiceTransaction.status !== "compensated" || nextEffectiveAmount === 0)
-
-        if (shouldDeleteInvoice) {
-          await client.query(deleteTransactionSql, [
-            command.clerkUserId,
-            affectedInvoiceTransaction.id,
           ])
         }
       }
