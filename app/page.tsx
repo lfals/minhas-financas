@@ -1,13 +1,8 @@
 import Link from "next/link"
 import {
   ArrowRight,
-  BadgeDollarSign,
-  BarChart3,
-  CalendarClock,
   CreditCard,
   Landmark,
-  PiggyBank,
-  ShieldCheck,
   Sparkles,
   TrendingUp,
   Wallet,
@@ -107,13 +102,6 @@ const investments = [
   { name: "Cripto", share: 10, result: "-0,8%" },
 ]
 
-const architecture = [
-  "Next.js App Router com Server Components por padrão e client islands pequenas.",
-  "Backend integrado com PostgreSQL, SQL manual, Zod e regras financeiras imutáveis.",
-  "Dashboard com streaming por blocos, revalidação seletiva e foco em previsibilidade.",
-  "PWA instalável com cache de assets e política conservadora para dados sensíveis.",
-]
-
 function formatCurrency(value: number) {
   return currency.format(value)
 }
@@ -184,7 +172,7 @@ export default function Page() {
             </div>
 
             <nav className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-white/60">
-              {["Visão geral", "Contas", "Faturas", "Investimentos", "Arquitetura"].map((item) => (
+              {["Visão geral", "Contas", "Faturas", "Investimentos"].map((item) => (
                 <Badge
                   key={item}
                   variant="outline"
@@ -200,30 +188,35 @@ export default function Page() {
             <div className="space-y-8">
               <div className="space-y-5">
                 <Badge className="bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-black">
-                  MVP server-first
+                  Sistema financeiro pessoal
                 </Badge>
                 <h1 className="max-w-5xl text-5xl font-semibold uppercase leading-none tracking-[-0.09em] text-white sm:text-7xl lg:text-[7.4rem]">
                   Controle total da vida financeira sem virar planilha infinita.
                 </h1>
                 <p className="max-w-2xl text-base leading-8 text-white/68">
                   A interface reúne contas, lançamentos, cartões, recorrências,
-                  patrimônio e rentabilidade com um layout editorial, direto e de
-                  alto contraste. A base segue o escopo dos documentos de produto
-                  e já organiza os módulos centrais do sistema.
+                  patrimônio e rentabilidade em uma leitura clara, rápida e
+                  confiável. Tudo foi pensado para reduzir atrito no dia a dia e
+                  transformar informação dispersa em decisão prática.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-3">
-                <Button className="h-11 border border-[#d8f36a] bg-[#d8f36a] px-5 text-[11px] uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]">
-                  Entrar no dashboard
-                  <ArrowRight className="size-4" />
+                <Button
+                  asChild
+                  className="h-11 border border-[#d8f36a] bg-[#d8f36a] px-5 text-[11px] uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]"
+                >
+                  <Link href="/dashboard">
+                    Entrar no dashboard
+                    <ArrowRight className="size-4" />
+                  </Link>
                 </Button>
                 <Button
                   variant="outline"
                   className="h-11 border-white/15 bg-white/5 px-5 text-[11px] uppercase tracking-[0.25em] text-white hover:bg-white/10"
                   asChild
                 >
-                  <Link href="#arquitetura">Ver arquitetura</Link>
+                  <Link href="#modulos">Ver recursos</Link>
                 </Button>
               </div>
             </div>
@@ -234,7 +227,7 @@ export default function Page() {
               </div>
               <CardHeader className="gap-6 pt-12">
                 <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
-                  Snapshot operacional
+                  Resumo do período
                 </CardDescription>
                 <CardTitle className="max-w-sm text-4xl font-semibold uppercase tracking-[-0.08em] text-white">
                   Caixa, obrigações e patrimônio em leitura instantânea.
@@ -302,12 +295,12 @@ export default function Page() {
         />
       </section>
 
-      <section className="border-y border-white/10 bg-[#151515]">
+      <section id="modulos" className="border-y border-white/10 bg-[#151515]">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:px-8 lg:grid-cols-[0.7fr_1.3fr] lg:px-12">
           <SectionHeading
             eyebrow="Módulos centrais"
-            title="A aplicação foi organizada pelos três blocos do domínio financeiro."
-            copy="Fluxo de caixa, obrigações e patrimônio aparecem como áreas distintas, mas conectadas. Isso reduz acoplamento de regra, melhora previsibilidade e prepara a base para backend integrado com SQL manual."
+            title="Tudo o que importa para cuidar do dinheiro em um só lugar."
+            copy="Contas, despesas, cartões e investimentos aparecem conectados na mesma experiência. Você enxerga o presente, antecipa compromissos e acompanha evolução patrimonial sem trocar de contexto."
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -334,8 +327,8 @@ export default function Page() {
         <div className="space-y-6">
           <SectionHeading
             eyebrow="Contas e extrato"
-            title="Leitura rápida dos saldos e do histórico operacional."
-            copy="Contas correntes, reserva, carteira e investimento aparecem na mesma superfície. O objetivo é permitir leitura consolidada sem perder a distinção entre tipos de conta."
+            title="Leitura rápida dos saldos e do histórico financeiro."
+            copy="Contas correntes, reserva, carteira e investimentos aparecem juntos para facilitar a leitura do todo sem perder o detalhe de cada origem do dinheiro."
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -368,7 +361,7 @@ export default function Page() {
                 Últimas movimentações
               </CardDescription>
               <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em]">
-                Histórico imutável com correções por ajuste ou estorno.
+                Histórico completo para entender para onde o dinheiro foi.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
@@ -465,7 +458,7 @@ export default function Page() {
           <SectionHeading
             eyebrow="Cartões e patrimônio"
             title="Faturas automáticas e investimentos convivem na mesma cadência."
-            copy="O produto precisa mostrar compromisso de curto prazo e construção de patrimônio de longo prazo na mesma tela. Isso evita troca de contexto e melhora a tomada de decisão."
+            copy="Compromissos de curto prazo e construção de patrimônio aparecem lado a lado. Isso acelera decisões melhores e dá mais segurança para planejar o próximo passo."
           />
 
           <div className="grid gap-4">
@@ -535,55 +528,23 @@ export default function Page() {
         </div>
       </section>
 
-      <section id="arquitetura" className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
-        <div className="grid gap-10 lg:grid-cols-[0.7fr_1.3fr]">
-          <SectionHeading
-            eyebrow="Arquitetura do MVP"
-            title="A implementação segue o desenho técnico dos documentos e já explicita os limites do sistema."
-            copy="A tela foi estruturada para refletir as decisões do resumo funcional e do design técnico: server-first, domínio separado, dados financeiros imutáveis e expansão futura para Clerk, PostgreSQL e PWA."
-          />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {architecture.map((item, index) => {
-              const icons = [ShieldCheck, BarChart3, CalendarClock, PiggyBank]
-              const Icon = icons[index]
-
-              return (
-                <Card key={item} className="border border-white/10 bg-[#171717] ring-0">
-                  <CardHeader className="gap-4">
-                    <div className="flex size-11 items-center justify-center border border-white/10 bg-white/5">
-                      <Icon className="size-5 text-white" />
-                    </div>
-                    <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white">
-                      0{index + 1}
-                    </CardTitle>
-                    <CardDescription className="text-sm leading-7 text-white/65">
-                      {item}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              )
-            })}
-          </div>
-        </div>
-
-        <footer className="mt-14 flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-white/55 lg:flex-row lg:items-center lg:justify-between">
+      <section className="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-12">
+        <footer className="flex flex-col gap-4 border-t border-white/10 pt-6 text-sm text-white/55 lg:flex-row lg:items-center lg:justify-between">
           <p>
-            Baseada em `sistema_financeiro_resumo.md` e `deep-research-report.md`,
-            com layout editorial inspirado em `lawn.video`.
+            Clareza para operar o presente, previsibilidade para pagar o que vence e visão para construir patrimônio.
           </p>
           <div className="flex flex-wrap gap-3 uppercase tracking-[0.22em]">
             <span className="inline-flex items-center gap-2">
-              <BadgeDollarSign className="size-4" />
-              Centavos
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck className="size-4" />
-              Imutabilidade
-            </span>
-            <span className="inline-flex items-center gap-2">
               <Sparkles className="size-4" />
-              Streaming
+              Clareza
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <CreditCard className="size-4" />
+              Controle
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <TrendingUp className="size-4" />
+              Crescimento
             </span>
           </div>
         </footer>

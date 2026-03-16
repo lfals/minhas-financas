@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
+import { ClerkProvider } from "@clerk/nextjs"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { hasClerkCredentials } from "@/lib/env/server"
 
 export const metadata: Metadata = {
   title: "Minhas Finanças",
@@ -15,12 +17,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const content = (
+    <ThemeProvider forcedTheme="dark" enableSystem={false}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </ThemeProvider>
+  )
+
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark antialiased">
       <body className="font-sans">
-        <ThemeProvider forcedTheme="dark" enableSystem={false}>
-          <TooltipProvider>{children}</TooltipProvider>
-        </ThemeProvider>
+        {hasClerkCredentials() ? (
+          <ClerkProvider
+            signInUrl="/sign-in"
+            signUpUrl="/sign-up"
+          >
+            {content}
+          </ClerkProvider>
+        ) : (
+          content
+        )}
       </body>
     </html>
   )
