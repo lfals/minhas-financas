@@ -23,7 +23,11 @@ function getTodayIsoDate() {
 function getSelectedDate(value?: string | string[]) {
   const rawValue = Array.isArray(value) ? value[0] : value
 
-  if (!rawValue || !/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+  if (!rawValue) {
+    return null
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
     return getTodayIsoDate()
   }
 
@@ -36,7 +40,7 @@ function getSelectedDate(value?: string | string[]) {
   return rawValue
 }
 
-async function getTransactionsPageState(selectedDate: string) {
+async function getTransactionsPageState(selectedDateInput: string | null) {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
     const [accounts, cards, transactions, categories] = await Promise.all([
@@ -45,6 +49,8 @@ async function getTransactionsPageState(selectedDate: string) {
       listTransactionsUseCase({ clerkUserId }),
       listTransactionCategoriesUseCase({ clerkUserId }),
     ])
+    const fallbackSelectedDate = transactions.transactions[0]?.occurredOn ?? getTodayIsoDate()
+    const selectedDate = selectedDateInput ?? fallbackSelectedDate
     const selectedMonth = selectedDate.slice(0, 7)
     const transactionsInMonth = transactions.transactions.filter((transaction) =>
       transaction.occurredOn.startsWith(selectedMonth)
@@ -70,6 +76,7 @@ async function getTransactionsPageState(selectedDate: string) {
       accountOptions: buildTransactionAccountOptions(accounts),
       creditCardOptions: buildTransactionCreditCardOptions(cards),
       categoryOptions: buildTransactionCategoryOptions(categories),
+      selectedDate,
       error: null,
     }
   } catch (error) {
@@ -79,6 +86,7 @@ async function getTransactionsPageState(selectedDate: string) {
         accountOptions: [],
         creditCardOptions: [],
         categoryOptions: [],
+        selectedDate: selectedDateInput ?? getTodayIsoDate(),
         error,
       }
     }
@@ -123,8 +131,8 @@ export default async function TransactionsPage({
       accountOptions={state.accountOptions}
       creditCardOptions={state.creditCardOptions}
       categoryOptions={state.categoryOptions}
-      defaultOccurredOn={selectedDate}
-      selectedDate={selectedDate}
+      defaultOccurredOn={state.selectedDate}
+      selectedDate={state.selectedDate}
     />
   )
 }
