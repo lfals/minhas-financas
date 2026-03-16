@@ -1,40 +1,48 @@
 "use client"
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Pencil } from "lucide-react"
 
+import type { CreditCardFormValues } from "@/components/client/credit-card-settings-page.client"
 import { CreditCardCreateForm } from "@/components/client/credit-card-create-form.client"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
 
-export function CreditCardCreateDialog({
+export function CreditCardEditDialog({
   accountOptions,
+  initialValues,
 }: {
   accountOptions: TransactionAccountOption[]
+  initialValues: CreditCardFormValues
 }) {
   const [open, setOpen] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button
+        <Button
           type="button"
-          className="flex items-center gap-2 border border-[#d8f36a] bg-[#d8f36a] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-black transition-colors hover:bg-[#c9e45f]"
+          variant="outline"
+          className="h-9 border-white/10 bg-transparent px-3 text-[11px] uppercase tracking-[0.24em] text-white hover:bg-white/5 hover:text-white"
         >
-          <Plus className="size-4" />
-          Adicionar cartão
-        </button>
+          <Pencil className="size-4" />
+          Alterar
+        </Button>
       </DialogTrigger>
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-3xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
           <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
-            Novo cartão
+            Alterar cartão
           </DialogTitle>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto px-6 py-5">
           <CreditCardCreateForm
             accountOptions={accountOptions}
+            initialValues={initialValues}
             mode="flat"
+            submitLabel="Salvar alterações"
+            actionType="update"
             onSuccess={() => setOpen(false)}
           />
         </div>

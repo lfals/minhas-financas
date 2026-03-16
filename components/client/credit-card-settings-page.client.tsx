@@ -1,145 +1,166 @@
 "use client"
 
-import { useState } from "react"
-import { CreditCard, ShieldCheck } from "lucide-react"
+import { CalendarClock, CreditCard, Wallet } from "lucide-react"
 
 import { CreditCardCreateDialog } from "@/components/client/credit-card-create-dialog.client"
+import { CreditCardEditDialog } from "@/components/client/credit-card-edit-dialog.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCents } from "@/lib/money"
+import type { CreditCardsPageData } from "@/modules/credit-cards/domain/types"
 import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
 
 export type CreditCardFormValues = {
+  cardId?: string
   nickname: string
   finalDigits: string
   limit: string
   closingDay: string
   dueDay: string
-  expenseAccount: string
+  expenseAccountId: string
   autoCategorizationEnabled: boolean
 }
 
 export const defaultCreditCardFormValues: CreditCardFormValues = {
-  nickname: "Cartão Black principal",
-  finalDigits: "4821",
-  limit: "12.500,00",
-  closingDay: "18",
-  dueDay: "25",
-  expenseAccount: "Conta principal",
+  nickname: "",
+  finalDigits: "",
+  limit: "",
+  closingDay: "",
+  dueDay: "",
+  expenseAccountId: "",
   autoCategorizationEnabled: true,
 }
 
-function getAvailableLimitLabel(limit: string) {
-  const totalLimit = Number(limit.replace(/\D/g, "")) / 100
-
-  return `R$ ${Math.max(0, totalLimit - 3842.9).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string
+  value: string
+  icon: typeof CreditCard
+}) {
+  return (
+    <Card className="border border-white/10 bg-[#151515] ring-0">
+      <CardHeader className="gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
+            {label}
+          </CardDescription>
+          <Icon className="size-4 text-white/55" />
+        </div>
+        <CardTitle className="text-3xl font-semibold tracking-[-0.06em] text-white">
+          {value}
+        </CardTitle>
+      </CardHeader>
+    </Card>
+  )
 }
 
 export function CreditCardSettingsPage({
   accountOptions,
+  pageData,
 }: {
   accountOptions: TransactionAccountOption[]
+  pageData: CreditCardsPageData
 }) {
-  const [card, setCard] = useState(defaultCreditCardFormValues)
-  const [savedAt, setSavedAt] = useState<string | null>(null)
-
   return (
     <div className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <MetricCard label="Cartões ativos" value={String(pageData.activeCount)} icon={CreditCard} />
+        <MetricCard label="Limite total" value={formatCents(pageData.totalLimitCents)} icon={Wallet} />
+        <MetricCard
+          label="Limite disponível"
+          value={formatCents(pageData.availableLimitCents)}
+          icon={CalendarClock}
+        />
+      </section>
+
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">
           <CardHeader className="gap-3">
             <div>
               <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
-                Cartões
+                Lista de cartões
               </CardDescription>
               <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
-                Cadastro e configuração de cartão de crédito.
+                Visão atual dos cartões cadastrados.
               </CardTitle>
             </div>
             <CardAction>
-              <CreditCardCreateDialog
-                accountOptions={accountOptions}
-                initialValues={card}
-                onSave={(values) => {
-                  setCard(values)
-                  setSavedAt(
-                    new Intl.DateTimeFormat("pt-BR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    }).format(new Date())
-                  )
-                }}
-              />
+              <CreditCardCreateDialog accountOptions={accountOptions} />
             </CardAction>
           </CardHeader>
-          <CardContent className="grid gap-6 pt-0 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="space-y-4">
-              <div className="border border-white/10 bg-[#121212] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
-                      {card.nickname}
-                    </p>
-                    <p className="mt-4 text-sm tracking-[0.3em] text-white/72">
-                      •••• {card.finalDigits}
-                    </p>
+          <CardContent className="grid gap-4 pt-0">
+            {pageData.cards.length ? (
+              pageData.cards.map((card) => (
+                <div key={card.id} className="border border-white/10 bg-[#121212] p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
+                        cartão de crédito
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                        {card.nickname}
+                      </p>
+                      <p className="mt-4 text-sm tracking-[0.3em] text-white/72">
+                        •••• {card.finalDigits}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CreditCardEditDialog
+                        accountOptions={accountOptions}
+                        initialValues={{
+                          cardId: card.id,
+                          nickname: card.nickname,
+                          finalDigits: card.finalDigits,
+                          limit: new Intl.NumberFormat("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }).format(card.limitCents / 100),
+                          closingDay: card.closingDay,
+                          dueDay: card.dueDay,
+                          expenseAccountId: card.expenseAccountId,
+                          autoCategorizationEnabled: card.autoCategorizationEnabled,
+                        }}
+                      />
+                      <CreditCard className="size-5 text-[#d8f36a]" />
+                    </div>
                   </div>
-                  <CreditCard className="size-5 text-[#d8f36a]" />
-                </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  <div className="border border-white/10 bg-black/20 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/45">
-                      Limite total
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
-                      R$ {card.limit}
-                    </p>
-                  </div>
-                  <div className="border border-white/10 bg-black/20 p-4">
-                    <p className="text-[11px] uppercase tracking-[0.24em] text-white/45">
-                      Limite disponível
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-[#d8f36a]">
-                      {getAvailableLimitLabel(card.limit)}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.18em] text-white/45">
-                  <span>fecha dia {card.closingDay}</span>
-                  <span>vence dia {card.dueDay}</span>
-                </div>
-                {savedAt ? (
-                  <p className="mt-4 text-sm text-[#d8f36a]">Configuração salva em {savedAt}.</p>
-                ) : null}
-              </div>
 
-              <div className="border border-white/10 bg-[#121212] p-4">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                  Regras ativas
-                </p>
-                <div className="mt-4 space-y-3 text-sm text-white/65">
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck className="size-4 text-[#c4f1ff]" />
-                    Pagamento vinculado em {card.expenseAccount}
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="border border-white/10 bg-black/20 p-4">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-white/45">
+                        Limite total
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                        {formatCents(card.limitCents)}
+                      </p>
+                    </div>
+                    <div className="border border-white/10 bg-black/20 p-4">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-white/45">
+                        Limite disponível
+                      </p>
+                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-[#d8f36a]">
+                        {formatCents(card.availableLimitCents)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    Categorização automática {card.autoCategorizationEnabled ? "ativada" : "desativada"}
-                  </div>
-                </div>
-              </div>
 
-              <div className="border border-white/10 bg-[#121212] p-4">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                  Preferências
-                </p>
-                <div className="mt-4 grid gap-3 text-sm text-white/62">
-                  <div className="border border-white/10 bg-black/20 px-4 py-3">
-                    Categorização automática: {card.autoCategorizationEnabled ? "ativada" : "desativada"}
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
+                    <span>fecha dia {card.closingDay}</span>
+                    <span>vence dia {card.dueDay}</span>
+                    <span>pagamento em {card.expenseAccountLabel}</span>
                   </div>
+
+                  <p className="mt-4 text-sm text-white/55">Cadastrado em {card.createdAtLabel}.</p>
                 </div>
+              ))
+            ) : (
+              <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/65">
+                Nenhum cartão cadastrado ainda. Use o modal de criação para integrar o primeiro
+                cartão ao banco.
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </section>

@@ -3,21 +3,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
+import { listCreditCardsUseCase } from "@/modules/credit-cards/application/list-credit-cards-use-case"
+import { buildCreditCardsPageData } from "@/modules/credit-cards/presentation/view-model"
 import { buildTransactionAccountOptions } from "@/modules/transactions/presentation/view-model"
 
 async function getCreditCardsPageState() {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
-    const accounts = await listAccountsUseCase({ clerkUserId })
+    const [accounts, cards] = await Promise.all([
+      listAccountsUseCase({ clerkUserId }),
+      listCreditCardsUseCase({ clerkUserId }),
+    ])
 
     return {
       accountOptions: buildTransactionAccountOptions(accounts),
+      pageData: buildCreditCardsPageData(cards),
       error: null,
     }
   } catch (error) {
     if (isAppError(error)) {
       return {
         accountOptions: [],
+        pageData: buildCreditCardsPageData([]),
         error,
       }
     }
@@ -49,5 +56,5 @@ export default async function CreditCardsPage() {
     )
   }
 
-  return <CreditCardSettingsPage accountOptions={state.accountOptions} />
+  return <CreditCardSettingsPage accountOptions={state.accountOptions} pageData={state.pageData} />
 }

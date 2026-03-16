@@ -1,16 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useActionState, useEffect, useState } from "react"
+import { useFormStatus } from "react-dom"
 
 import type { CreditCardFormValues } from "@/components/client/credit-card-settings-page.client"
 import { defaultCreditCardFormValues } from "@/components/client/credit-card-settings-page.client"
+import {
+  createCreditCardAction,
+  type CreditCardActionState,
+  updateCreditCardAction,
+} from "@/modules/credit-cards/presentation/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldContent, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
 import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
+
+const initialState: CreditCardActionState = {
+  status: "idle",
+}
 
 function formatCurrencyDigitsToInput(value: string) {
   const digits = value.replace(/\D/g, "")
@@ -25,13 +35,16 @@ function formatCurrencyDigitsToInput(value: string) {
   }).format(Number(digits) / 100)
 }
 
-function SubmitButton() {
+function FormSubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus()
+
   return (
     <Button
       type="submit"
       className="h-10 border border-[#d8f36a] bg-[#d8f36a] px-4 text-[11px] uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]"
+      disabled={pending}
     >
-      Salvar cartão
+      {pending ? "Salvando..." : label}
     </Button>
   )
 }
@@ -40,20 +53,26 @@ export function CreditCardCreateForm({
   accountOptions,
   initialValues = defaultCreditCardFormValues,
   mode = "card",
-  onSave,
+  actionType = "create",
   onSuccess,
+  submitLabel = "Salvar cartão",
 }: {
   accountOptions: TransactionAccountOption[]
   initialValues?: CreditCardFormValues
   mode?: "card" | "flat"
-  onSave: (values: CreditCardFormValues) => void
+  actionType?: "create" | "update"
   onSuccess?: () => void
+  submitLabel?: string
 }) {
   const [formValues, setFormValues] = useState(initialValues)
+  const [state, formAction] = useActionState(
+    actionType === "update" ? updateCreditCardAction : createCreditCardAction,
+    initialState
+  )
 
   useEffect(() => {
     const hasMatchingAccount = accountOptions.some(
-      (option) => option.label === formValues.expenseAccount
+      (option) => option.id === formValues.expenseAccountId
     )
 
     if (hasMatchingAccount || !accountOptions.length) {
@@ -62,19 +81,33 @@ export function CreditCardCreateForm({
 
     setFormValues((current) => ({
       ...current,
-      expenseAccount: accountOptions[0]?.label ?? "",
+      expenseAccountId: accountOptions[0]?.id ?? "",
     }))
-  }, [accountOptions, formValues.expenseAccount])
+  }, [accountOptions, formValues.expenseAccountId])
+
+  useEffect(() => {
+    setFormValues(initialValues)
+  }, [initialValues])
+
+  useEffect(() => {
+    if (state.status === "success") {
+      setFormValues({
+        ...(actionType === "update" ? initialValues : defaultCreditCardFormValues),
+        expenseAccountId:
+          actionType === "update"
+            ? initialValues.expenseAccountId
+            : accountOptions[0]?.id ?? "",
+      })
+      onSuccess?.()
+    }
+  }, [accountOptions, actionType, initialValues, onSuccess, state.status])
 
   const content = (
-    <form
-      className="space-y-5"
-      onSubmit={(event) => {
-        event.preventDefault()
-        onSave(formValues)
-        onSuccess?.()
-      }}
-    >
+    <form action={formAction} className="space-y-5">
+      {actionType === "update" && formValues.cardId ? (
+        <input type="hidden" name="cardId" value={formValues.cardId} />
+      ) : null}
+
       <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor="nickname" className="text-white/80">
@@ -83,13 +116,17 @@ export function CreditCardCreateForm({
           <FieldContent>
             <Input
               id="nickname"
+              name="nickname"
               placeholder="Cartão Black principal"
               value={formValues.nickname}
-              onChange={(event) =>
-                setFormValues((current) => ({ ...current, nickname: event.currentTarget.value }))
-              }
+              onChange={(event) => {
+                const { value } = event.currentTarget
+
+                setFormValues((current) => ({ ...current, nickname: value }))
+              }}
               className="h-10 border-white/10 bg-white/5 text-white"
             />
+            <FieldError errors={state.fieldErrors?.nickname?.map((message) => ({ message }))} />
           </FieldContent>
         </Field>
 
@@ -101,17 +138,23 @@ export function CreditCardCreateForm({
             <FieldContent>
               <Input
                 id="finalDigits"
+                name="finalDigits"
                 inputMode="numeric"
                 maxLength={4}
                 placeholder="4821"
                 value={formValues.finalDigits}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const finalDigits = event.currentTarget.value.replace(/\D/g, "").slice(0, 4)
+
                   setFormValues((current) => ({
                     ...current,
-                    finalDigits: event.currentTarget.value.replace(/\D/g, "").slice(0, 4),
+                    finalDigits,
                   }))
-                }
+                }}
                 className="h-10 border-white/10 bg-white/5 text-white"
+              />
+              <FieldError
+                errors={state.fieldErrors?.finalDigits?.map((message) => ({ message }))}
               />
             </FieldContent>
           </Field>
@@ -123,17 +166,21 @@ export function CreditCardCreateForm({
             <FieldContent>
               <Input
                 id="limit"
+                name="limit"
                 inputMode="decimal"
                 placeholder="0,00"
                 value={formValues.limit}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const limit = formatCurrencyDigitsToInput(event.currentTarget.value)
+
                   setFormValues((current) => ({
                     ...current,
-                    limit: formatCurrencyDigitsToInput(event.currentTarget.value),
+                    limit,
                   }))
-                }
+                }}
                 className="h-10 border-white/10 bg-white/5 text-white"
               />
+              <FieldError errors={state.fieldErrors?.limit?.map((message) => ({ message }))} />
             </FieldContent>
           </Field>
         </div>
@@ -146,16 +193,22 @@ export function CreditCardCreateForm({
             <FieldContent>
               <Input
                 id="closingDay"
+                name="closingDay"
                 inputMode="numeric"
                 placeholder="18"
                 value={formValues.closingDay}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const closingDay = event.currentTarget.value.replace(/\D/g, "").slice(0, 2)
+
                   setFormValues((current) => ({
                     ...current,
-                    closingDay: event.currentTarget.value.replace(/\D/g, "").slice(0, 2),
+                    closingDay,
                   }))
-                }
+                }}
                 className="h-10 border-white/10 bg-white/5 text-white"
+              />
+              <FieldError
+                errors={state.fieldErrors?.closingDay?.map((message) => ({ message }))}
               />
             </FieldContent>
           </Field>
@@ -167,17 +220,21 @@ export function CreditCardCreateForm({
             <FieldContent>
               <Input
                 id="dueDay"
+                name="dueDay"
                 inputMode="numeric"
                 placeholder="25"
                 value={formValues.dueDay}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const dueDay = event.currentTarget.value.replace(/\D/g, "").slice(0, 2)
+
                   setFormValues((current) => ({
                     ...current,
-                    dueDay: event.currentTarget.value.replace(/\D/g, "").slice(0, 2),
+                    dueDay,
                   }))
-                }
+                }}
                 className="h-10 border-white/10 bg-white/5 text-white"
               />
+              <FieldError errors={state.fieldErrors?.dueDay?.map((message) => ({ message }))} />
             </FieldContent>
           </Field>
         </div>
@@ -189,13 +246,16 @@ export function CreditCardCreateForm({
           <FieldContent>
             <NativeSelect
               id="expenseAccount"
-              value={formValues.expenseAccount}
-              onChange={(event) =>
+              name="expenseAccountId"
+              value={formValues.expenseAccountId}
+              onChange={(event) => {
+                const { value } = event.currentTarget
+
                 setFormValues((current) => ({
                   ...current,
-                  expenseAccount: event.currentTarget.value,
+                  expenseAccountId: value,
                 }))
-              }
+              }}
               className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
               disabled={!accountOptions.length}
             >
@@ -203,11 +263,14 @@ export function CreditCardCreateForm({
                 <NativeSelectOption value="">Nenhuma conta disponível</NativeSelectOption>
               )}
               {accountOptions.map((option) => (
-                <NativeSelectOption key={option.id} value={option.label}>
+                <NativeSelectOption key={option.id} value={option.id}>
                   {option.label}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+            <FieldError
+              errors={state.fieldErrors?.expenseAccountId?.map((message) => ({ message }))}
+            />
           </FieldContent>
         </Field>
 
@@ -220,6 +283,7 @@ export function CreditCardCreateForm({
               <span className="text-sm text-white/65">Aplicar regras automáticas nas despesas</span>
               <Switch
                 id="autoCategorizationEnabled"
+                name="autoCategorizationEnabled"
                 checked={formValues.autoCategorizationEnabled}
                 onCheckedChange={(checked) =>
                   setFormValues((current) => ({ ...current, autoCategorizationEnabled: checked }))
@@ -231,7 +295,17 @@ export function CreditCardCreateForm({
         </div>
       </FieldGroup>
 
-      <SubmitButton />
+      {state.message ? (
+        <p
+          className={
+            state.status === "success" ? "text-sm text-[#d8f36a]" : "text-sm text-[#ff9c7a]"
+          }
+        >
+          {state.message}
+        </p>
+      ) : null}
+
+      <FormSubmitButton label={submitLabel} />
     </form>
   )
 
