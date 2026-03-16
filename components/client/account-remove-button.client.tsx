@@ -56,7 +56,15 @@ export function AccountRemoveButton({
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="text-white/55 hover:text-white">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-white/55 hover:text-white"
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
           <Trash2 className="size-4" />
           Remover
         </Button>

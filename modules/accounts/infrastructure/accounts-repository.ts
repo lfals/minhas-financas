@@ -10,6 +10,7 @@ import type {
   CreateAccountCommand,
   CreateAccountResult,
   ListAccountsCommand,
+  UpdateAccountCommand,
 } from "@/modules/accounts/domain/types"
 import {
   archiveAccountSql,
@@ -19,6 +20,8 @@ import {
   insertAccountSql,
   insertAuditLogSql,
   listAccountsSql,
+  listAllAccountsSql,
+  updateAccountSql,
 } from "@/modules/accounts/infrastructure/accounts-sql"
 import { accountRecordSchema } from "@/schemas/accounts.schemas"
 
@@ -67,10 +70,9 @@ async function queryOne(
 
 export class AccountsRepository {
   async listByUser(command: ListAccountsCommand) {
-    const result = await queryDb<DbAccountRow>(listAccountsSql, [
-      command.clerkUserId,
-      command.includeArchived,
-    ])
+    const result = command.includeArchived
+      ? await queryDb<DbAccountRow>(listAllAccountsSql, [command.clerkUserId])
+      : await queryDb<DbAccountRow>(listAccountsSql, [command.clerkUserId])
 
     return result.rows.map(mapAccountRow)
   }
@@ -170,6 +172,45 @@ export class AccountsRepository {
       ])
 
       return archived.rows[0] ? account : existingAccount
+    })
+  }
+
+  async update(command: UpdateAccountCommand) {
+    return withTransaction(async (client) => {
+      const existingAccount = await queryOne(client, findAccountByIdSql, [
+        command.clerkUserId,
+        command.accountId,
+      ])
+
+      if (!existingAccount) {
+        return null
+      }
+
+      const updated = await client.query<DbAccountRow>(updateAccountSql, [
+        command.clerkUserId,
+        command.accountId,
+        command.name,
+        command.institution,
+        command.type,
+        command.initialBalanceCents,
+        command.includeInNetWorth,
+      ])
+
+      const account = updated.rows[0] ? mapAccountRow(updated.rows[0]) : existingAccount
+
+      await client.query(insertAuditLogSql, [
+        command.clerkUserId,
+        "user",
+        "account.updated",
+        "accounts",
+        command.accountId,
+        JSON.stringify(existingAccount),
+        JSON.stringify(account),
+        null,
+        null,
+      ])
+
+      return updated.rows[0] ? account : existingAccount
     })
   }
 }

@@ -7,7 +7,12 @@ import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { archiveAccountUseCase } from "@/modules/accounts/application/archive-account-use-case"
 import { createAccountUseCase } from "@/modules/accounts/application/create-account-use-case"
-import { archiveAccountInputSchema, createAccountFormSchema } from "@/schemas/accounts.schemas"
+import { updateAccountUseCase } from "@/modules/accounts/application/update-account-use-case"
+import {
+  archiveAccountInputSchema,
+  createAccountFormSchema,
+  updateAccountFormSchema,
+} from "@/schemas/accounts.schemas"
 
 export type CreateAccountActionState = {
   status: "idle" | "success" | "error"
@@ -18,6 +23,12 @@ export type CreateAccountActionState = {
 export type ArchiveAccountActionState = {
   status: "idle" | "success" | "error"
   message?: string
+}
+
+export type UpdateAccountActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+  fieldErrors?: Record<string, string[] | undefined>
 }
 
 export async function createAccountAction(
@@ -115,6 +126,61 @@ export async function archiveAccountAction(
     return {
       status: "error",
       message: "Não foi possível remover a conta agora.",
+    }
+  }
+}
+
+export async function updateAccountAction(
+  _previousState: UpdateAccountActionState,
+  formData: FormData
+): Promise<UpdateAccountActionState> {
+  const parsed = updateAccountFormSchema.safeParse({
+    accountId: formData.get("accountId"),
+    name: formData.get("name"),
+    institution: formData.get("institution"),
+    type: formData.get("type"),
+    initialBalance: formData.get("initialBalance"),
+    includeInNetWorth: formData.get("includeInNetWorth"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Revise os campos obrigatórios.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await updateAccountUseCase({
+      clerkUserId,
+      accountId: parsed.data.accountId,
+      name: parsed.data.name,
+      institution: parsed.data.institution,
+      type: parsed.data.type,
+      initialBalanceCents: parseCurrencyInputToCents(parsed.data.initialBalance),
+      includeInNetWorth: parsed.data.includeInNetWorth,
+    })
+
+    revalidatePath("/contas")
+
+    return {
+      status: "success",
+      message: "Conta atualizada com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível atualizar a conta agora.",
     }
   }
 }

@@ -1,5 +1,6 @@
 import { Landmark, PiggyBank, Wallet } from "lucide-react"
 
+import { AccountEditDialog } from "@/components/client/account-edit-dialog.client"
 import { AccountCreateDialog } from "@/components/client/account-create-dialog.client"
 import { AccountRemoveButton } from "@/components/client/account-remove-button.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -72,27 +73,41 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
           <CardContent className="grid gap-4 pt-0">
             {data.accounts.length ? (
               data.accounts.map((account) => (
-                <div key={account.id} className="border border-white/10 bg-[#121212] p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className={cn("h-2 w-20", account.tone)} />
-                      <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-white/45">
-                        {account.institution} • {account.typeLabel}
-                      </p>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
-                        {account.name}
-                      </p>
+                <AccountEditDialog
+                  key={account.id}
+                  initialValues={{
+                    accountId: account.id,
+                    name: account.name,
+                    institution: account.institution,
+                    type: account.type,
+                    initialBalance: formatCents(account.initialBalanceCents),
+                    includeInNetWorth: account.includeInNetWorth,
+                  }}
+                >
+                  <div className="w-full border border-white/10 bg-[#121212] p-4 text-left transition-colors hover:bg-[#181818]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex-1">
+                        <div className={cn("h-2 w-20", account.tone)} />
+                        <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-white/45">
+                          {account.institution} • {account.typeLabel}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                          {account.name}
+                        </p>
+                      </div>
+                      <AccountRemoveButton accountId={account.id} accountName={account.name} />
                     </div>
-                    <AccountRemoveButton accountId={account.id} accountName={account.name} />
+                    <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
+                      {formatCents(account.balanceCents)}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
+                      <span>criada em {account.createdAtLabel}</span>
+                      <span>
+                        {account.includeInNetWorth ? "entra no patrimônio" : "fora do patrimônio"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
-                    {formatCents(account.balanceCents)}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
-                    <span>criada em {account.createdAtLabel}</span>
-                    <span>{account.includeInNetWorth ? "entra no patrimônio" : "fora do patrimônio"}</span>
-                  </div>
-                </div>
+                </AccountEditDialog>
               ))
             ) : (
               <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">

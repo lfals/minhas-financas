@@ -1,6 +1,6 @@
 import "server-only"
 
-import { ConflictAppError, NotFoundAppError } from "@/lib/errors/app-error"
+import { ensureAccountExists, ensureAccountIsActive } from "@/modules/accounts/domain/account-rules"
 import type { ArchiveAccountInput } from "@/modules/accounts/domain/types"
 import { AccountsRepository } from "@/modules/accounts/infrastructure/accounts-repository"
 import { archiveAccountInputSchema } from "@/schemas/accounts.schemas"
@@ -12,13 +12,8 @@ export async function archiveAccountUseCase(input: ArchiveAccountInput & { clerk
 
   const existingAccount = await repository.findById(input.clerkUserId, parsed.accountId)
 
-  if (!existingAccount) {
-    throw new NotFoundAppError("Conta não encontrada.")
-  }
-
-  if (existingAccount.isArchived) {
-    throw new ConflictAppError("Essa conta já foi removida.")
-  }
+  ensureAccountExists(existingAccount)
+  ensureAccountIsActive(existingAccount)
 
   return repository.archive({
     clerkUserId: input.clerkUserId,

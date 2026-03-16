@@ -4,9 +4,17 @@ import type {
   ArchiveAccountInput,
   CreateAccountInput,
   ListAccountsQuery,
+  UpdateAccountInput,
 } from "@/schemas/accounts.schemas"
 
-export type { AccountRecord, AccountType, ArchiveAccountInput, CreateAccountInput, ListAccountsQuery }
+export type {
+  AccountRecord,
+  AccountType,
+  ArchiveAccountInput,
+  CreateAccountInput,
+  ListAccountsQuery,
+  UpdateAccountInput,
+}
 
 export type CreateAccountCommand = CreateAccountInput & {
   clerkUserId: string
@@ -17,6 +25,10 @@ export type ListAccountsCommand = ListAccountsQuery & {
 }
 
 export type ArchiveAccountCommand = ArchiveAccountInput & {
+  clerkUserId: string
+}
+
+export type UpdateAccountCommand = UpdateAccountInput & {
   clerkUserId: string
 }
 

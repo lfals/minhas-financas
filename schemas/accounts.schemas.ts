@@ -43,6 +43,24 @@ export const createAccountFormSchema = z.object({
   includeInNetWorth: optionalBooleanSchema.default(true),
 })
 
+export const updateAccountInputSchema = z.object({
+  accountId: z.uuid(),
+  name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
+  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
+  type: accountTypeSchema,
+  initialBalanceCents: signedCentsSchema,
+  includeInNetWorth: optionalBooleanSchema.default(true),
+})
+
+export const updateAccountFormSchema = z.object({
+  accountId: z.uuid(),
+  name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
+  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
+  type: accountTypeSchema,
+  initialBalance: z.string().trim().min(1, "Informe o saldo inicial."),
+  includeInNetWorth: optionalBooleanSchema.default(true),
+})
+
 export const listAccountsQuerySchema = z.object({
   includeArchived: optionalBooleanSchema.default(false),
 })
@@ -70,6 +88,8 @@ export const accountRecordSchema = z.object({
 export type AccountType = z.infer<typeof accountTypeSchema>
 export type CreateAccountInput = z.infer<typeof createAccountInputSchema>
 export type CreateAccountFormInput = z.infer<typeof createAccountFormSchema>
+export type UpdateAccountInput = z.infer<typeof updateAccountInputSchema>
+export type UpdateAccountFormInput = z.infer<typeof updateAccountFormSchema>
 export type ListAccountsQuery = z.infer<typeof listAccountsQuerySchema>
 export type AccountRecord = z.infer<typeof accountRecordSchema>
 export type ArchiveAccountInput = z.infer<typeof archiveAccountInputSchema>

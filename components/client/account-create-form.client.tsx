@@ -3,19 +3,34 @@
 import { useActionState, useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react"
 import { useFormStatus } from "react-dom"
 
-import { createAccountAction, type CreateAccountActionState } from "@/modules/accounts/presentation/actions"
+import {
+  createAccountAction,
+  type CreateAccountActionState,
+  updateAccountAction,
+  type UpdateAccountActionState,
+} from "@/modules/accounts/presentation/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import type { AccountType } from "@/modules/accounts/domain/types"
 
-const initialState: CreateAccountActionState = {
+const initialState: CreateAccountActionState | UpdateAccountActionState = {
   status: "idle",
 }
 
-const defaultFormValues = {
+export type AccountFormValues = {
+  accountId?: string
+  name: string
+  institution: string
+  type: AccountType
+  initialBalance: string
+  includeInNetWorth: boolean
+}
+
+export const defaultAccountFormValues: AccountFormValues = {
   name: "",
   institution: "",
   type: "checking",
@@ -40,7 +55,7 @@ function formatCurrencyDigitsToInput(value: string) {
   return isNegative ? `-${formattedValue}` : formattedValue
 }
 
-function SubmitButton() {
+function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
 
   return (
@@ -49,28 +64,41 @@ function SubmitButton() {
       className="h-10 border border-[#d8f36a] bg-[#d8f36a] px-4 text-[11px] uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]"
       disabled={pending}
     >
-      {pending ? "Salvando..." : "Criar conta"}
+      {pending ? "Salvando..." : label}
     </Button>
   )
 }
 
 export function AccountCreateForm({
+  initialValues = defaultAccountFormValues,
   mode = "card",
+  actionType = "create",
   onSuccess,
+  submitLabel = "Criar conta",
 }: {
+  initialValues?: AccountFormValues
   mode?: "card" | "flat"
+  actionType?: "create" | "update"
   onSuccess?: () => void
+  submitLabel?: string
 }) {
   const formRef = useRef<HTMLFormElement>(null)
-  const [state, formAction] = useActionState(createAccountAction, initialState)
-  const [formValues, setFormValues] = useState(defaultFormValues)
+  const [state, formAction] = useActionState(
+    actionType === "update" ? updateAccountAction : createAccountAction,
+    initialState
+  )
+  const [formValues, setFormValues] = useState(initialValues)
+
+  useEffect(() => {
+    setFormValues(initialValues)
+  }, [initialValues])
 
   useEffect(() => {
     if (state.status === "success") {
-      setFormValues(defaultFormValues)
+      setFormValues(actionType === "update" ? initialValues : defaultAccountFormValues)
       onSuccess?.()
     }
-  }, [onSuccess, state.status])
+  }, [actionType, initialValues, onSuccess, state.status])
 
   return (
     <AccountCreateFormContent
@@ -80,6 +108,8 @@ export function AccountCreateForm({
       onFormValuesChange={setFormValues}
       state={state}
       mode={mode}
+      actionType={actionType}
+      submitLabel={submitLabel}
     />
   )
 }
@@ -91,16 +121,24 @@ function AccountCreateFormContent({
   onFormValuesChange,
   state,
   mode,
+  actionType,
+  submitLabel,
 }: {
   formRef: RefObject<HTMLFormElement | null>
   formAction: (payload: FormData) => void
-  formValues: typeof defaultFormValues
-  onFormValuesChange: Dispatch<SetStateAction<typeof defaultFormValues>>
-  state: CreateAccountActionState
+  formValues: AccountFormValues
+  onFormValuesChange: Dispatch<SetStateAction<AccountFormValues>>
+  state: CreateAccountActionState | UpdateAccountActionState
   mode: "card" | "flat"
+  actionType: "create" | "update"
+  submitLabel: string
 }) {
   const content = (
     <form ref={formRef} action={formAction} className="space-y-5">
+      {actionType === "update" && formValues.accountId ? (
+        <input type="hidden" name="accountId" value={formValues.accountId} />
+      ) : null}
+
       <FieldGroup className="gap-4">
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
@@ -163,7 +201,7 @@ function AccountCreateFormContent({
                 name="type"
                 value={formValues.type}
                 onChange={(event) => {
-                  const { value } = event.currentTarget
+                  const value = event.currentTarget.value as AccountType
                   onFormValuesChange((current) => ({
                     ...current,
                     type: value,
@@ -238,7 +276,7 @@ function AccountCreateFormContent({
         </p>
       ) : null}
 
-      <SubmitButton />
+      <SubmitButton label={submitLabel} />
     </form>
   )
 

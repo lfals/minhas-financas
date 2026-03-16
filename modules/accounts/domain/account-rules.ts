@@ -1,4 +1,4 @@
-import { ConflictAppError } from "@/lib/errors/app-error"
+import { ConflictAppError, NotFoundAppError } from "@/lib/errors/app-error"
 import type { AccountRecord, AccountType } from "@/modules/accounts/domain/types"
 
 const typeLabels: Record<AccountType, string> = {
@@ -30,5 +30,17 @@ export function normalizeComparableText(value: string) {
 export function ensureAccountDoesNotConflict(existingAccount: AccountRecord | null) {
   if (existingAccount) {
     throw new ConflictAppError("Já existe uma conta com esse nome nessa instituição.")
+  }
+}
+
+export function ensureAccountExists(account: AccountRecord | null): asserts account is AccountRecord {
+  if (!account) {
+    throw new NotFoundAppError("Conta não encontrada.")
+  }
+}
+
+export function ensureAccountIsActive(account: AccountRecord) {
+  if (account.isArchived) {
+    throw new ConflictAppError("Essa conta já foi removida.")
   }
 }
