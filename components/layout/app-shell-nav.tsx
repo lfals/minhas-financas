@@ -6,6 +6,7 @@ import {
   CreditCard,
   Landmark,
   LayoutDashboard,
+  Settings,
   TrendingUp,
   Wallet,
   type LucideIcon,
@@ -17,6 +18,7 @@ const icons = {
   "credit-card": CreditCard,
   landmark: Landmark,
   "layout-dashboard": LayoutDashboard,
+  settings: Settings,
   "trending-up": TrendingUp,
   wallet: Wallet,
 } satisfies Record<string, LucideIcon>

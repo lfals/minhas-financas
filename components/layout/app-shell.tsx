@@ -7,6 +7,7 @@ const navigation = [
   { href: "/lancamentos", label: "Lançamentos", icon: "wallet" },
   { href: "/cartoes", label: "Cartões", icon: "credit-card" },
   { href: "/investimentos", label: "Investimentos", icon: "trending-up" },
+  { href: "/configuracoes", label: "Configurações", icon: "settings" },
 ] satisfies NavigationItem[]
 
 export function AppShell({
