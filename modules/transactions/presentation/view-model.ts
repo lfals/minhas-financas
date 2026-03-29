@@ -109,6 +109,7 @@ export function buildTransactionPageItem(
 
   return {
     id: transaction.id,
+    accountId: transaction.accountId,
     title: transaction.title,
     category: transaction.category,
     sourceType: transaction.sourceType,
@@ -121,6 +122,7 @@ export function buildTransactionPageItem(
     dateLabel: format(new Date(`${transaction.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
     amountCents: transaction.amountCents,
     settledAmountCents: transaction.settledAmountCents,
+    notes: transaction.notes,
     displayAmountCents: transaction.settledAmountCents ?? transaction.amountCents,
     isAmountOverridden:
       transaction.settledAmountCents !== null &&

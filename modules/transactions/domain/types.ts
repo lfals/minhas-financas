@@ -1,8 +1,10 @@
 import type {
   CreateTransactionFormInput,
+  UpdateTransactionFormInput,
   CreateCreditCardExpenseInput,
   CreditCardInvoiceExpenseRecord,
   CreateTransactionInput,
+  UpdateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
   ReopenTransactionInput,
@@ -23,9 +25,11 @@ import type {
 
 export type {
   CreateTransactionFormInput,
+  UpdateTransactionFormInput,
   CreateCreditCardExpenseInput,
   CreditCardInvoiceExpenseRecord,
   CreateTransactionInput,
+  UpdateTransactionInput,
   FixedExpenseFrequency,
   InstallmentAmountInputMode,
   ReopenTransactionInput,
@@ -50,6 +54,10 @@ export type CreateTransactionCommand = CreateTransactionInput & {
 }
 
 export type CreateCreditCardExpenseCommand = CreateCreditCardExpenseInput & {
+  clerkUserId: string
+}
+
+export type UpdateTransactionCommand = UpdateTransactionInput & {
   clerkUserId: string
 }
 
@@ -91,6 +99,7 @@ export type TransactionMetric = {
 
 export type TransactionPageItem = {
   id: string
+  accountId: string
   title: string
   category: string
   sourceType: TransactionSourceType
@@ -103,6 +112,7 @@ export type TransactionPageItem = {
   dateLabel: string
   amountCents: number
   settledAmountCents?: number | null
+  notes?: string | null
   displayAmountCents: number
   isAmountOverridden: boolean
   seriesId?: string | null

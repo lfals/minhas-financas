@@ -59,6 +59,13 @@ type CreditCardPurchaseItem = {
 const installmentTitlePattern = / \d+\/\d+$/
 const installmentSuffixPattern = /(?:\s|-) (\d+)\/(\d+)$/
 
+function formatExpenseDateLabel(occurredOn: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+  }).format(new Date(`${occurredOn}T00:00:00`))
+}
+
 function normalizeCardPurchaseTitle(title: string) {
   return title.replace(installmentTitlePattern, "")
 }
@@ -141,7 +148,7 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
       return {
         id: latest.id,
         title: normalizeCardPurchaseTitle(latest.title),
-        metadata: `${latest.category} • ${latest.dateLabel}`,
+        metadata: `${latest.category} • ${formatExpenseDateLabel(latest.occurredOn)}`,
         amountCents: latest.amountCents,
         expenseId: latest.id,
         installmentTotal: null,
@@ -175,7 +182,7 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
     const current = installments.filter((purchase) => purchase.occurredOn <= today)
 
     const currentInstallment = current.length ? current[current.length - 1] : installments[0]
-    const currentDateLabel = currentInstallment?.dateLabel ?? latest.dateLabel
+    const currentDateLabel = formatExpenseDateLabel(currentInstallment?.occurredOn ?? latest.occurredOn)
 
     const parsedCurrentInstallment = currentInstallment
       ? parseInstallmentInfoFromTitle(currentInstallment.title)
@@ -196,7 +203,7 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
       id: latest.seriesId ?? latest.id,
       title: normalizeCardPurchaseTitle(latest.title),
       metadata:
-        `${latest.category} • ${latest.dateLabel} • ` +
+        `${latest.category} • ${formatExpenseDateLabel(latest.occurredOn)} • ` +
         `Quantidade: ${installmentTotal}x • ` +
         `Parcela atual: ${installmentCurrent}/${installmentTotal} ` +
         `(${formatCents(installmentAmount)}) • ` +

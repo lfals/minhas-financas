@@ -4,6 +4,7 @@ import {
   CreditCardInvoiceDetailsDialog,
 } from "@/components/client/credit-card-invoice-details-dialog.client"
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
+import { TransactionDetailsDialog } from "@/components/client/transaction-details-dialog.client"
 import { TransactionInstallmentsDetailsDialog } from "@/components/client/transaction-installments-details-dialog.client"
 import { TransactionRemoveButton } from "@/components/client/transaction-remove-button.client"
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
@@ -186,15 +187,6 @@ export function TransactionsPageView({
                       ? installmentsBySeries.get(transaction.seriesId) ?? []
                       : []
                   const shouldOpenInstallmentsDialog = isInstallmentSeries
-                  const invoiceDetailsAction = isCreditCardInvoice ? (
-                    <CreditCardInvoiceDetailsDialog
-                      transaction={transaction}
-                      badgeLabel={badgeLabel}
-                      statusClassName={statusTone(transaction.statusLabel)}
-                      expenses={invoiceExpensesForTransaction}
-                      cardOptions={creditCardOptions}
-                    />
-                  ) : null
                   const installmentsAction =
                     !isCreditCardInvoice && shouldOpenInstallmentsDialog ? (
                       <TransactionInstallmentsDetailsDialog
@@ -214,7 +206,6 @@ export function TransactionsPageView({
                   const transactionActions = (
                     <ClickPropagationStopper>
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                        {invoiceDetailsAction}
                         {installmentsAction}
                         {isCreditCardInvoice ? null : (
                           <TransactionRemoveButton
@@ -234,9 +225,8 @@ export function TransactionsPageView({
                     </ClickPropagationStopper>
                   )
 
-                  return (
+                  const listItem = (
                     <TransactionListItem
-                      key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
                       title={transaction.title}
                       badgeLabel={badgeLabel}
                       statusLabel={transaction.statusLabel}
@@ -248,7 +238,40 @@ export function TransactionsPageView({
                       kind={transaction.kind}
                       isOverdue={transaction.isOverdue}
                       actions={transactionActions}
+                      className="transition-colors hover:bg-[#161616]"
                     />
+                  )
+
+                  if (isCreditCardInvoice) {
+                    return (
+                      <CreditCardInvoiceDetailsDialog
+                        key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
+                        transaction={transaction}
+                        badgeLabel={badgeLabel}
+                        statusClassName={statusTone(transaction.statusLabel)}
+                        expenses={invoiceExpensesForTransaction}
+                        cardOptions={creditCardOptions}
+                      >
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#d8f36a]/60 focus-visible:ring-offset-0"
+                        >
+                          {listItem}
+                        </div>
+                      </CreditCardInvoiceDetailsDialog>
+                    )
+                  }
+
+                  return (
+                    <TransactionDetailsDialog
+                      key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
+                      transaction={transaction}
+                      accountOptions={accountOptions}
+                      categoryOptions={categoryOptions}
+                    >
+                      {listItem}
+                    </TransactionDetailsDialog>
                   )
                 })
               ) : (

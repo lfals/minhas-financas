@@ -10,11 +10,13 @@ import { changeCreditCardExpenseCardUseCase } from "@/modules/transactions/appli
 import { removeCreditCardExpenseUseCase } from "@/modules/transactions/application/remove-credit-card-expense-use-case"
 import { settleCreditCardExpenseUseCase } from "@/modules/transactions/application/settle-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
+import { updateTransactionUseCase } from "@/modules/transactions/application/update-transaction-use-case"
 import { reopenTransactionUseCase } from "@/modules/transactions/application/reopen-transaction-use-case"
 import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
 import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
 import {
   createTransactionFormSchema,
+  updateTransactionFormSchema,
   reopenTransactionInputSchema,
   removeTransactionInputSchema,
   removeCreditCardExpenseInputSchema,
@@ -32,6 +34,12 @@ export type CreateTransactionActionState = {
 export type SettleTransactionActionState = {
   status: "idle" | "success" | "error"
   message?: string
+}
+
+export type UpdateTransactionActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+  fieldErrors?: Record<string, string[] | undefined>
 }
 
 export type ReopenTransactionActionState = {
@@ -195,6 +203,69 @@ export async function settleTransactionAction(
     return {
       status: "error",
       message: "Não foi possível efetivar o lançamento agora.",
+    }
+  }
+}
+
+export async function updateTransactionAction(
+  _previousState: UpdateTransactionActionState,
+  formData: FormData
+): Promise<UpdateTransactionActionState> {
+  const parsed = updateTransactionFormSchema.safeParse({
+    transactionId: formData.get("transactionId"),
+    accountId: formData.get("accountId"),
+    title: formData.get("title"),
+    category: formData.get("category"),
+    kind: formData.get("kind"),
+    status: formData.get("status"),
+    amount: formData.get("amount"),
+    occurredOn: formData.get("occurredOn"),
+    notes: formData.get("notes"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Revise os campos obrigatórios.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await updateTransactionUseCase({
+      clerkUserId,
+      transactionId: parsed.data.transactionId,
+      accountId: parsed.data.accountId,
+      title: parsed.data.title,
+      category: parsed.data.category,
+      kind: parsed.data.kind,
+      status: parsed.data.status,
+      amountCents: parseCurrencyInputToCents(parsed.data.amount),
+      occurredOn: parsed.data.occurredOn,
+      notes: parsed.data.notes,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+    revalidatePath("/cartoes")
+
+    return {
+      status: "success",
+      message: "Lançamento atualizado com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível atualizar o lançamento agora.",
     }
   }
 }

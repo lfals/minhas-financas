@@ -292,6 +292,30 @@ export const createTransactionFormSchema = z.object({
   }
 })
 
+export const updateTransactionInputSchema = z.object({
+  transactionId: z.uuid("Lançamento inválido para atualização."),
+  accountId: z.uuid("Selecione uma conta válida."),
+  title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
+  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  kind: transactionKindSchema,
+  status: transactionStatusSchema,
+  amountCents: centsSchema,
+  occurredOn: isoDateSchema,
+  notes: z.string().trim().max(500).optional(),
+})
+
+export const updateTransactionFormSchema = z.object({
+  transactionId: z.uuid("Lançamento inválido para atualização."),
+  accountId: z.uuid("Selecione uma conta válida."),
+  title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
+  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  kind: transactionKindSchema,
+  status: transactionStatusSchema,
+  amount: z.string().trim().min(1, "Informe o valor."),
+  occurredOn: isoDateSchema,
+  notes: z.string().trim().max(500).optional(),
+})
+
 export const createCreditCardExpenseInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
   cardId: z.uuid("Selecione um cartão válido."),
@@ -452,6 +476,8 @@ export type InstallmentAmountInputMode = z.infer<typeof installmentAmountInputMo
 export type TransactionSourceType = z.infer<typeof transactionSourceTypeSchema>
 export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema>
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
+export type UpdateTransactionInput = z.infer<typeof updateTransactionInputSchema>
+export type UpdateTransactionFormInput = z.infer<typeof updateTransactionFormSchema>
 export type CreateCreditCardExpenseInput = z.infer<typeof createCreditCardExpenseInputSchema>
 export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema>
 export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema>

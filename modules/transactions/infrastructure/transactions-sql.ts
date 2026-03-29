@@ -184,6 +184,26 @@ export const reopenTransactionSql = `
     ${transactionColumns}
 `
 
+export const updateTransactionSql = `
+  update transactions
+  set
+    account_id = $3,
+    title = $4,
+    category = $5,
+    category_id = $6,
+    kind = $7,
+    status = $8,
+    amount_cents = $9,
+    settled_amount_cents = $10,
+    occurred_on = $11::date,
+    notes = nullif($12, ''),
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+  returning
+    ${transactionColumns}
+`
+
 export const deleteCreditCardInvoiceSettlementAdjustmentsSql = `
   delete from credit_card_expenses
   where clerk_user_id = $1

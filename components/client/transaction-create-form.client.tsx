@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   createTransactionAction,
   type CreateTransactionActionState,
+  updateTransactionAction,
+  type UpdateTransactionActionState,
 } from "@/modules/transactions/presentation/actions"
 import type {
   FixedExpenseFrequency,
@@ -29,7 +31,7 @@ import type {
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
-const initialState: CreateTransactionActionState = {
+const initialState: CreateTransactionActionState | UpdateTransactionActionState = {
   status: "idle",
 }
 
@@ -43,7 +45,29 @@ const fixedExpenseFrequencyOptions: Array<{ value: FixedExpenseFrequency; label:
 
 type TransactionCadence = "single" | "fixed" | "installment"
 
-function getDefaultFormValues(defaultOccurredOn: string, defaultAccountId: string) {
+export type TransactionFormValues = {
+  transactionId?: string
+  accountId: string
+  cardId: string
+  title: string
+  category: string
+  kind: TransactionFormKind | "expense" | "income"
+  status: "compensated" | "pending" | "scheduled"
+  amount: string
+  occurredOn: string
+  cadence: TransactionCadence
+  isFixed: boolean
+  fixedExpenseFrequency: FixedExpenseFrequency
+  installmentNumber: string
+  installmentTotal: string
+  installmentAmountInputMode: InstallmentAmountInputMode
+  notes: string
+}
+
+export function getDefaultTransactionFormValues(
+  defaultOccurredOn: string,
+  defaultAccountId: string
+): TransactionFormValues {
   return {
     accountId: defaultAccountId,
     cardId: "",
@@ -117,7 +141,7 @@ function formatDateForButton(value: string) {
   return format(date, "dd/MM/yyyy", { locale: ptBR })
 }
 
-function SubmitButton({ disabled }: { disabled?: boolean }) {
+function SubmitButton({ disabled, label }: { disabled?: boolean; label: string }) {
   const { pending } = useFormStatus()
 
   return (
@@ -126,7 +150,7 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
       className="h-10 border border-[#d8f36a] bg-[#d8f36a] px-4 text-[11px] uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]"
       disabled={pending || disabled}
     >
-      {pending ? "Salvando..." : "Criar lançamento"}
+      {pending ? "Salvando..." : label}
     </Button>
   )
 }
@@ -136,25 +160,41 @@ export function TransactionCreateForm({
   creditCardOptions,
   categoryOptions,
   defaultOccurredOn,
+  initialValues,
   mode = "card",
+  actionType = "create",
   onSuccess,
+  submitLabel = "Criar lançamento",
 }: {
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
   defaultOccurredOn: string
+  initialValues?: TransactionFormValues
   mode?: "card" | "flat"
+  actionType?: "create" | "update"
   onSuccess?: () => void
+  submitLabel?: string
 }) {
-  const [state, formAction] = useActionState(createTransactionAction, initialState)
+  const [state, formAction] = useActionState(
+    actionType === "update" ? updateTransactionAction : createTransactionAction,
+    initialState
+  )
   const defaultAccountId = accountOptions[0]?.id ?? ""
   const defaultCardId = creditCardOptions[0]?.id ?? ""
   const router = useRouter()
-  const [formValues, setFormValues] = useState(() => ({
-    ...getDefaultFormValues(defaultOccurredOn, defaultAccountId),
-    cardId: defaultCardId,
-  }))
-  const isCardExpense = formValues.kind === "card-expense"
+  const [formValues, setFormValues] = useState<TransactionFormValues>(() => {
+    if (initialValues) {
+      return initialValues
+    }
+
+    return {
+      ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+      cardId: defaultCardId,
+    }
+  })
+  const allowCardExpense = actionType === "create"
+  const isCardExpense = allowCardExpense && formValues.kind === "card-expense"
   const forcePendingStatus =
     isCardExpense || (formValues.cadence === "fixed" && formValues.kind === "expense")
   const fixedLabel = formValues.kind === "income" ? "Receita fixa" : "Despesa fixa"
@@ -167,15 +207,34 @@ export function TransactionCreateForm({
       ? Math.floor(parseCurrencyInputToCents(formValues.amount) / installmentTotalCount)
       : null
   const handleSuccess = useEffectEvent(() => {
-    setFormValues({
-      ...getDefaultFormValues(defaultOccurredOn, defaultAccountId),
-      cardId: defaultCardId,
-    })
+    setFormValues(
+      actionType === "update"
+        ? (initialValues ?? {
+            ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+            cardId: defaultCardId,
+          })
+        : {
+            ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+            cardId: defaultCardId,
+          }
+    )
     onSuccess?.()
     startTransition(() => {
       router.refresh()
     })
   })
+
+  useEffect(() => {
+    if (initialValues) {
+      setFormValues(initialValues)
+      return
+    }
+
+    setFormValues({
+      ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+      cardId: defaultCardId,
+    })
+  }, [defaultAccountId, defaultCardId, defaultOccurredOn, initialValues])
 
   useEffect(() => {
     if (state.status === "success") {
@@ -185,6 +244,9 @@ export function TransactionCreateForm({
 
   const content = (
     <form action={formAction} className="space-y-5">
+      {actionType === "update" && formValues.transactionId ? (
+        <input type="hidden" name="transactionId" value={formValues.transactionId} />
+      ) : null}
       <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor="title" className="text-white/80">
@@ -244,7 +306,9 @@ export function TransactionCreateForm({
                 className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
               >
                 <NativeSelectOption value="expense">Despesa</NativeSelectOption>
-                <NativeSelectOption value="card-expense">Despesa cartão</NativeSelectOption>
+                {allowCardExpense ? (
+                  <NativeSelectOption value="card-expense">Despesa cartão</NativeSelectOption>
+                ) : null}
                 <NativeSelectOption value="income">Receita</NativeSelectOption>
               </NativeSelect>
               <FieldError errors={state.fieldErrors?.kind?.map((message) => ({ message }))} />
@@ -364,7 +428,7 @@ export function TransactionCreateForm({
                   const { value } = event.currentTarget
                   setFormValues((current) => ({
                     ...current,
-                    status: value,
+                    status: value as TransactionFormValues["status"],
                   }))
                 }}
                 className="h-10 border-white/10 bg-white/5 text-sm text-white"
@@ -472,221 +536,258 @@ export function TransactionCreateForm({
           </Field>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="cadence" className="text-white/80">
-            Modelo
-          </FieldLabel>
-          <FieldContent className="gap-3">
-            <input type="hidden" name="isFixed" value={formValues.cadence === "fixed" ? "true" : "false"} />
-            <NativeSelect
-              id="cadence"
-              value={formValues.cadence}
-              onChange={(event) => {
-                const { value } = event.currentTarget
-                const cadence = value as TransactionCadence
+        {actionType === "create" ? (
+          <Field>
+            <FieldLabel htmlFor="cadence" className="text-white/80">
+              Modelo
+            </FieldLabel>
+            <FieldContent className="gap-3">
+              <input type="hidden" name="isFixed" value={formValues.cadence === "fixed" ? "true" : "false"} />
+              <NativeSelect
+                id="cadence"
+                value={formValues.cadence}
+                onChange={(event) => {
+                  const { value } = event.currentTarget
+                  const cadence = value as TransactionCadence
 
-                setFormValues((current) => ({
-                  ...current,
-                  cadence,
-                  isFixed: cadence === "fixed",
-                  status:
-                    cadence === "fixed" && current.kind === "expense" ? "pending" : current.status,
-                  fixedExpenseFrequency:
-                    cadence === "fixed" ? current.fixedExpenseFrequency : "monthly",
-                  installmentNumber: cadence === "installment" ? current.installmentNumber : "1",
-                  installmentTotal: cadence === "installment" ? current.installmentTotal : "2",
-                  installmentAmountInputMode:
-                    cadence === "installment" ? current.installmentAmountInputMode : "installment",
-                }))
-              }}
-              className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-            >
-              <NativeSelectOption value="single">
-                {isCardExpense ? "À vista" : "Lançamento avulso"}
-              </NativeSelectOption>
-              <NativeSelectOption value="fixed">
-                {isCardExpense ? "Fixo mensal" : fixedLabel}
-              </NativeSelectOption>
-              <NativeSelectOption value="installment">
-                {isCardExpense ? "Parcelado" : installmentLabel}
-              </NativeSelectOption>
-            </NativeSelect>
+                  setFormValues((current) => ({
+                    ...current,
+                    cadence,
+                    isFixed: cadence === "fixed",
+                    status:
+                      cadence === "fixed" && current.kind === "expense" ? "pending" : current.status,
+                    fixedExpenseFrequency:
+                      cadence === "fixed" ? current.fixedExpenseFrequency : "monthly",
+                    installmentNumber: cadence === "installment" ? current.installmentNumber : "1",
+                    installmentTotal: cadence === "installment" ? current.installmentTotal : "2",
+                    installmentAmountInputMode:
+                      cadence === "installment" ? current.installmentAmountInputMode : "installment",
+                  }))
+                }}
+                className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+              >
+                <NativeSelectOption value="single">
+                  {isCardExpense ? "À vista" : "Lançamento avulso"}
+                </NativeSelectOption>
+                <NativeSelectOption value="fixed">
+                  {isCardExpense ? "Fixo mensal" : fixedLabel}
+                </NativeSelectOption>
+                <NativeSelectOption value="installment">
+                  {isCardExpense ? "Parcelado" : installmentLabel}
+                </NativeSelectOption>
+              </NativeSelect>
 
-            {formValues.cadence === "fixed" ? (
-              <Field className="w-full">
-                {isCardExpense ? (
-                  <>
-                    <FieldLabel htmlFor="fixedExpenseFrequencyCard" className="text-white/80">
-                      Recorrência
+              {formValues.cadence === "fixed" ? (
+                <Field className="w-full">
+                  {isCardExpense ? (
+                    <>
+                      <FieldLabel htmlFor="fixedExpenseFrequencyCard" className="text-white/80">
+                        Recorrência
+                      </FieldLabel>
+                      <FieldContent className="w-full">
+                        <input type="hidden" name="fixedExpenseFrequency" value="monthly" />
+                        <Input
+                          id="fixedExpenseFrequencyCard"
+                          value="Mensal"
+                          readOnly
+                          className="h-10 border-white/10 bg-white/5 text-white"
+                        />
+                        <p className="text-xs text-white/55">
+                          A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
+                        </p>
+                        <FieldError
+                          errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
+                            message,
+                          }))}
+                        />
+                      </FieldContent>
+                    </>
+                  ) : (
+                    <>
+                      <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
+                        Recorrência
+                      </FieldLabel>
+                      <FieldContent className="w-full">
+                        <NativeSelect
+                          id="fixedExpenseFrequency"
+                          name="fixedExpenseFrequency"
+                          value={formValues.fixedExpenseFrequency}
+                          onChange={(event) => {
+                            const { value } = event.currentTarget
+                            setFormValues((current) => ({
+                              ...current,
+                              fixedExpenseFrequency: value as FixedExpenseFrequency,
+                            }))
+                          }}
+                          className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                        >
+                          {fixedExpenseFrequencyOptions.map((option) => (
+                            <NativeSelectOption key={option.value} value={option.value}>
+                              {option.label}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                        <FieldError
+                          errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
+                            message,
+                          }))}
+                        />
+                      </FieldContent>
+                    </>
+                  )}
+                </Field>
+              ) : (
+                <input type="hidden" name="fixedExpenseFrequency" value="" />
+              )}
+
+              {formValues.cadence === "installment" ? (
+                <div className="space-y-4">
+                  <Field>
+                    <FieldLabel htmlFor="installmentAmountInputMode" className="text-white/80">
+                      O valor informado corresponde a
                     </FieldLabel>
-                    <FieldContent className="w-full">
-                      <input type="hidden" name="fixedExpenseFrequency" value="monthly" />
-                      <Input
-                        id="fixedExpenseFrequencyCard"
-                        value="Mensal"
-                        readOnly
-                        className="h-10 border-white/10 bg-white/5 text-white"
-                      />
-                      <p className="text-xs text-white/55">
-                        A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
-                      </p>
-                      <FieldError
-                        errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
-                          message,
-                        }))}
-                      />
-                    </FieldContent>
-                  </>
-                ) : (
-                  <>
-                    <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
-                      Recorrência
-                    </FieldLabel>
-                    <FieldContent className="w-full">
+                    <FieldContent>
                       <NativeSelect
-                        id="fixedExpenseFrequency"
-                        name="fixedExpenseFrequency"
-                        value={formValues.fixedExpenseFrequency}
+                        id="installmentAmountInputMode"
+                        name="installmentAmountInputMode"
+                        value={formValues.installmentAmountInputMode}
                         onChange={(event) => {
                           const { value } = event.currentTarget
                           setFormValues((current) => ({
                             ...current,
-                            fixedExpenseFrequency: value as FixedExpenseFrequency,
+                            installmentAmountInputMode: value as InstallmentAmountInputMode,
                           }))
                         }}
                         className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
                       >
-                        {fixedExpenseFrequencyOptions.map((option) => (
-                          <NativeSelectOption key={option.value} value={option.value}>
-                            {option.label}
-                          </NativeSelectOption>
-                        ))}
+                        <NativeSelectOption value="installment">
+                          {isCardExpense ? "Valor de cada parcela" : "Valor da parcela"}
+                        </NativeSelectOption>
+                        <NativeSelectOption value="total">Valor total</NativeSelectOption>
                       </NativeSelect>
-                      <FieldError
-                        errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
-                          message,
-                        }))}
-                      />
-                    </FieldContent>
-                  </>
-                )}
-              </Field>
-            ) : (
-              <input type="hidden" name="fixedExpenseFrequency" value="" />
-            )}
-
-            {formValues.cadence === "installment" ? (
-              <div className="space-y-4">
-                <Field>
-                  <FieldLabel htmlFor="installmentAmountInputMode" className="text-white/80">
-                    O valor informado corresponde a
-                  </FieldLabel>
-                  <FieldContent>
-                    <NativeSelect
-                      id="installmentAmountInputMode"
-                      name="installmentAmountInputMode"
-                      value={formValues.installmentAmountInputMode}
-                      onChange={(event) => {
-                        const { value } = event.currentTarget
-                        setFormValues((current) => ({
-                          ...current,
-                          installmentAmountInputMode: value as InstallmentAmountInputMode,
-                        }))
-                      }}
-                      className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-                    >
-                      <NativeSelectOption value="installment">
-                        {isCardExpense ? "Valor de cada parcela" : "Valor da parcela"}
-                      </NativeSelectOption>
-                      <NativeSelectOption value="total">Valor total</NativeSelectOption>
-                    </NativeSelect>
-                  </FieldContent>
-                </Field>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="installmentNumber" className="text-white/80">
-                      Parcela inicial
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="installmentNumber"
-                        name="installmentNumber"
-                        inputMode="numeric"
-                        min={1}
-                        value={formValues.installmentNumber}
-                        onChange={(event) => {
-                          const digits = event.currentTarget.value.replace(/\D/g, "")
-                          setFormValues((current) => ({
-                            ...current,
-                            installmentNumber: digits || "",
-                          }))
-                        }}
-                        className="h-10 border-white/10 bg-white/5 text-white"
-                      />
                     </FieldContent>
                   </Field>
 
-                  <Field>
-                    <FieldLabel htmlFor="installmentTotal" className="text-white/80">
-                      Total de parcelas
-                    </FieldLabel>
-                    <FieldContent>
-                      <Input
-                        id="installmentTotal"
-                        name="installmentTotal"
-                        inputMode="numeric"
-                        min={1}
-                        value={formValues.installmentTotal}
-                        onChange={(event) => {
-                          const digits = event.currentTarget.value.replace(/\D/g, "")
-                          setFormValues((current) => ({
-                            ...current,
-                            installmentTotal: digits || "",
-                          }))
-                        }}
-                        className="h-10 border-white/10 bg-white/5 text-white"
-                      />
-                    </FieldContent>
-                  </Field>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="installmentNumber" className="text-white/80">
+                        Parcela inicial
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="installmentNumber"
+                          name="installmentNumber"
+                          inputMode="numeric"
+                          min={1}
+                          value={formValues.installmentNumber}
+                          onChange={(event) => {
+                            const digits = event.currentTarget.value.replace(/\D/g, "")
+                            setFormValues((current) => ({
+                              ...current,
+                              installmentNumber: digits || "",
+                            }))
+                          }}
+                          className="h-10 border-white/10 bg-white/5 text-white"
+                        />
+                      </FieldContent>
+                    </Field>
+
+                    <Field>
+                      <FieldLabel htmlFor="installmentTotal" className="text-white/80">
+                        Total de parcelas
+                      </FieldLabel>
+                      <FieldContent>
+                        <Input
+                          id="installmentTotal"
+                          name="installmentTotal"
+                          inputMode="numeric"
+                          min={1}
+                          value={formValues.installmentTotal}
+                          onChange={(event) => {
+                            const digits = event.currentTarget.value.replace(/\D/g, "")
+                            setFormValues((current) => ({
+                              ...current,
+                              installmentTotal: digits || "",
+                            }))
+                          }}
+                          className="h-10 border-white/10 bg-white/5 text-white"
+                        />
+                      </FieldContent>
+                    </Field>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <input type="hidden" name="installmentNumber" value="" />
-                <input type="hidden" name="installmentTotal" value="" />
-                <input type="hidden" name="installmentAmountInputMode" value="installment" />
-              </>
-            )}
+              ) : (
+                <>
+                  <input type="hidden" name="installmentNumber" value="" />
+                  <input type="hidden" name="installmentTotal" value="" />
+                  <input type="hidden" name="installmentAmountInputMode" value="installment" />
+                </>
+              )}
 
-            <p className="text-xs text-white/55">
-              {isCardExpense
-                ? formValues.cadence === "installment"
+              <p className="text-xs text-white/55">
+                {isCardExpense
+                  ? formValues.cadence === "installment"
+                    ? formValues.installmentAmountInputMode === "total"
+                      ? "O sistema divide o valor total entre as parcelas e lança cada uma na fatura correspondente dos próximos meses."
+                      : "O sistema mantém o valor informado em cada parcela e lança cada uma na fatura correspondente dos próximos meses."
+                    : "A compra é registrada no cartão e consolidada automaticamente na fatura do mês de vencimento."
+                  : formValues.cadence === "installment"
                   ? formValues.installmentAmountInputMode === "total"
-                    ? "O sistema divide o valor total entre as parcelas e lança cada uma na fatura correspondente dos próximos meses."
-                    : "O sistema mantém o valor informado em cada parcela e lança cada uma na fatura correspondente dos próximos meses."
-                  : "A compra é registrada no cartão e consolidada automaticamente na fatura do mês de vencimento."
-                : formValues.cadence === "installment"
-                ? formValues.installmentAmountInputMode === "total"
-                  ? "O sistema divide o valor total entre as parcelas e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
-                  : "O sistema mantém o valor informado em cada parcela e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
-                : formValues.cadence === "fixed"
-                  ? isCardExpense
-                    ? "O sistema agenda uma compra mensal no cartão e só envia cada competência para a fatura quando você efetivar."
-                    : "A lógica de recorrência fixa do sistema é aplicada automaticamente."
-                  : "Use lançamento avulso para registrar apenas esta ocorrência."}
-            </p>
+                    ? "O sistema divide o valor total entre as parcelas e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
+                    : "O sistema mantém o valor informado em cada parcela e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
+                  : formValues.cadence === "fixed"
+                    ? isCardExpense
+                      ? "O sistema agenda uma compra mensal no cartão e só envia cada competência para a fatura quando você efetivar."
+                      : "A lógica de recorrência fixa do sistema é aplicada automaticamente."
+                    : "Use lançamento avulso para registrar apenas esta ocorrência."}
+              </p>
 
-            <FieldError errors={state.fieldErrors?.isFixed?.map((message) => ({ message }))} />
-            <FieldError errors={state.fieldErrors?.installmentNumber?.map((message) => ({ message }))} />
-            <FieldError errors={state.fieldErrors?.installmentTotal?.map((message) => ({ message }))} />
-            <FieldError
-              errors={state.fieldErrors?.installmentAmountInputMode?.map((message) => ({
-                message,
-              }))}
+              <FieldError errors={state.fieldErrors?.isFixed?.map((message) => ({ message }))} />
+              <FieldError errors={state.fieldErrors?.installmentNumber?.map((message) => ({ message }))} />
+              <FieldError errors={state.fieldErrors?.installmentTotal?.map((message) => ({ message }))} />
+              <FieldError
+                errors={state.fieldErrors?.installmentAmountInputMode?.map((message) => ({
+                  message,
+                }))}
+              />
+            </FieldContent>
+          </Field>
+        ) : (
+          <>
+            <input type="hidden" name="isFixed" value={formValues.isFixed ? "true" : "false"} />
+            <input
+              type="hidden"
+              name="fixedExpenseFrequency"
+              value={formValues.isFixed ? formValues.fixedExpenseFrequency : ""}
             />
-          </FieldContent>
-        </Field>
+            <input
+              type="hidden"
+              name="installmentNumber"
+              value={formValues.cadence === "installment" ? formValues.installmentNumber : ""}
+            />
+            <input
+              type="hidden"
+              name="installmentTotal"
+              value={formValues.cadence === "installment" ? formValues.installmentTotal : ""}
+            />
+            <input
+              type="hidden"
+              name="installmentAmountInputMode"
+              value={formValues.cadence === "installment" ? formValues.installmentAmountInputMode : "installment"}
+            />
+            {formValues.cadence !== "single" ? (
+              <div className="border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/70">
+                {formValues.cadence === "fixed"
+                  ? `Modelo atual: ${
+                      formValues.kind === "income" ? "receita fixa" : "despesa fixa"
+                    } ${fixedExpenseFrequencyOptions.find(
+                      (option) => option.value === formValues.fixedExpenseFrequency
+                    )?.label.toLowerCase()}.`
+                  : `Modelo atual: parcelado em ${formValues.installmentNumber}/${formValues.installmentTotal}.`}
+              </div>
+            ) : null}
+          </>
+        )}
 
         <Field>
           <FieldLabel htmlFor="notes" className="text-white/80">
@@ -734,7 +835,10 @@ export function TransactionCreateForm({
         </p>
       ) : null}
 
-      <SubmitButton disabled={isCardExpense ? !creditCardOptions.length : !accountOptions.length} />
+      <SubmitButton
+        disabled={isCardExpense ? !creditCardOptions.length : !accountOptions.length}
+        label={submitLabel}
+      />
     </form>
   )
 
@@ -746,10 +850,10 @@ export function TransactionCreateForm({
     <Card className="border border-white/10 bg-[#141414] ring-0">
       <CardHeader className="gap-3">
         <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
-          Novo lançamento
+          {actionType === "update" ? "Editar lançamento" : "Novo lançamento"}
         </CardDescription>
         <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
-          Registre uma entrada ou saída.
+          {actionType === "update" ? "Atualize os dados deste lançamento." : "Registre uma entrada ou saída."}
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">{content}</CardContent>

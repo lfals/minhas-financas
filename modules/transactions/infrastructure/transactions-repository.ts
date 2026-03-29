@@ -18,6 +18,7 @@ import type {
   RemoveTransactionCommand,
   TransactionCategoryRecord,
   SettleTransactionCommand,
+  UpdateTransactionCommand,
   TransactionListCommand,
   TransactionListRecord,
   TransactionsListResult,
@@ -54,6 +55,7 @@ import {
   updateCreditCardExpenseCardSql,
   updateAccountBalanceSql,
   updateCreditCardInvoiceSql,
+  updateTransactionSql,
 } from "@/modules/transactions/infrastructure/transactions-sql"
 import {
   creditCardInvoiceExpenseRecordSchema,
@@ -1056,6 +1058,110 @@ export class TransactionsRepository {
       ])
 
       return transaction
+    })
+  }
+
+  async update(command: UpdateTransactionCommand) {
+    return withTransaction(async (client) => {
+      const existingTransaction = await queryOne(client, findTransactionByIdForUpdateSql, [
+        command.clerkUserId,
+        command.transactionId,
+      ])
+
+      if (!existingTransaction) {
+        throw new NotFoundAppError("Lançamento não encontrado.")
+      }
+
+      if (existingTransaction.sourceType === "credit_card_invoice") {
+        throw new ValidationAppError("A fatura consolidada não pode ser editada por este fluxo.")
+      }
+
+      const categoryId = await resolveTransactionCategoryId(
+        client,
+        command.clerkUserId,
+        command.category
+      )
+
+      const accountIds = new Set([existingTransaction.accountId, command.accountId])
+      const accountsById = new Map<string, DbAccountBalanceRow>()
+
+      for (const accountId of accountIds) {
+        const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
+          command.clerkUserId,
+          accountId,
+        ])
+        const account = accountResult.rows[0]
+
+        if (!account || account.is_archived) {
+          throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
+        }
+
+        accountsById.set(accountId, account)
+      }
+
+      const signedExistingAmount =
+        existingTransaction.kind === "income"
+          ? existingTransaction.settledAmountCents ?? existingTransaction.amountCents
+          : -(existingTransaction.settledAmountCents ?? existingTransaction.amountCents)
+      const signedNextAmount =
+        command.kind === "income" ? command.amountCents : -command.amountCents
+      const balanceDeltasByAccount = new Map<string, number>()
+
+      if (existingTransaction.status === "compensated") {
+        balanceDeltasByAccount.set(existingTransaction.accountId, -signedExistingAmount)
+      }
+
+      if (command.status === "compensated") {
+        balanceDeltasByAccount.set(
+          command.accountId,
+          (balanceDeltasByAccount.get(command.accountId) ?? 0) + signedNextAmount
+        )
+      }
+
+      for (const [accountId, delta] of balanceDeltasByAccount.entries()) {
+        const account = accountsById.get(accountId)
+
+        if (!account || delta === 0) {
+          continue
+        }
+
+        await client.query(updateAccountBalanceSql, [
+          command.clerkUserId,
+          accountId,
+          Number(account.current_balance_cents) + delta,
+        ])
+      }
+
+      const updatedResult = await client.query<DbTransactionRow>(updateTransactionSql, [
+        command.clerkUserId,
+        command.transactionId,
+        command.accountId,
+        command.title,
+        command.category,
+        categoryId,
+        command.kind,
+        command.status,
+        command.amountCents,
+        command.status === "compensated" ? command.amountCents : null,
+        command.occurredOn,
+        command.notes ?? "",
+      ])
+
+      const updatedTransaction = mapTransactionRow(updatedResult.rows[0])
+
+      await client.query(insertTransactionAuditLogSql, [
+        command.clerkUserId,
+        "user",
+        "transaction.updated",
+        "transactions",
+        updatedTransaction.id,
+        JSON.stringify(existingTransaction),
+        JSON.stringify(updatedTransaction),
+        null,
+        null,
+      ])
+
+      return updatedTransaction
     })
   }
 
