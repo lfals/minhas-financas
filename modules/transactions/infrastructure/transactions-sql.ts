@@ -283,6 +283,15 @@ export const updateCreditCardExpenseCardSql = `
     and id = $2
 `
 
+export const settleCreditCardExpenseSql = `
+  update credit_card_expenses
+  set
+    is_effective = true,
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+`
+
 export const deleteFutureCreditCardExpensesBySeriesSql = `
   delete from credit_card_expenses
   where clerk_user_id = $1

@@ -10,6 +10,7 @@ import type {
   CreditCardInvoiceExpenseRecord,
   CreateCreditCardExpenseCommand,
   RemoveCreditCardExpenseCommand,
+  SettleCreditCardExpenseCommand,
   ChangeCreditCardExpenseCardCommand,
   CreateTransactionCommand,
   CreateTransactionResult,
@@ -47,6 +48,7 @@ import {
   listTransactionCategoriesSql,
   findTransactionCategoryByNormalizedNameSql,
   reopenTransactionSql,
+  settleCreditCardExpenseSql,
   upsertTransactionCategorySql,
   updateCreditCardInvoiceTotalsSql,
   updateCreditCardExpenseCardSql,
@@ -1316,6 +1318,33 @@ export class TransactionsRepository {
       }
 
       return expenses
+    })
+  }
+
+  async settleCreditCardExpense(command: SettleCreditCardExpenseCommand) {
+    return withTransaction(async (client) => {
+      const existingExpenseRow = await client.query<DbCreditCardInvoiceExpenseListRow>(
+        findCreditCardExpenseByIdForUpdateSql,
+        [command.clerkUserId, command.expenseId]
+      )
+      const existingExpenseRaw = existingExpenseRow.rows[0]
+
+      if (!existingExpenseRaw) {
+        throw new NotFoundAppError("Lançamento não encontrado.")
+      }
+
+      const existingExpense = mapCreditCardInvoiceExpenseRow(existingExpenseRaw)
+
+      if (existingExpense.isEffective) {
+        throw new ValidationAppError("Esse lançamento já foi efetivado na fatura.")
+      }
+
+      await client.query(settleCreditCardExpenseSql, [
+        command.clerkUserId,
+        command.expenseId,
+      ])
+
+      return existingExpense
     })
   }
 

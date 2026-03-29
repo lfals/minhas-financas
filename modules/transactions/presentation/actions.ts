@@ -8,6 +8,7 @@ import { parseCurrencyInputToCents } from "@/lib/money"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
 import { changeCreditCardExpenseCardUseCase } from "@/modules/transactions/application/change-credit-card-expense-card-use-case"
 import { removeCreditCardExpenseUseCase } from "@/modules/transactions/application/remove-credit-card-expense-use-case"
+import { settleCreditCardExpenseUseCase } from "@/modules/transactions/application/settle-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
 import { reopenTransactionUseCase } from "@/modules/transactions/application/reopen-transaction-use-case"
 import { removeTransactionUseCase } from "@/modules/transactions/application/remove-transaction-use-case"
@@ -17,6 +18,7 @@ import {
   reopenTransactionInputSchema,
   removeTransactionInputSchema,
   removeCreditCardExpenseInputSchema,
+  settleCreditCardExpenseInputSchema,
   changeCreditCardExpenseCardInputSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
@@ -43,6 +45,11 @@ export type RemoveTransactionActionState = {
 }
 
 export type RemoveCreditCardExpenseActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+}
+
+export type SettleCreditCardExpenseActionState = {
   status: "idle" | "success" | "error"
   message?: string
 }
@@ -330,6 +337,52 @@ export async function removeCreditCardExpenseAction(
     return {
       status: "error",
       message: "Não foi possível remover o lançamento agora.",
+    }
+  }
+}
+
+export async function settleCreditCardExpenseAction(
+  _previousState: SettleCreditCardExpenseActionState,
+  formData: FormData
+): Promise<SettleCreditCardExpenseActionState> {
+  const parsed = settleCreditCardExpenseInputSchema.safeParse({
+    expenseId: formData.get("expenseId"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Lançamento inválido para efetivação.",
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await settleCreditCardExpenseUseCase({
+      clerkUserId,
+      expenseId: parsed.data.expenseId,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+    revalidatePath("/cartoes")
+
+    return {
+      status: "success",
+      message: "Lançamento efetivado na fatura com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível efetivar o lançamento na fatura agora.",
     }
   }
 }

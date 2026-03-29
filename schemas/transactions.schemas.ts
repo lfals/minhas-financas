@@ -384,6 +384,10 @@ export const removeCreditCardExpenseInputSchema = z.object({
   scope: removeTransactionScopeSchema.default("single"),
 })
 
+export const settleCreditCardExpenseInputSchema = z.object({
+  expenseId: z.uuid("Lançamento inválido para efetivação."),
+})
+
 export const changeCreditCardExpenseCardInputSchema = z.object({
   expenseId: z.uuid("Lançamento inválido para alteração."),
   targetCardId: z.uuid("Selecione um cartão válido."),
@@ -454,6 +458,7 @@ export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema
 export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema>
 export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
 export type RemoveCreditCardExpenseInput = z.infer<typeof removeCreditCardExpenseInputSchema>
+export type SettleCreditCardExpenseInput = z.infer<typeof settleCreditCardExpenseInputSchema>
 export type ChangeCreditCardExpenseCardInput = z.infer<typeof changeCreditCardExpenseCardInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>

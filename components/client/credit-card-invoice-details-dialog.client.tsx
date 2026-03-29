@@ -6,6 +6,7 @@ import { ReceiptText } from "lucide-react"
 
 import { CreditCardExpenseChangeCardDialog } from "@/components/client/credit-card-expense-change-card-dialog.client"
 import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
+import { CreditCardExpenseSettleButton } from "@/components/client/credit-card-expense-settle-button.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { TransactionListItem } from "@/components/transaction-list-item"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -50,6 +51,9 @@ function InvoiceExpenseList({
                       currentCardId={expense.cardId}
                       cardOptions={cardOptions}
                     />
+                    {expense.isEffective ? null : (
+                      <CreditCardExpenseSettleButton expenseId={expense.id} />
+                    )}
                     <CreditCardExpenseRemoveButton
                       expenseId={expense.id}
                       expenseTitle={expense.title}

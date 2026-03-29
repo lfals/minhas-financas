@@ -8,6 +8,7 @@ import type {
   ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveCreditCardExpenseInput,
+  SettleCreditCardExpenseInput,
   ChangeCreditCardExpenseCardInput,
   RemoveTransactionScope,
   SettleTransactionInput,
@@ -30,6 +31,7 @@ export type {
   ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveCreditCardExpenseInput,
+  SettleCreditCardExpenseInput,
   ChangeCreditCardExpenseCardInput,
   RemoveTransactionScope,
   SettleTransactionInput,
@@ -69,6 +71,10 @@ export type RemoveTransactionCommand = RemoveTransactionInput & {
 }
 
 export type RemoveCreditCardExpenseCommand = RemoveCreditCardExpenseInput & {
+  clerkUserId: string
+}
+
+export type SettleCreditCardExpenseCommand = SettleCreditCardExpenseInput & {
   clerkUserId: string
 }
 
