@@ -179,7 +179,7 @@ export const updateCreditCardSql = `
 export const findAccountForCreditCardSql = `
   select
     id,
-    name,
+    name
   from accounts
   where clerk_user_id = $1
     and id = $2

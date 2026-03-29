@@ -68,6 +68,13 @@ export async function createCreditCardAction(
       }
     }
 
+    if (error instanceof Error && process.env.NODE_ENV !== "production") {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
     return {
       status: "error",
       message: "Não foi possível criar o cartão agora.",
@@ -121,6 +128,13 @@ export async function updateCreditCardAction(
     }
   } catch (error) {
     if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    if (error instanceof Error && process.env.NODE_ENV !== "production") {
       return {
         status: "error",
         message: error.message,

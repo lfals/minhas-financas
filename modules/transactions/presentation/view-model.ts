@@ -170,7 +170,7 @@ export function buildTransactionCreditCardOptions(
     .filter((card) => !card.isArchived)
     .map((card) => ({
       id: card.id,
-      label: `${card.nickname} • ${card.finalDigits}`,
+      label: card.finalDigits ? `${card.nickname} • ${card.finalDigits}` : card.nickname,
     }))
 }
 

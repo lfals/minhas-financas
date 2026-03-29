@@ -31,7 +31,9 @@ const cardDaySchema = z.coerce
 const finalDigitsSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}$/, "Informe os 4 últimos dígitos do cartão.")
+  .refine((value) => value === "" || /^\d{4}$/.test(value), {
+    message: "Informe 4 dígitos ou deixe em branco.",
+  })
 
 export const createCreditCardInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
@@ -66,7 +68,7 @@ export const creditCardRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
   nickname: z.string(),
-  finalDigits: z.string().length(4),
+  finalDigits: z.string().refine((value) => value === "" || /^\d{4}$/.test(value)),
   limitCents: centsSchema,
   usedLimitCents: centsSchema,
   closingDay: z.number().int(),

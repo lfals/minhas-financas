@@ -133,7 +133,7 @@ export function CreditCardCreateForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="finalDigits" className="text-white/80">
-              Final do cartão
+              Final do cartão (opcional)
             </FieldLabel>
             <FieldContent>
               <Input

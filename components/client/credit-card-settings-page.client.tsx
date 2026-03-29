@@ -40,6 +40,10 @@ export const defaultCreditCardFormValues: CreditCardFormValues = {
   autoCategorizationEnabled: true,
 }
 
+function formatCardSuffix(finalDigits: string) {
+  return finalDigits ? `•••• ${finalDigits}` : "Sem final informado"
+}
+
 type CreditCardPurchaseItem = {
   id: string
   title: string
@@ -309,7 +313,7 @@ export function CreditCardSettingsPage({
                         {card.nickname}
                       </p>
                       <p className="mt-4 text-sm tracking-[0.3em] text-white/72">
-                        •••• {card.finalDigits}
+                        {formatCardSuffix(card.finalDigits)}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

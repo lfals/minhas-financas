@@ -6,6 +6,7 @@ import path from "node:path"
 import type { Pool } from "pg"
 
 let bootstrapPromise: Promise<void> | undefined
+let bootstrapVersion: string | undefined
 
 async function loadMigrationStatements() {
   const migrationsDir = path.join(process.cwd(), "db", "migrations")
@@ -16,13 +17,19 @@ async function loadMigrationStatements() {
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right))
 
-  return Promise.all(
+  const statements = await Promise.all(
     migrationFiles.map(async (fileName) => {
       const filePath = path.join(migrationsDir, fileName)
       const statement = await readFile(filePath, "utf8")
       return { fileName, statement }
     })
   )
+
+  const version = statements
+    .map(({ fileName, statement }) => `${fileName}:${statement}`)
+    .join("\n---\n")
+
+  return { statements, version }
 }
 
 function splitSqlStatements(sql: string): string[] {
@@ -33,10 +40,16 @@ function splitSqlStatements(sql: string): string[] {
 }
 
 export async function ensureDatabaseBootstrap(pool: Pool) {
-  if (!bootstrapPromise) {
-    bootstrapPromise = (async () => {
-      const statements = await loadMigrationStatements()
+  const { statements, version } = await loadMigrationStatements()
 
+  if (bootstrapPromise && bootstrapVersion === version) {
+    await bootstrapPromise
+    return
+  }
+
+  if (!bootstrapPromise || bootstrapVersion !== version) {
+    bootstrapVersion = version
+    bootstrapPromise = (async () => {
       if (!statements.length) {
         return
       }
@@ -64,6 +77,7 @@ export async function ensureDatabaseBootstrap(pool: Pool) {
       }
     })().catch((error) => {
       bootstrapPromise = undefined
+      bootstrapVersion = undefined
       throw error
     })
   }
