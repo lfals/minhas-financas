@@ -73,7 +73,6 @@ export const creditCardRecordSchema = z.object({
   dueDay: z.number().int(),
   expenseAccountId: z.uuid(),
   expenseAccountName: z.string(),
-  expenseAccountInstitution: z.string(),
   autoCategorizationEnabled: z.boolean(),
   isArchived: z.boolean(),
   createdAt: z.string(),

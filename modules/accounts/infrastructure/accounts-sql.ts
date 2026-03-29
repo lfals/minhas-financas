@@ -2,7 +2,6 @@ const accountColumns = `
   id,
   clerk_user_id,
   name,
-  institution,
   type,
   currency_code,
   initial_balance_cents::text as initial_balance_cents,
@@ -47,12 +46,11 @@ export const listAllAccountsSql = `
   order by display_order asc, created_at asc
 `
 
-export const findAccountByNameAndInstitutionSql = `
+export const findAccountByNameSql = `
   select
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,
@@ -65,7 +63,6 @@ export const findAccountByNameAndInstitutionSql = `
   from accounts
   where clerk_user_id = $1
     and lower(name) = lower($2)
-    and lower(institution) = lower($3)
   limit 1
 `
 
@@ -74,7 +71,6 @@ export const findAccountByClientRequestSql = `
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,
@@ -95,7 +91,6 @@ export const findAccountByIdSql = `
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,
@@ -116,19 +111,17 @@ export const insertAccountSql = `
     clerk_user_id,
     client_request_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents,
     current_balance_cents,
     include_in_net_worth,
     display_order
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
   returning
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,
@@ -152,7 +145,6 @@ export const archiveAccountSql = `
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,
@@ -168,11 +160,10 @@ export const updateAccountSql = `
   update accounts
   set
     name = $3,
-    institution = $4,
-    type = $5,
-    initial_balance_cents = $6,
-    current_balance_cents = current_balance_cents + $6 - initial_balance_cents,
-    include_in_net_worth = $7,
+    type = $4,
+    initial_balance_cents = $5,
+    current_balance_cents = current_balance_cents + $5 - initial_balance_cents,
+    include_in_net_worth = $6,
     updated_at = now()
   where clerk_user_id = $1
     and id = $2
@@ -181,7 +172,6 @@ export const updateAccountSql = `
     id,
     clerk_user_id,
     name,
-    institution,
     type,
     currency_code,
     initial_balance_cents::text as initial_balance_cents,

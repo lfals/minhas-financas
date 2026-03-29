@@ -29,6 +29,7 @@ export function TransactionsPeriodControls({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const selectedDay = getDateFromIsoDate(selectedDate)
+  const currentMonth = toIsoMonth(toIsoDate(new Date()))
 
   function updateSelectedDate(nextDate: Date) {
     const params = new URLSearchParams(searchParams.toString())
@@ -57,6 +58,13 @@ export function TransactionsPeriodControls({
           type="month"
           aria-label="Selecionar mês"
           value={toIsoMonth(selectedDate)}
+          onClick={() => {
+            if (toIsoMonth(selectedDate) === currentMonth) {
+              return
+            }
+
+            updateSelectedDate(new Date())
+          }}
           onChange={(event) => {
             const value = event.currentTarget.value
 

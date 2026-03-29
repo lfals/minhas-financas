@@ -368,8 +368,12 @@ async function removeAmountFromCreditCardInvoice(
   client: PoolClient,
   clerkUserId: string,
   invoiceTransactionId: string,
-  removedAmountCents: number
+  removedAmountCents: number,
+  options?: {
+    preserveEmptyTransaction?: boolean
+  }
 ) {
+  const preserveEmptyTransaction = options?.preserveEmptyTransaction ?? false
   const invoiceTransaction = await queryOne(client, findTransactionByIdForUpdateSql, [
     clerkUserId,
     invoiceTransactionId,
@@ -410,6 +414,13 @@ async function removeAmountFromCreditCardInvoice(
       ])
     }
 
+    if (preserveEmptyTransaction) {
+      return {
+        transaction: invoiceTransaction,
+        shouldDelete: true,
+      }
+    }
+
     await client.query(deleteTransactionSql, [clerkUserId, invoiceTransaction.id])
 
     await client.query(insertTransactionAuditLogSql, [
@@ -424,7 +435,10 @@ async function removeAmountFromCreditCardInvoice(
       null,
     ])
 
-    return null
+    return {
+      transaction: invoiceTransaction,
+      shouldDelete: false,
+    }
   }
 
   let updatedTransaction: TransactionRecord
@@ -482,7 +496,10 @@ async function removeAmountFromCreditCardInvoice(
     null,
   ])
 
-  return updatedTransaction
+  return {
+    transaction: updatedTransaction,
+    shouldDelete: false,
+  }
 }
 
 async function addAmountToCreditCardInvoice(
@@ -1242,6 +1259,7 @@ export class TransactionsRepository {
       )
 
       const removalTotals = new Map<string, number>()
+      const invoicesToDelete: TransactionRecord[] = []
 
       for (const expense of expenses) {
         const amount = Math.abs(expense.amountCents)
@@ -1252,12 +1270,17 @@ export class TransactionsRepository {
       }
 
       for (const [invoiceTransactionId, removedAmountCents] of removalTotals.entries()) {
-        await removeAmountFromCreditCardInvoice(
+        const result = await removeAmountFromCreditCardInvoice(
           client,
           command.clerkUserId,
           invoiceTransactionId,
-          removedAmountCents
+          removedAmountCents,
+          { preserveEmptyTransaction: true }
         )
+
+        if (result.shouldDelete) {
+          invoicesToDelete.push(result.transaction)
+        }
       }
 
       type ExpenseGroup = {
@@ -1314,6 +1337,22 @@ export class TransactionsRepository {
           expense.id,
           targetCard.id,
           invoiceTransaction.id,
+        ])
+      }
+
+      for (const invoice of invoicesToDelete) {
+        await client.query(deleteTransactionSql, [command.clerkUserId, invoice.id])
+
+        await client.query(insertTransactionAuditLogSql, [
+          command.clerkUserId,
+          "user",
+          "credit_card_invoice.removed",
+          "transactions",
+          invoice.id,
+          JSON.stringify(invoice),
+          null,
+          null,
+          null,
         ])
       }
 

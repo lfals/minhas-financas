@@ -5,7 +5,6 @@ create table if not exists accounts (
   clerk_user_id text not null,
   client_request_id uuid not null,
   name text not null,
-  institution text not null,
   type text not null check (type in ('checking', 'savings', 'cash', 'investment')),
   currency_code text not null default 'BRL',
   initial_balance_cents bigint not null check (initial_balance_cents >= 0),
@@ -18,8 +17,8 @@ create table if not exists accounts (
   unique (clerk_user_id, client_request_id)
 );
 
-create unique index if not exists accounts_user_name_institution_idx
-  on accounts (clerk_user_id, lower(name), lower(institution));
+create unique index if not exists accounts_user_name_idx
+  on accounts (clerk_user_id, lower(name));
 
 create index if not exists accounts_user_active_idx
   on accounts (clerk_user_id, is_archived, display_order, created_at desc);

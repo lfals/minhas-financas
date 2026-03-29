@@ -40,7 +40,6 @@ const dashboardData: DashboardData = {
     {
       id: "acc-main",
       name: "Conta principal",
-      institution: "Nubank",
       type: "Conta corrente",
       balance: 18400,
       tone: "bg-[#d8f36a]",
@@ -48,7 +47,6 @@ const dashboardData: DashboardData = {
     {
       id: "acc-reserve",
       name: "Reserva",
-      institution: "BTG Pactual",
       type: "Conta investimento",
       balance: 52100,
       tone: "bg-[#c4f1ff]",
@@ -56,7 +54,6 @@ const dashboardData: DashboardData = {
     {
       id: "acc-wallet",
       name: "Carteira",
-      institution: "Disponível",
       type: "Dinheiro",
       balance: 950,
       tone: "bg-[#ffe07a]",
@@ -64,7 +61,6 @@ const dashboardData: DashboardData = {
     {
       id: "acc-invest",
       name: "Corretora",
-      institution: "BTG Investimentos",
       type: "Custódia",
       balance: 57000,
       tone: "bg-[#ffb4a2]",

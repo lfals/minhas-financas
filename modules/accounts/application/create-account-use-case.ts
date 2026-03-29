@@ -12,11 +12,7 @@ const repository = new AccountsRepository()
 export async function createAccountUseCase(input: CreateAccountInput & { clerkUserId: string }) {
   const parsed = createAccountInputSchema.parse(input)
 
-  const existingAccount = await repository.findByNameAndInstitution(
-    input.clerkUserId,
-    parsed.name,
-    parsed.institution
-  )
+  const existingAccount = await repository.findByName(input.clerkUserId, parsed.name)
 
   ensureAccountDoesNotConflict(existingAccount)
 

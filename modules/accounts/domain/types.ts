@@ -35,7 +35,6 @@ export type UpdateAccountCommand = UpdateAccountInput & {
 export type AccountListItem = {
   id: string
   name: string
-  institution: string
   type: AccountType
   typeLabel: string
   balanceCents: number

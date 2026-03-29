@@ -28,7 +28,12 @@ export function TransactionInstallmentsDetailsDialog({
 }: TransactionInstallmentsDetailsDialogProps) {
   const titleLabel = getInstallmentLabel(transaction.installmentNumber, transaction.installmentTotal) ?? "Parcelado"
   const orderedInstallments = [...installments].sort((left, right) => {
-    if (left.installmentNumber !== null && right.installmentNumber !== null) {
+    if (
+      left.installmentNumber !== null &&
+      left.installmentNumber !== undefined &&
+      right.installmentNumber !== null &&
+      right.installmentNumber !== undefined
+    ) {
       if (left.installmentNumber !== right.installmentNumber) {
         return left.installmentNumber - right.installmentNumber
       }
@@ -80,6 +85,7 @@ export function TransactionInstallmentsDetailsDialog({
                 displayAmountCents={item.displayAmountCents}
                 isAmountOverridden={item.isAmountOverridden}
                 kind={item.kind}
+                isOverdue={item.isOverdue}
               />
             ))}
           </div>

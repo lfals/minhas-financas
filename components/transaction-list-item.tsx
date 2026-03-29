@@ -14,6 +14,7 @@ type TransactionListItemProps = {
   badgeLabel?: string | null
   statusLabel?: string | null
   statusClassName?: string
+  isOverdue?: boolean
   actions?: ReactNode
   className?: string
 }
@@ -28,13 +29,15 @@ export function TransactionListItem({
   badgeLabel,
   statusLabel,
   statusClassName,
+  isOverdue = false,
   actions,
   className,
 }: TransactionListItemProps) {
   return (
     <div
       className={cn(
-        "grid gap-4 border border-white/10 bg-[#121212] p-4 md:grid-cols-[1fr_auto]",
+        "border bg-[#121212] p-4",
+        isOverdue ? "border-red-500" : "border-white/10",
         className
       )}
     >
@@ -59,8 +62,8 @@ export function TransactionListItem({
         </div>
         <p className="mt-2 text-sm text-white/55">{metadata}</p>
       </div>
-      <div className="flex items-center gap-3 md:text-right">
-        <div className="flex items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           {kind === "income" ? (
             <ArrowUpRight className="size-4 text-[#d8f36a]" />
           ) : (
@@ -91,7 +94,7 @@ export function TransactionListItem({
             )}
           </p>
         </div>
-        {actions}
+        {actions ? <div className="flex shrink-0 items-center">{actions}</div> : null}
       </div>
     </div>
   )

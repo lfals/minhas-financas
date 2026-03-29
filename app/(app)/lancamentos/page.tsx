@@ -131,7 +131,7 @@ export default async function TransactionsPage({
       accountOptions={state.accountOptions}
       creditCardOptions={state.creditCardOptions}
       categoryOptions={state.categoryOptions}
-      defaultOccurredOn={state.selectedDate}
+      defaultOccurredOn={getTodayIsoDate()}
       selectedDate={state.selectedDate}
     />
   )

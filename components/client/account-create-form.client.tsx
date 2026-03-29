@@ -24,17 +24,13 @@ const initialState: CreateAccountActionState | UpdateAccountActionState = {
 export type AccountFormValues = {
   accountId?: string
   name: string
-  institution: string
   type: AccountType
   initialBalance: string
   includeInNetWorth: boolean
 }
 
-const DEFAULT_ACCOUNT_INSTITUTION = "Sem instituição"
-
 export const defaultAccountFormValues: AccountFormValues = {
   name: "",
-  institution: DEFAULT_ACCOUNT_INSTITUTION,
   type: "checking",
   initialBalance: "",
   includeInNetWorth: true,
@@ -140,8 +136,6 @@ function AccountCreateFormContent({
       {actionType === "update" && formValues.accountId ? (
         <input type="hidden" name="accountId" value={formValues.accountId} />
       ) : null}
-      <input type="hidden" name="institution" value={formValues.institution} />
-
       <FieldGroup className="gap-4">
         <div className="grid gap-4 md:grid-cols-1">
           <Field>

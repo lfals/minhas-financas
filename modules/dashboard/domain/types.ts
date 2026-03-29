@@ -8,7 +8,6 @@ export type Metric = {
 export type AccountSnapshot = {
   id: string
   name: string
-  institution: string
   type: string
   balance: number
   tone: string

@@ -8,7 +8,6 @@ export function buildAccountsPageData(accounts: AccountRecord[]): AccountsPageDa
   const items = accounts.map((account) => ({
     id: account.id,
     name: account.name,
-    institution: account.institution,
     type: account.type,
     typeLabel: getAccountTypeLabel(account.type),
     balanceCents: account.currentBalanceCents,

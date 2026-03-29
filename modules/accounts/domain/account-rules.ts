@@ -29,7 +29,7 @@ export function normalizeComparableText(value: string) {
 
 export function ensureAccountDoesNotConflict(existingAccount: AccountRecord | null) {
   if (existingAccount) {
-    throw new ConflictAppError("Já existe uma conta com esse nome nessa instituição.")
+    throw new ConflictAppError("Já existe uma conta com esse nome.")
   }
 }
 

@@ -35,7 +35,6 @@ type DbCreditCardRow = {
   due_day: number
   expense_account_id: string
   expense_account_name: string
-  expense_account_institution: string
   auto_categorization_enabled: boolean
   is_archived: boolean
   created_at: string
@@ -45,10 +44,9 @@ type DbCreditCardRow = {
 type DbAccountRow = {
   id: string
   name: string
-  institution: string
 }
 
-type DbInsertedCreditCardRow = Omit<DbCreditCardRow, "expense_account_name" | "expense_account_institution">
+type DbInsertedCreditCardRow = Omit<DbCreditCardRow, "expense_account_name">
 
 function mapCreditCardRow(row: DbCreditCardRow): CreditCardRecord {
   return creditCardRecordSchema.parse({
@@ -62,7 +60,6 @@ function mapCreditCardRow(row: DbCreditCardRow): CreditCardRecord {
     dueDay: row.due_day,
     expenseAccountId: row.expense_account_id,
     expenseAccountName: row.expense_account_name,
-    expenseAccountInstitution: row.expense_account_institution,
     autoCategorizationEnabled: row.auto_categorization_enabled,
     isArchived: row.is_archived,
     createdAt: row.created_at,
@@ -91,7 +88,6 @@ async function hydrateCreditCard(
     ...row,
     used_limit_cents: "0",
     expense_account_name: account.name,
-    expense_account_institution: account.institution,
   })
 }
 

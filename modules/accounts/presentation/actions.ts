@@ -37,7 +37,6 @@ export async function createAccountAction(
 ): Promise<CreateAccountActionState> {
   const parsed = createAccountFormSchema.safeParse({
     name: formData.get("name"),
-    institution: formData.get("institution"),
     type: formData.get("type"),
     initialBalance: formData.get("initialBalance"),
     includeInNetWorth: formData.get("includeInNetWorth"),
@@ -57,7 +56,6 @@ export async function createAccountAction(
     await createAccountUseCase({
       clerkUserId,
       name: parsed.data.name,
-      institution: parsed.data.institution,
       type: parsed.data.type,
       initialBalanceCents: parseCurrencyInputToCents(parsed.data.initialBalance),
       includeInNetWorth: parsed.data.includeInNetWorth,
@@ -137,7 +135,6 @@ export async function updateAccountAction(
   const parsed = updateAccountFormSchema.safeParse({
     accountId: formData.get("accountId"),
     name: formData.get("name"),
-    institution: formData.get("institution"),
     type: formData.get("type"),
     initialBalance: formData.get("initialBalance"),
     includeInNetWorth: formData.get("includeInNetWorth"),
@@ -158,7 +155,6 @@ export async function updateAccountAction(
       clerkUserId,
       accountId: parsed.data.accountId,
       name: parsed.data.name,
-      institution: parsed.data.institution,
       type: parsed.data.type,
       initialBalanceCents: parseCurrencyInputToCents(parsed.data.initialBalance),
       includeInNetWorth: parsed.data.includeInNetWorth,

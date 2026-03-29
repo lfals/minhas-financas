@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 
 import { CreditCardCreateDialog } from "@/components/client/credit-card-create-dialog.client"
 import { CreditCardEditDialog } from "@/components/client/credit-card-edit-dialog.client"
+import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -44,6 +45,9 @@ type CreditCardPurchaseItem = {
   title: string
   metadata: string
   amountCents: number
+  expenseId: string
+  installmentTotal?: number | null
+  supportsFutureRemoval: boolean
   badgeLabel?: string | null
   sortDate: string
 }
@@ -135,6 +139,9 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
         title: normalizeCardPurchaseTitle(latest.title),
         metadata: `${latest.category} • ${latest.dateLabel}`,
         amountCents: latest.amountCents,
+        expenseId: latest.id,
+        installmentTotal: null,
+        supportsFutureRemoval: Boolean(latest.seriesId),
         badgeLabel: null,
         sortDate: latest.occurredOn,
       }
@@ -190,6 +197,9 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
         `Parcela atual: ${installmentCurrent}/${installmentTotal} ` +
         `(${formatCents(installmentAmount)}) • ` +
         `Total: ${formatCents(totalInstallmentAmount)} • Compra em ${currentDateLabel}`,
+      expenseId: currentInstallment?.id ?? latest.id,
+      installmentTotal: installmentTotal,
+      supportsFutureRemoval: Boolean(currentInstallment?.seriesId),
       amountCents: totalInstallmentAmount,
       badgeLabel: installmentCurrent != null && installmentTotal != null ? `${installmentCurrent}/${installmentTotal}` : null,
       sortDate: latest.occurredOn,
@@ -401,6 +411,14 @@ export function CreditCardSettingsPage({
                     kind="expense"
                     badgeLabel={purchase.badgeLabel}
                     className="bg-[#121212]"
+                    actions={
+                      <CreditCardExpenseRemoveButton
+                        expenseId={purchase.expenseId}
+                        expenseTitle={purchase.title}
+                        installmentTotal={purchase.installmentTotal}
+                        supportsFutureRemoval={purchase.supportsFutureRemoval}
+                      />
+                    }
                   />
                 ))}
               </div>

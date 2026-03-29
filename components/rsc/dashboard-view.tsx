@@ -122,7 +122,7 @@ export function DashboardView({
                 <div key={account.id} className="border border-white/10 bg-[#121212] p-4">
                   <div className={cn("h-2 w-20", account.tone)} />
                   <p className="mt-4 text-[11px] uppercase tracking-[0.28em] text-white/45">
-                    {account.institution} • {account.type}
+                    {account.type}
                   </p>
                   <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
                     {account.name}

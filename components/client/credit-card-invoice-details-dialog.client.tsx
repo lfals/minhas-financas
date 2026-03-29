@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import type { ReactElement, ReactNode } from "react"
 import { ReceiptText } from "lucide-react"
 
 import { CreditCardExpenseChangeCardDialog } from "@/components/client/credit-card-expense-change-card-dialog.client"
@@ -74,14 +73,12 @@ export function CreditCardInvoiceDetailsDialog({
   badgeLabel,
   statusClassName,
   expenses,
-  children,
   cardOptions,
 }: {
   transaction: TransactionPageItem
   badgeLabel?: string | null
   statusClassName: string
   expenses: CreditCardInvoiceExpensePageItem[]
-  children: ReactNode
   cardOptions: TransactionCreditCardOption[]
 }) {
   const [open, setOpen] = useState(false)
@@ -89,7 +86,14 @@ export function CreditCardInvoiceDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-8 shrink-0 items-center justify-center rounded-none border border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white transition-all hover:bg-white/10"
+        >
+          Detalhes
+        </button>
+      </DialogTrigger>
       <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 pb-5">
           <div className="flex items-start justify-between gap-4">

@@ -16,7 +16,7 @@ import {
   archiveAccountSql,
   findAccountByIdSql,
   findAccountByClientRequestSql,
-  findAccountByNameAndInstitutionSql,
+  findAccountByNameSql,
   insertAccountSql,
   insertAuditLogSql,
   listAccountsSql,
@@ -29,7 +29,6 @@ type DbAccountRow = {
   id: string
   clerk_user_id: string
   name: string
-  institution: string
   type: string
   currency_code: string
   initial_balance_cents: string
@@ -46,7 +45,6 @@ function mapAccountRow(row: DbAccountRow): AccountRecord {
     id: row.id,
     clerkUserId: row.clerk_user_id,
     name: row.name,
-    institution: row.institution,
     type: row.type,
     currencyCode: row.currency_code,
     initialBalanceCents: row.initial_balance_cents,
@@ -77,12 +75,8 @@ export class AccountsRepository {
     return result.rows.map(mapAccountRow)
   }
 
-  async findByNameAndInstitution(clerkUserId: string, name: string, institution: string) {
-    const result = await queryDb<DbAccountRow>(findAccountByNameAndInstitutionSql, [
-      clerkUserId,
-      name,
-      institution,
-    ])
+  async findByName(clerkUserId: string, name: string) {
+    const result = await queryDb<DbAccountRow>(findAccountByNameSql, [clerkUserId, name])
 
     return result.rows[0] ? mapAccountRow(result.rows[0]) : null
   }
@@ -111,7 +105,6 @@ export class AccountsRepository {
         command.clerkUserId,
         command.clientRequestId,
         command.name,
-        command.institution,
         command.type,
         command.currencyCode,
         command.initialBalanceCents,
@@ -190,7 +183,6 @@ export class AccountsRepository {
         command.clerkUserId,
         command.accountId,
         command.name,
-        command.institution,
         command.type,
         command.initialBalanceCents,
         command.includeInNetWorth,

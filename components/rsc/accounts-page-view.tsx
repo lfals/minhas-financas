@@ -78,7 +78,6 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                   initialValues={{
                     accountId: account.id,
                     name: account.name,
-                    institution: account.institution,
                     type: account.type,
                     initialBalance: formatCents(account.initialBalanceCents),
                     includeInNetWorth: account.includeInNetWorth,
@@ -89,7 +88,7 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                       <div className="min-w-0 flex-1">
                         <div className={cn("h-2 w-20", account.tone)} />
                         <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-white/45">
-                          {account.institution} • {account.typeLabel}
+                          {account.typeLabel}
                         </p>
                         <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
                           {account.name}

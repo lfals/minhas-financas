@@ -27,7 +27,6 @@ export const accountTypeSchema = z.enum(["checking", "savings", "cash", "investm
 export const createAccountInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
-  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
   type: accountTypeSchema,
   currencyCode: z.string().trim().length(3).default("BRL").transform((value) => value.toUpperCase()),
   initialBalanceCents: signedCentsSchema,
@@ -37,7 +36,6 @@ export const createAccountInputSchema = z.object({
 
 export const createAccountFormSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
-  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
   type: accountTypeSchema,
   initialBalance: z.string().trim().min(1, "Informe o saldo inicial."),
   includeInNetWorth: optionalBooleanSchema.default(true),
@@ -46,7 +44,6 @@ export const createAccountFormSchema = z.object({
 export const updateAccountInputSchema = z.object({
   accountId: z.uuid(),
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
-  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
   type: accountTypeSchema,
   initialBalanceCents: signedCentsSchema,
   includeInNetWorth: optionalBooleanSchema.default(true),
@@ -55,7 +52,6 @@ export const updateAccountInputSchema = z.object({
 export const updateAccountFormSchema = z.object({
   accountId: z.uuid(),
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
-  institution: z.string().trim().min(1, "Informe a instituição.").max(80),
   type: accountTypeSchema,
   initialBalance: z.string().trim().min(1, "Informe o saldo inicial."),
   includeInNetWorth: optionalBooleanSchema.default(true),
@@ -73,7 +69,6 @@ export const accountRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
   name: z.string(),
-  institution: z.string(),
   type: accountTypeSchema,
   currencyCode: z.string().length(3),
   initialBalanceCents: signedCentsSchema,

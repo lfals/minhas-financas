@@ -39,9 +39,10 @@ function statusTone(status: TransactionsPageData["transactions"][number]["status
 }
 
 function getTransactionBadge(
-  transaction: TransactionsPageData["transactions"][number]
+  transaction: TransactionsPageData["transactions"][number],
+  isCreditCardInvoice: boolean
 ) {
-  if (transaction.sourceType === "credit_card_invoice") {
+  if (isCreditCardInvoice) {
     return "Fatura"
   }
 
@@ -59,6 +60,21 @@ function getTransactionBadge(
   }
 
   return null
+}
+
+function isCreditCardInvoiceTransaction(
+  transaction: TransactionsPageData["transactions"][number],
+  invoiceExpenseCount: number
+) {
+  if (transaction.sourceType === "credit_card_invoice") {
+    return true
+  }
+
+  if (invoiceExpenseCount > 0) {
+    return true
+  }
+
+  return transaction.category === "Cartão de crédito" && transaction.title.startsWith("Fatura ")
 }
 
 export function TransactionsPageView({
@@ -154,7 +170,12 @@ export function TransactionsPageView({
               </div>
               {transactions.length ? (
                 transactions.map((transaction) => {
-                  const badgeLabel = getTransactionBadge(transaction)
+                  const invoiceExpensesForTransaction = invoiceExpenses[transaction.id] ?? []
+                  const isCreditCardInvoice = isCreditCardInvoiceTransaction(
+                    transaction,
+                    invoiceExpensesForTransaction.length
+                  )
+                  const badgeLabel = getTransactionBadge(transaction, isCreditCardInvoice)
                   const installmentTotal = transaction.installmentTotal
                   const isInstallmentSeries =
                     installmentTotal !== null &&
@@ -165,54 +186,51 @@ export function TransactionsPageView({
                       ? installmentsBySeries.get(transaction.seriesId) ?? []
                       : []
                   const shouldOpenInstallmentsDialog = isInstallmentSeries
+                  const invoiceDetailsAction = isCreditCardInvoice ? (
+                    <CreditCardInvoiceDetailsDialog
+                      transaction={transaction}
+                      badgeLabel={badgeLabel}
+                      statusClassName={statusTone(transaction.statusLabel)}
+                      expenses={invoiceExpensesForTransaction}
+                      cardOptions={creditCardOptions}
+                    />
+                  ) : null
+                  const installmentsAction =
+                    !isCreditCardInvoice && shouldOpenInstallmentsDialog ? (
+                      <TransactionInstallmentsDetailsDialog
+                        transaction={transaction}
+                        installments={installmentTransactions.length ? installmentTransactions : [transaction]}
+                      >
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
+                        >
+                          Parcelas
+                        </Button>
+                      </TransactionInstallmentsDetailsDialog>
+                    ) : null
                   const transactionActions = (
                     <ClickPropagationStopper>
-                      {transaction.sourceType === "credit_card_invoice" ? (
-                        <CreditCardInvoiceDetailsDialog
-                          transaction={transaction}
-                          badgeLabel={badgeLabel}
-                          statusClassName={statusTone(transaction.statusLabel)}
-                          expenses={invoiceExpenses[transaction.id] ?? []}
-                          cardOptions={creditCardOptions}
-                        >
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
-                          >
-                            Detalhes
-                          </Button>
-                        </CreditCardInvoiceDetailsDialog>
-                      ) : shouldOpenInstallmentsDialog ? (
-                        <TransactionInstallmentsDetailsDialog
-                          transaction={transaction}
-                          installments={installmentTransactions.length ? installmentTransactions : [transaction]}
-                        >
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
-                          >
-                            Parcelas
-                          </Button>
-                        </TransactionInstallmentsDetailsDialog>
-                      ) : null}
-                      {transaction.sourceType === "credit_card_invoice" ? null : (
-                        <TransactionRemoveButton
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {invoiceDetailsAction}
+                        {installmentsAction}
+                        {isCreditCardInvoice ? null : (
+                          <TransactionRemoveButton
+                            transactionId={transaction.id}
+                            transactionTitle={transaction.title}
+                            isFixed={transaction.isFixed}
+                            installmentTotal={transaction.installmentTotal}
+                            supportsFutureRemoval={transaction.supportsFutureRemoval}
+                          />
+                        )}
+                        <TransactionSettleButton
                           transactionId={transaction.id}
-                          transactionTitle={transaction.title}
-                          isFixed={transaction.isFixed}
-                          installmentTotal={transaction.installmentTotal}
-                          supportsFutureRemoval={transaction.supportsFutureRemoval}
+                          originalAmountCents={transaction.amountCents}
+                          isCompensated={transaction.status === "compensated"}
                         />
-                      )}
-                      <TransactionSettleButton
-                        transactionId={transaction.id}
-                        originalAmountCents={transaction.amountCents}
-                        isCompensated={transaction.status === "compensated"}
-                      />
+                      </div>
                     </ClickPropagationStopper>
                   )
 
@@ -228,6 +246,7 @@ export function TransactionsPageView({
                       displayAmountCents={transaction.displayAmountCents}
                       isAmountOverridden={transaction.isAmountOverridden}
                       kind={transaction.kind}
+                      isOverdue={transaction.isOverdue}
                       actions={transactionActions}
                     />
                   )

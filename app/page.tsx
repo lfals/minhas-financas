@@ -44,7 +44,7 @@ const snapshot = {
 const modules = [
   {
     title: "Contas e saldos",
-    description: "Extrato consolidado, saldo por instituição e transferências internas.",
+    description: "Extrato consolidado, saldos por conta e transferências internas.",
     icon: Landmark,
   },
   {

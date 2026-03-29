@@ -13,7 +13,7 @@ export function buildCreditCardsPageData(cards: CreditCardRecord[]): CreditCards
     closingDay: String(card.closingDay).padStart(2, "0"),
     dueDay: String(card.dueDay).padStart(2, "0"),
     expenseAccountId: card.expenseAccountId,
-    expenseAccountLabel: `${card.expenseAccountName} • ${card.expenseAccountInstitution}`,
+    expenseAccountLabel: card.expenseAccountName,
     autoCategorizationEnabled: card.autoCategorizationEnabled,
     createdAtLabel: format(new Date(card.createdAt), "dd MMM", { locale: ptBR }),
   }))

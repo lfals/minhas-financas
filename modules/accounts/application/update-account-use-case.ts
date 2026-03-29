@@ -15,11 +15,7 @@ export async function updateAccountUseCase(input: UpdateAccountInput & { clerkUs
   ensureAccountExists(existingAccount)
   ensureAccountIsActive(existingAccount)
 
-  const conflictingAccount = await repository.findByNameAndInstitution(
-    input.clerkUserId,
-    parsed.name,
-    parsed.institution
-  )
+  const conflictingAccount = await repository.findByName(input.clerkUserId, parsed.name)
 
   if (conflictingAccount && conflictingAccount.id !== parsed.accountId) {
     ensureAccountDoesNotConflict(conflictingAccount)
