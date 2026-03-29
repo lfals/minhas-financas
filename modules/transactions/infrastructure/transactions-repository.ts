@@ -10,6 +10,7 @@ import type {
   CreditCardInvoiceExpenseRecord,
   CreateCreditCardExpenseCommand,
   RemoveCreditCardExpenseCommand,
+  ChangeCreditCardExpenseCardCommand,
   CreateTransactionCommand,
   CreateTransactionResult,
   ReopenTransactionCommand,
@@ -40,6 +41,7 @@ import {
   insertTransactionSql,
   listCreditCardInvoiceExpensesSql,
   listFutureCreditCardExpensesBySeriesForUpdateSql,
+  listCreditCardExpensesBySeriesForUpdateSql,
   listFutureTransactionsBySeriesForUpdateSql,
   listTransactionsSql,
   listTransactionCategoriesSql,
@@ -47,6 +49,7 @@ import {
   reopenTransactionSql,
   upsertTransactionCategorySql,
   updateCreditCardInvoiceTotalsSql,
+  updateCreditCardExpenseCardSql,
   updateAccountBalanceSql,
   updateCreditCardInvoiceSql,
 } from "@/modules/transactions/infrastructure/transactions-sql"
@@ -84,14 +87,12 @@ type DbTransactionRow = {
 
 type DbTransactionListRow = DbTransactionRow & {
   account_name: string
-  account_institution: string
 }
 
 type DbAccountBalanceRow = {
   id: string
   clerk_user_id: string
   name: string
-  institution: string
   current_balance_cents: string
   is_archived: boolean
 }
@@ -116,6 +117,7 @@ type DbCreditCardInvoiceExpenseListRow = {
   category_id?: string | null
   amount_cents: string
   occurred_on: string
+  is_effective: boolean
   notes: string | null
   created_at: string
   updated_at: string
@@ -156,7 +158,6 @@ function mapTransactionListRow(row: DbTransactionListRow): TransactionListRecord
   return transactionListRecordSchema.parse({
     ...mapTransactionRow(row),
     accountName: row.account_name,
-    accountInstitution: row.account_institution,
   })
 }
 
@@ -182,6 +183,7 @@ function mapCreditCardInvoiceExpenseRow(
     category: row.category,
     amountCents: row.amount_cents,
     occurredOn: row.occurred_on,
+    isEffective: row.is_effective,
     installmentNumber: installmentMatch ? Number(installmentMatch[1]) : null,
     installmentTotal: installmentMatch ? Number(installmentMatch[2]) : null,
     notes: row.notes,
@@ -303,6 +305,26 @@ function buildCreditCardInstallmentOccurrences(command: CreateCreditCardExpenseC
   return occurrences
 }
 
+function buildCreditCardFixedOccurrences(command: CreateCreditCardExpenseCommand) {
+  if (!command.isFixed) {
+    return [{ ...command }]
+  }
+
+  const [year] = command.occurredOn.split("-").map(Number)
+  const startMonthIndex = Number(command.occurredOn.split("-")[1]) - 1
+  const occurrences: CreateCreditCardExpenseCommand[] = []
+
+  for (let monthIndex = startMonthIndex; monthIndex < 12; monthIndex += 1) {
+    occurrences.push({
+      ...command,
+      clientRequestId: monthIndex === startMonthIndex ? command.clientRequestId : randomUUID(),
+      occurredOn: addMonthsToIsoDate(command.occurredOn, monthIndex - startMonthIndex),
+    })
+  }
+
+  return occurrences.filter((occurrence) => occurrence.occurredOn.startsWith(`${year}-`))
+}
+
 function getNextCreditCardInvoiceEffectiveAmount(
   transaction: TransactionRecord,
   removedAmountCents: number
@@ -338,6 +360,218 @@ function buildInvoiceDate(invoiceMonth: string, dueDay: number) {
 function buildCreditCardInvoiceTitle(cardNickname: string, invoiceMonth: string) {
   const [year, month] = invoiceMonth.split("-")
   return `Fatura ${cardNickname} • ${month}/${year}`
+}
+
+async function removeAmountFromCreditCardInvoice(
+  client: PoolClient,
+  clerkUserId: string,
+  invoiceTransactionId: string,
+  removedAmountCents: number
+) {
+  const invoiceTransaction = await queryOne(client, findTransactionByIdForUpdateSql, [
+    clerkUserId,
+    invoiceTransactionId,
+  ])
+
+  if (!invoiceTransaction) {
+    throw new NotFoundAppError("Fatura vinculada não encontrada.")
+  }
+
+  const nextAmountCents = invoiceTransaction.amountCents - removedAmountCents
+
+  if (nextAmountCents < 0) {
+    throw new ValidationAppError("Não foi possível recalcular o valor da fatura.")
+  }
+
+  if (nextAmountCents === 0) {
+    if (invoiceTransaction.status === "compensated") {
+      const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
+        clerkUserId,
+        invoiceTransaction.accountId,
+      ])
+      const account = accountResult.rows[0]
+
+      if (!account || account.is_archived) {
+        throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
+      }
+
+      await client.query(updateAccountBalanceSql, [
+        clerkUserId,
+        invoiceTransaction.accountId,
+        Number(account.current_balance_cents) + removedAmountCents,
+      ])
+
+      await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
+        clerkUserId,
+        invoiceTransaction.id,
+        CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
+      ])
+    }
+
+    await client.query(deleteTransactionSql, [clerkUserId, invoiceTransaction.id])
+
+    await client.query(insertTransactionAuditLogSql, [
+      clerkUserId,
+      "user",
+      "credit_card_invoice.removed",
+      "transactions",
+      invoiceTransaction.id,
+      JSON.stringify(invoiceTransaction),
+      null,
+      null,
+      null,
+    ])
+
+    return null
+  }
+
+  let updatedTransaction: TransactionRecord
+
+  if (invoiceTransaction.status === "compensated") {
+    const accountResult = await client.query<DbAccountBalanceRow>(findAccountForTransactionSql, [
+      clerkUserId,
+      invoiceTransaction.accountId,
+    ])
+    const account = accountResult.rows[0]
+
+    if (!account || account.is_archived) {
+      throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
+    }
+
+    const nextEffectiveAmount = getNextCreditCardInvoiceEffectiveAmount(
+      invoiceTransaction,
+      removedAmountCents
+    )
+
+    const updatedRow = await client.query<DbTransactionRow>(updateCreditCardInvoiceTotalsSql, [
+      clerkUserId,
+      invoiceTransaction.id,
+      nextAmountCents,
+      nextEffectiveAmount,
+    ])
+
+    updatedTransaction = mapTransactionRow(updatedRow.rows[0])
+
+    await client.query(updateAccountBalanceSql, [
+      clerkUserId,
+      invoiceTransaction.accountId,
+      Number(account.current_balance_cents) + removedAmountCents,
+    ])
+  } else {
+    const updatedRow = await client.query<DbTransactionRow>(updateCreditCardInvoiceTotalsSql, [
+      clerkUserId,
+      invoiceTransaction.id,
+      nextAmountCents,
+      null,
+    ])
+
+    updatedTransaction = mapTransactionRow(updatedRow.rows[0])
+  }
+
+  await client.query(insertTransactionAuditLogSql, [
+    clerkUserId,
+    "user",
+    "credit_card_invoice.updated",
+    "transactions",
+    updatedTransaction.id,
+    JSON.stringify(invoiceTransaction),
+    JSON.stringify(updatedTransaction),
+    null,
+    null,
+  ])
+
+  return updatedTransaction
+}
+
+async function addAmountToCreditCardInvoice(
+  client: PoolClient,
+  clerkUserId: string,
+  card: DbCreditCardExpenseRow,
+  invoiceMonth: string,
+  amountCents: number,
+  invoiceCategory: string,
+  invoiceCategoryId: string
+) {
+  const invoiceKey = `${invoiceMonth}-01`
+  const invoiceTitle = buildCreditCardInvoiceTitle(card.nickname, invoiceMonth)
+  const invoiceDate = buildInvoiceDate(invoiceMonth, card.due_day)
+
+  const existingInvoice = await queryOne(client, findCreditCardInvoiceByMonthForUpdateSql, [
+    clerkUserId,
+    card.id,
+    invoiceKey,
+  ])
+
+  if (existingInvoice?.status === "compensated") {
+    throw new ValidationAppError("A fatura deste cartão já foi compensada para este mês.")
+  }
+
+  if (existingInvoice) {
+    const updatedRow = await client.query<DbTransactionRow>(updateCreditCardInvoiceSql, [
+      clerkUserId,
+      existingInvoice.id,
+      card.expense_account_id,
+      invoiceTitle,
+      invoiceCategory,
+      invoiceCategoryId,
+      amountCents,
+      invoiceDate,
+    ])
+
+    const updatedTransaction = mapTransactionRow(updatedRow.rows[0])
+
+    await client.query(insertTransactionAuditLogSql, [
+      clerkUserId,
+      "user",
+      "credit_card_invoice.updated",
+      "transactions",
+      updatedTransaction.id,
+      JSON.stringify(existingInvoice),
+      JSON.stringify(updatedTransaction),
+      null,
+      null,
+    ])
+
+    return updatedTransaction
+  }
+
+  const inserted = await client.query<DbTransactionRow>(insertTransactionSql, [
+    clerkUserId,
+    randomUUID(),
+    card.expense_account_id,
+    invoiceTitle,
+    invoiceCategory,
+    invoiceCategoryId,
+    "expense",
+    "pending",
+    "credit_card_invoice",
+    card.id,
+    invoiceKey,
+    null,
+    false,
+    null,
+    null,
+    null,
+    amountCents,
+    invoiceDate,
+    "",
+  ])
+
+  const insertedTransaction = mapTransactionRow(inserted.rows[0])
+
+  await client.query(insertTransactionAuditLogSql, [
+    clerkUserId,
+    "user",
+    "credit_card_invoice.created",
+    "transactions",
+    insertedTransaction.id,
+    null,
+    JSON.stringify(insertedTransaction),
+    null,
+    null,
+  ])
+
+  return insertedTransaction
 }
 
 async function queryOne(client: PoolClient, text: string, params: readonly unknown[]) {
@@ -422,6 +656,7 @@ async function syncCreditCardInvoiceSettlementAdjustment(
     invoiceCategoryId,
     differenceCents,
     transaction.occurredOn,
+    true,
     CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE,
   ])
 }
@@ -574,9 +809,12 @@ export class TransactionsRepository {
         throw new NotFoundAppError("Selecione um cartão válido para a despesa.")
       }
 
-      const occurrences = buildCreditCardInstallmentOccurrences(command)
-      const shouldCreateSeries =
+      const occurrences =
         command.installmentNumber != null && command.installmentTotal != null
+          ? buildCreditCardInstallmentOccurrences(command)
+          : buildCreditCardFixedOccurrences(command)
+      const shouldCreateSeries =
+        command.isFixed || (command.installmentNumber != null && command.installmentTotal != null)
       const seriesId = shouldCreateSeries ? randomUUID() : null
       let firstInvoiceTransaction: TransactionRecord | null = null
       const categoryId = await resolveTransactionCategoryId(
@@ -662,6 +900,7 @@ export class TransactionsRepository {
           categoryId,
           occurrence.amountCents,
           occurrence.occurredOn,
+          !command.isFixed,
           command.notes ?? "",
         ])
 
@@ -955,6 +1194,128 @@ export class TransactionsRepository {
       ])
 
       return transactionsToRemove
+    })
+  }
+
+  async changeCreditCardExpenseCard(command: ChangeCreditCardExpenseCardCommand) {
+    return withTransaction(async (client) => {
+      const existingExpenseRow = await client.query<DbCreditCardInvoiceExpenseListRow>(
+        findCreditCardExpenseByIdForUpdateSql,
+        [command.clerkUserId, command.expenseId]
+      )
+      const existingExpenseRaw = existingExpenseRow.rows[0]
+
+      if (!existingExpenseRaw) {
+        throw new NotFoundAppError("Lançamento não encontrado.")
+      }
+
+      const expenses: CreditCardInvoiceExpenseRecord[] = existingExpenseRaw.series_id
+        ? (
+            await client.query<DbCreditCardInvoiceExpenseListRow>(
+              listCreditCardExpensesBySeriesForUpdateSql,
+              [command.clerkUserId, existingExpenseRaw.series_id]
+            )
+          ).rows.map(mapCreditCardInvoiceExpenseRow)
+        : [mapCreditCardInvoiceExpenseRow(existingExpenseRaw)]
+
+      const targetCardResult = await client.query<DbCreditCardExpenseRow>(findCreditCardForExpenseSql, [
+        command.clerkUserId,
+        command.targetCardId,
+      ])
+      const targetCard = targetCardResult.rows[0]
+
+      if (!targetCard || targetCard.is_archived) {
+        throw new NotFoundAppError("Selecione um cartão válido para a despesa.")
+      }
+
+      if (expenses.every((expense) => expense.cardId === command.targetCardId)) {
+        return expenses
+      }
+
+      const invoiceCategory = "Cartão de crédito"
+      const invoiceCategoryId = await resolveTransactionCategoryId(
+        client,
+        command.clerkUserId,
+        invoiceCategory
+      )
+
+      const removalTotals = new Map<string, number>()
+
+      for (const expense of expenses) {
+        const amount = Math.abs(expense.amountCents)
+        removalTotals.set(
+          expense.invoiceTransactionId,
+          (removalTotals.get(expense.invoiceTransactionId) ?? 0) + amount
+        )
+      }
+
+      for (const [invoiceTransactionId, removedAmountCents] of removalTotals.entries()) {
+        await removeAmountFromCreditCardInvoice(
+          client,
+          command.clerkUserId,
+          invoiceTransactionId,
+          removedAmountCents
+        )
+      }
+
+      type ExpenseGroup = {
+        invoiceMonth: string
+        amountCents: number
+      }
+
+      const groups = new Map<string, ExpenseGroup>()
+
+      for (const expense of expenses) {
+        const competenceMonth = getCreditCardInvoiceCompetenceMonth(expense.occurredOn, targetCard.closing_day)
+        const invoiceMonth = getCreditCardInvoiceMonth(
+          competenceMonth,
+          targetCard.closing_day,
+          targetCard.due_day
+        )
+        const key = `${targetCard.id}:${invoiceMonth}`
+        const group = groups.get(key) ?? { invoiceMonth, amountCents: 0 }
+        group.amountCents += Math.abs(expense.amountCents)
+        groups.set(key, group)
+      }
+
+      const invoiceAssignments = new Map<string, TransactionRecord>()
+
+      for (const [key, group] of groups) {
+        const invoiceTransaction = await addAmountToCreditCardInvoice(
+          client,
+          command.clerkUserId,
+          targetCard,
+          group.invoiceMonth,
+          group.amountCents,
+          invoiceCategory,
+          invoiceCategoryId
+        )
+        invoiceAssignments.set(key, invoiceTransaction)
+      }
+
+      for (const expense of expenses) {
+        const competenceMonth = getCreditCardInvoiceCompetenceMonth(expense.occurredOn, targetCard.closing_day)
+        const invoiceMonth = getCreditCardInvoiceMonth(
+          competenceMonth,
+          targetCard.closing_day,
+          targetCard.due_day
+        )
+        const key = `${targetCard.id}:${invoiceMonth}`
+        const invoiceTransaction = invoiceAssignments.get(key)
+
+        if (!invoiceTransaction) {
+          continue
+        }
+
+        await client.query(updateCreditCardExpenseCardSql, [
+          command.clerkUserId,
+          expense.id,
+          targetCard.id,
+          invoiceTransaction.id,
+        ])
+      }
+
+      return expenses
     })
   }
 

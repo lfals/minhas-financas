@@ -6,6 +6,7 @@ import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
+import { changeCreditCardExpenseCardUseCase } from "@/modules/transactions/application/change-credit-card-expense-card-use-case"
 import { removeCreditCardExpenseUseCase } from "@/modules/transactions/application/remove-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
 import { reopenTransactionUseCase } from "@/modules/transactions/application/reopen-transaction-use-case"
@@ -16,6 +17,7 @@ import {
   reopenTransactionInputSchema,
   removeTransactionInputSchema,
   removeCreditCardExpenseInputSchema,
+  changeCreditCardExpenseCardInputSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
 
@@ -43,6 +45,12 @@ export type RemoveTransactionActionState = {
 export type RemoveCreditCardExpenseActionState = {
   status: "idle" | "success" | "error"
   message?: string
+}
+
+export type ChangeCreditCardExpenseCardActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+  fieldErrors?: Record<string, string[] | undefined>
 }
 
 export async function createTransactionAction(
@@ -86,6 +94,8 @@ export async function createTransactionAction(
         category: parsed.data.category,
         amountCents,
         occurredOn: parsed.data.occurredOn,
+        isFixed: parsed.data.isFixed,
+        fixedExpenseFrequency: parsed.data.fixedExpenseFrequency,
         installmentNumber: parsed.data.installmentNumber,
         installmentTotal: parsed.data.installmentTotal,
         installmentAmountInputMode: parsed.data.installmentAmountInputMode,
@@ -113,6 +123,7 @@ export async function createTransactionAction(
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")
+    revalidatePath("/cartoes")
 
     return {
       status: "success",
@@ -160,6 +171,7 @@ export async function settleTransactionAction(
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")
+    revalidatePath("/cartoes")
 
     return {
       status: "success",
@@ -205,6 +217,7 @@ export async function reopenTransactionAction(
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")
+    revalidatePath("/cartoes")
 
     return {
       status: "success",
@@ -252,6 +265,7 @@ export async function removeTransactionAction(
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")
+    revalidatePath("/cartoes")
 
     return {
       status: "success",
@@ -299,6 +313,7 @@ export async function removeCreditCardExpenseAction(
 
     revalidatePath("/lancamentos")
     revalidatePath("/contas")
+    revalidatePath("/cartoes")
 
     return {
       status: "success",
@@ -315,6 +330,55 @@ export async function removeCreditCardExpenseAction(
     return {
       status: "error",
       message: "Não foi possível remover o lançamento agora.",
+    }
+  }
+}
+
+export async function changeCreditCardExpenseCardAction(
+  _previousState: ChangeCreditCardExpenseCardActionState,
+  formData: FormData
+): Promise<ChangeCreditCardExpenseCardActionState> {
+  const parsed = changeCreditCardExpenseCardInputSchema.safeParse({
+    expenseId: formData.get("expenseId"),
+    targetCardId: formData.get("targetCardId"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Revise os campos obrigatórios.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await changeCreditCardExpenseCardUseCase({
+      clerkUserId,
+      expenseId: parsed.data.expenseId,
+      targetCardId: parsed.data.targetCardId,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+    revalidatePath("/cartoes")
+
+    return {
+      status: "success",
+      message: "Cartão atualizado com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possivel alterar o cartão agora.",
     }
   }
 }

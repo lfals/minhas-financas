@@ -9,7 +9,6 @@ export const creditCardSelectColumnsSql = `
   c.due_day,
   c.expense_account_id,
   a.name as expense_account_name,
-  a.institution as expense_account_institution,
   c.auto_categorization_enabled,
   c.is_archived,
   c.created_at::text as created_at,
@@ -24,14 +23,17 @@ export const listCreditCardsSql = `
     on a.id = c.expense_account_id
   left join (
     select
-      credit_card_id,
-      sum(amount_cents) as used_limit_cents
-    from transactions
-    where clerk_user_id = $1
-      and source_type = 'credit_card_invoice'
-      and status != 'compensated'
-      and credit_card_id is not null
-    group by credit_card_id
+      e.card_id as credit_card_id,
+      sum(abs(e.amount_cents)) as used_limit_cents
+    from credit_card_expenses e
+    inner join transactions t
+      on t.id = e.invoice_transaction_id
+     and t.clerk_user_id = e.clerk_user_id
+    where e.clerk_user_id = $1
+      and e.is_effective = true
+      and t.source_type = 'credit_card_invoice'
+      and t.status != 'compensated'
+    group by e.card_id
   ) open_invoices
     on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
@@ -47,14 +49,17 @@ export const findCreditCardByIdSql = `
     on a.id = c.expense_account_id
   left join (
     select
-      credit_card_id,
-      sum(amount_cents) as used_limit_cents
-    from transactions
-    where clerk_user_id = $1
-      and source_type = 'credit_card_invoice'
-      and status != 'compensated'
-      and credit_card_id is not null
-    group by credit_card_id
+      e.card_id as credit_card_id,
+      sum(abs(e.amount_cents)) as used_limit_cents
+    from credit_card_expenses e
+    inner join transactions t
+      on t.id = e.invoice_transaction_id
+     and t.clerk_user_id = e.clerk_user_id
+    where e.clerk_user_id = $1
+      and e.is_effective = true
+      and t.source_type = 'credit_card_invoice'
+      and t.status != 'compensated'
+    group by e.card_id
   ) open_invoices
     on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
@@ -70,14 +75,17 @@ export const findCreditCardByNicknameSql = `
     on a.id = c.expense_account_id
   left join (
     select
-      credit_card_id,
-      sum(amount_cents) as used_limit_cents
-    from transactions
-    where clerk_user_id = $1
-      and source_type = 'credit_card_invoice'
-      and status != 'compensated'
-      and credit_card_id is not null
-    group by credit_card_id
+      e.card_id as credit_card_id,
+      sum(abs(e.amount_cents)) as used_limit_cents
+    from credit_card_expenses e
+    inner join transactions t
+      on t.id = e.invoice_transaction_id
+     and t.clerk_user_id = e.clerk_user_id
+    where e.clerk_user_id = $1
+      and e.is_effective = true
+      and t.source_type = 'credit_card_invoice'
+      and t.status != 'compensated'
+    group by e.card_id
   ) open_invoices
     on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
@@ -94,14 +102,17 @@ export const findCreditCardByClientRequestSql = `
     on a.id = c.expense_account_id
   left join (
     select
-      credit_card_id,
-      sum(amount_cents) as used_limit_cents
-    from transactions
-    where clerk_user_id = $1
-      and source_type = 'credit_card_invoice'
-      and status != 'compensated'
-      and credit_card_id is not null
-    group by credit_card_id
+      e.card_id as credit_card_id,
+      sum(abs(e.amount_cents)) as used_limit_cents
+    from credit_card_expenses e
+    inner join transactions t
+      on t.id = e.invoice_transaction_id
+     and t.clerk_user_id = e.clerk_user_id
+    where e.clerk_user_id = $1
+      and e.is_effective = true
+      and t.source_type = 'credit_card_invoice'
+      and t.status != 'compensated'
+    group by e.card_id
   ) open_invoices
     on open_invoices.credit_card_id = c.id
   where c.clerk_user_id = $1
@@ -169,7 +180,6 @@ export const findAccountForCreditCardSql = `
   select
     id,
     name,
-    institution
   from accounts
   where clerk_user_id = $1
     and id = $2

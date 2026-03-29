@@ -30,11 +30,13 @@ function buildInvoiceExpenses(
       id: expense.id,
       invoiceTransactionId: expense.invoiceTransactionId,
       seriesId: expense.seriesId,
+      cardId: expense.cardId,
       title: expense.title,
       category: expense.category,
       cardName: expense.cardName,
       dateLabel: format(new Date(`${expense.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
       amountCents: expense.amountCents,
+      isEffective: expense.isEffective,
       installmentNumber: expense.installmentNumber,
       installmentTotal: expense.installmentTotal,
       supportsFutureRemoval: expense.seriesId !== null && expense.seriesId !== undefined,
@@ -103,6 +105,8 @@ function buildCategoryBreakdown(
 export function buildTransactionPageItem(
   transaction: TransactionListRecord
 ): TransactionPageItem {
+  const today = format(new Date(), "yyyy-MM-dd")
+
   return {
     id: transaction.id,
     title: transaction.title,
@@ -114,7 +118,6 @@ export function buildTransactionPageItem(
     installmentTotal: transaction.installmentTotal,
     occurredOn: transaction.occurredOn,
     accountName: transaction.accountName,
-    accountInstitution: transaction.accountInstitution,
     dateLabel: format(new Date(`${transaction.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
     amountCents: transaction.amountCents,
     settledAmountCents: transaction.settledAmountCents,
@@ -128,13 +131,14 @@ export function buildTransactionPageItem(
     status: transaction.status,
     statusLabel: getStatusLabel(transaction.status),
     kind: transaction.kind,
+    isOverdue: transaction.status !== "compensated" && transaction.occurredOn < today,
   }
 }
 
 export function buildTransactionAccountOptions(accounts: AccountRecord[]): TransactionAccountOption[] {
   return accounts.map((account) => ({
     id: account.id,
-    label: `${account.name} • ${account.institution}`,
+    label: account.name,
   }))
 }
 

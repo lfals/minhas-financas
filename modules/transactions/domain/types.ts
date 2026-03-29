@@ -8,6 +8,7 @@ import type {
   ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveCreditCardExpenseInput,
+  ChangeCreditCardExpenseCardInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
@@ -29,6 +30,7 @@ export type {
   ReopenTransactionInput,
   RemoveTransactionInput,
   RemoveCreditCardExpenseInput,
+  ChangeCreditCardExpenseCardInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
@@ -70,6 +72,10 @@ export type RemoveCreditCardExpenseCommand = RemoveCreditCardExpenseInput & {
   clerkUserId: string
 }
 
+export type ChangeCreditCardExpenseCardCommand = ChangeCreditCardExpenseCardInput & {
+  clerkUserId: string
+}
+
 export type TransactionMetric = {
   label: string
   valueCents: number
@@ -88,7 +94,6 @@ export type TransactionPageItem = {
   installmentTotal?: number | null
   occurredOn: string
   accountName: string
-  accountInstitution: string
   dateLabel: string
   amountCents: number
   settledAmountCents?: number | null
@@ -99,17 +104,20 @@ export type TransactionPageItem = {
   status: TransactionStatus
   statusLabel: "Compensado" | "Agendado" | null
   kind: TransactionKind
+  isOverdue: boolean
 }
 
 export type CreditCardInvoiceExpensePageItem = {
   id: string
   invoiceTransactionId: string
   seriesId?: string | null
+  cardId: string
   title: string
   category: string
   cardName: string
   dateLabel: string
   amountCents: number
+  isEffective: boolean
   installmentNumber?: number | null
   installmentTotal?: number | null
   supportsFutureRemoval: boolean

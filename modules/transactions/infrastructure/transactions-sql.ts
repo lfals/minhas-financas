@@ -51,8 +51,7 @@ const transactionColumnsWithAlias = `
 export const listTransactionsSql = `
   select
     ${transactionColumnsWithAlias},
-    a.name as account_name,
-    a.institution as account_institution
+    a.name as account_name
   from transactions t
   inner join accounts a on a.id = t.account_id
   where t.clerk_user_id = $1
@@ -72,6 +71,7 @@ export const listCreditCardInvoiceExpensesSql = `
     e.category_id,
     e.amount_cents::text as amount_cents,
     e.occurred_on::text as occurred_on,
+    e.is_effective,
     e.notes,
     e.created_at::text as created_at,
     e.updated_at::text as updated_at
@@ -105,7 +105,6 @@ export const findAccountForTransactionSql = `
     id,
     clerk_user_id,
     name,
-    institution,
     current_balance_cents::text as current_balance_cents,
     is_archived
   from accounts
@@ -209,6 +208,7 @@ export const findCreditCardExpenseByIdForUpdateSql = `
     e.category,
     e.amount_cents::text as amount_cents,
     e.occurred_on::text as occurred_on,
+    e.is_effective,
     e.notes,
     e.created_at::text as created_at,
     e.updated_at::text as updated_at
@@ -231,6 +231,7 @@ export const listFutureCreditCardExpensesBySeriesForUpdateSql = `
     e.category,
     e.amount_cents::text as amount_cents,
     e.occurred_on::text as occurred_on,
+    e.is_effective,
     e.notes,
     e.created_at::text as created_at,
     e.updated_at::text as updated_at
@@ -243,8 +244,41 @@ export const listFutureCreditCardExpensesBySeriesForUpdateSql = `
   for update
 `
 
+export const listCreditCardExpensesBySeriesForUpdateSql = `
+  select
+    e.id,
+    e.card_id,
+    c.nickname as card_name,
+    e.invoice_transaction_id,
+    e.series_id,
+    e.title,
+    e.category,
+    e.amount_cents::text as amount_cents,
+    e.occurred_on::text as occurred_on,
+    e.is_effective,
+    e.notes,
+    e.created_at::text as created_at,
+    e.updated_at::text as updated_at
+  from credit_card_expenses e
+  inner join credit_cards c on c.id = e.card_id
+  where e.clerk_user_id = $1
+    and e.series_id = $2
+  order by e.occurred_on asc, e.created_at asc
+  for update
+`
+
 export const deleteCreditCardExpenseSql = `
   delete from credit_card_expenses
+  where clerk_user_id = $1
+    and id = $2
+`
+
+export const updateCreditCardExpenseCardSql = `
+  update credit_card_expenses
+  set
+    card_id = $3,
+    invoice_transaction_id = $4,
+    updated_at = now()
   where clerk_user_id = $1
     and id = $2
 `
@@ -374,8 +408,9 @@ export const insertCreditCardExpenseSql = `
     category_id,
     amount_cents,
     occurred_on,
+    is_effective,
     notes
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, nullif($11, ''))
+  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, nullif($12, ''))
 `
 
 export const listTransactionCategoriesSql = `

@@ -1,6 +1,7 @@
 "use client"
 
-import { useActionState, useEffect, useEffectEvent, useState } from "react"
+import { startTransition, useActionState, useEffect, useEffectEvent, useState } from "react"
+import { useRouter } from "next/navigation"
 import { useFormStatus } from "react-dom"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -148,6 +149,7 @@ export function TransactionCreateForm({
   const [state, formAction] = useActionState(createTransactionAction, initialState)
   const defaultAccountId = accountOptions[0]?.id ?? ""
   const defaultCardId = creditCardOptions[0]?.id ?? ""
+  const router = useRouter()
   const [formValues, setFormValues] = useState(() => ({
     ...getDefaultFormValues(defaultOccurredOn, defaultAccountId),
     cardId: defaultCardId,
@@ -170,6 +172,9 @@ export function TransactionCreateForm({
       cardId: defaultCardId,
     })
     onSuccess?.()
+    startTransition(() => {
+      router.refresh()
+    })
   })
 
   useEffect(() => {
@@ -205,6 +210,47 @@ export function TransactionCreateForm({
         </Field>
 
         <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="kind" className="text-white/80">
+              Tipo
+            </FieldLabel>
+            <FieldContent>
+              <NativeSelect
+                id="kind"
+                name="kind"
+                value={formValues.kind}
+                onChange={(event) => {
+                  const { value } = event.currentTarget
+                  setFormValues((current) => ({
+                    ...current,
+                    kind: value as TransactionFormKind,
+                    cardId: value === "card-expense" ? current.cardId || defaultCardId : "",
+                    status:
+                      value === "card-expense"
+                        ? "pending"
+                        : value === "expense" && current.cadence === "fixed"
+                          ? "pending"
+                          : current.status,
+                    fixedExpenseFrequency:
+                      value === "card-expense" && current.cadence === "fixed"
+                        ? "monthly"
+                        : current.fixedExpenseFrequency,
+                    installmentNumber: value === "card-expense" ? "1" : current.installmentNumber,
+                    installmentTotal: value === "card-expense" ? "2" : current.installmentTotal,
+                    installmentAmountInputMode:
+                      value === "card-expense" ? "installment" : current.installmentAmountInputMode,
+                  }))
+                }}
+                className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+              >
+                <NativeSelectOption value="expense">Despesa</NativeSelectOption>
+                <NativeSelectOption value="card-expense">Despesa cartão</NativeSelectOption>
+                <NativeSelectOption value="income">Receita</NativeSelectOption>
+              </NativeSelect>
+              <FieldError errors={state.fieldErrors?.kind?.map((message) => ({ message }))} />
+            </FieldContent>
+          </Field>
+
           <Field>
             <FieldLabel htmlFor={isCardExpense ? "cardId" : "accountId"} className="text-white/80">
               {isCardExpense ? "Cartão" : "Conta"}
@@ -270,6 +316,9 @@ export function TransactionCreateForm({
             </FieldContent>
           </Field>
 
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="category" className="text-white/80">
               Categoria
@@ -296,51 +345,6 @@ export function TransactionCreateForm({
                 ))}
               </datalist>
               <FieldError errors={state.fieldErrors?.category?.map((message) => ({ message }))} />
-            </FieldContent>
-          </Field>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="kind" className="text-white/80">
-              Tipo
-            </FieldLabel>
-            <FieldContent>
-              <NativeSelect
-                id="kind"
-                name="kind"
-                value={formValues.kind}
-                onChange={(event) => {
-                  const { value } = event.currentTarget
-                  setFormValues((current) => ({
-                    ...current,
-                    kind: value as TransactionFormKind,
-                    cardId: value === "card-expense" ? current.cardId || defaultCardId : "",
-                    status:
-                      value === "card-expense"
-                        ? "pending"
-                        : value === "expense" && current.cadence === "fixed"
-                          ? "pending"
-                          : current.status,
-                    cadence:
-                      value === "card-expense" && current.cadence === "fixed"
-                        ? "single"
-                        : current.cadence,
-                    isFixed: value === "card-expense" ? false : current.isFixed,
-                    fixedExpenseFrequency: value === "card-expense" ? "monthly" : current.fixedExpenseFrequency,
-                    installmentNumber: value === "card-expense" ? "1" : current.installmentNumber,
-                    installmentTotal: value === "card-expense" ? "2" : current.installmentTotal,
-                    installmentAmountInputMode:
-                      value === "card-expense" ? "installment" : current.installmentAmountInputMode,
-                  }))
-                }}
-                className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-              >
-                <NativeSelectOption value="expense">Despesa</NativeSelectOption>
-                <NativeSelectOption value="card-expense">Despesa cartão</NativeSelectOption>
-                <NativeSelectOption value="income">Receita</NativeSelectOption>
-              </NativeSelect>
-              <FieldError errors={state.fieldErrors?.kind?.map((message) => ({ message }))} />
             </FieldContent>
           </Field>
 
@@ -500,45 +504,72 @@ export function TransactionCreateForm({
               <NativeSelectOption value="single">
                 {isCardExpense ? "À vista" : "Lançamento avulso"}
               </NativeSelectOption>
-              {isCardExpense ? null : (
-                <NativeSelectOption value="fixed">{fixedLabel}</NativeSelectOption>
-              )}
+              <NativeSelectOption value="fixed">
+                {isCardExpense ? "Fixo mensal" : fixedLabel}
+              </NativeSelectOption>
               <NativeSelectOption value="installment">
                 {isCardExpense ? "Parcelado" : installmentLabel}
               </NativeSelectOption>
             </NativeSelect>
 
-            {formValues.cadence === "fixed" && !isCardExpense ? (
+            {formValues.cadence === "fixed" ? (
               <Field className="w-full">
-                <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
-                  Recorrência
-                </FieldLabel>
-                <FieldContent className="w-full">
-                  <NativeSelect
-                    id="fixedExpenseFrequency"
-                    name="fixedExpenseFrequency"
-                    value={formValues.fixedExpenseFrequency}
-                    onChange={(event) => {
-                      const { value } = event.currentTarget
-                      setFormValues((current) => ({
-                        ...current,
-                        fixedExpenseFrequency: value as FixedExpenseFrequency,
-                      }))
-                    }}
-                    className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-                  >
-                    {fixedExpenseFrequencyOptions.map((option) => (
-                      <NativeSelectOption key={option.value} value={option.value}>
-                        {option.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                  <FieldError
-                    errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
-                      message,
-                    }))}
-                  />
-                </FieldContent>
+                {isCardExpense ? (
+                  <>
+                    <FieldLabel htmlFor="fixedExpenseFrequencyCard" className="text-white/80">
+                      Recorrência
+                    </FieldLabel>
+                    <FieldContent className="w-full">
+                      <input type="hidden" name="fixedExpenseFrequency" value="monthly" />
+                      <Input
+                        id="fixedExpenseFrequencyCard"
+                        value="Mensal"
+                        readOnly
+                        className="h-10 border-white/10 bg-white/5 text-white"
+                      />
+                      <p className="text-xs text-white/55">
+                        A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
+                      </p>
+                      <FieldError
+                        errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
+                          message,
+                        }))}
+                      />
+                    </FieldContent>
+                  </>
+                ) : (
+                  <>
+                    <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
+                      Recorrência
+                    </FieldLabel>
+                    <FieldContent className="w-full">
+                      <NativeSelect
+                        id="fixedExpenseFrequency"
+                        name="fixedExpenseFrequency"
+                        value={formValues.fixedExpenseFrequency}
+                        onChange={(event) => {
+                          const { value } = event.currentTarget
+                          setFormValues((current) => ({
+                            ...current,
+                            fixedExpenseFrequency: value as FixedExpenseFrequency,
+                          }))
+                        }}
+                        className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                      >
+                        {fixedExpenseFrequencyOptions.map((option) => (
+                          <NativeSelectOption key={option.value} value={option.value}>
+                            {option.label}
+                          </NativeSelectOption>
+                        ))}
+                      </NativeSelect>
+                      <FieldError
+                        errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
+                          message,
+                        }))}
+                      />
+                    </FieldContent>
+                  </>
+                )}
               </Field>
             ) : (
               <input type="hidden" name="fixedExpenseFrequency" value="" />
@@ -640,7 +671,9 @@ export function TransactionCreateForm({
                   ? "O sistema divide o valor total entre as parcelas e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
                   : "O sistema mantém o valor informado em cada parcela e cria as restantes nos meses seguintes, mantendo o dia de vencimento escolhido."
                 : formValues.cadence === "fixed"
-                  ? "A lógica de recorrência fixa do sistema é aplicada automaticamente."
+                  ? isCardExpense
+                    ? "O sistema agenda uma compra mensal no cartão e só envia cada competência para a fatura quando você efetivar."
+                    : "A lógica de recorrência fixa do sistema é aplicada automaticamente."
                   : "Use lançamento avulso para registrar apenas esta ocorrência."}
             </p>
 

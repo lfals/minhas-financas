@@ -218,6 +218,14 @@ export const createTransactionFormSchema = z.object({
     })
   }
 
+  if (isCardExpense && value.status && value.status !== "pending") {
+    context.addIssue({
+      code: "custom",
+      path: ["status"],
+      message: "Compras no cartão são criadas como pendentes.",
+    })
+  }
+
   if (value.isFixed && !value.fixedExpenseFrequency) {
     context.addIssue({
       code: "custom",
@@ -236,11 +244,11 @@ export const createTransactionFormSchema = z.object({
 
   const hasInstallmentData = value.installmentNumber !== null || value.installmentTotal !== null
 
-  if (isCardExpense && value.isFixed) {
+  if (isCardExpense && value.isFixed && value.fixedExpenseFrequency !== "monthly") {
     context.addIssue({
       code: "custom",
-      path: ["isFixed"],
-      message: "Compras no cartão não aceitam recorrência fixa neste formulário.",
+      path: ["fixedExpenseFrequency"],
+      message: "Compras fixas no cartão usam recorrência mensal.",
     })
   }
 
@@ -291,12 +299,30 @@ export const createCreditCardExpenseInputSchema = z.object({
   category: z.string().trim().min(1, "Informe a categoria.").max(80),
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
+  isFixed: z.boolean().default(false),
+  fixedExpenseFrequency: fixedExpenseFrequencySchema.nullable().optional(),
   installmentNumber: optionalInstallmentNumberSchema,
   installmentTotal: optionalInstallmentNumberSchema,
   installmentAmountInputMode: installmentAmountInputModeSchema.default("installment"),
   notes: z.string().trim().max(500).optional(),
 }).superRefine((value, context) => {
+  if (value.isFixed && value.fixedExpenseFrequency !== "monthly") {
+    context.addIssue({
+      code: "custom",
+      path: ["fixedExpenseFrequency"],
+      message: "Compras fixas no cartão usam recorrência mensal.",
+    })
+  }
+
   const hasInstallmentData = value.installmentNumber !== null || value.installmentTotal !== null
+
+  if (value.isFixed && hasInstallmentData) {
+    context.addIssue({
+      code: "custom",
+      path: ["installmentNumber"],
+      message: "Compras fixas no cartão não podem ser parceladas.",
+    })
+  }
 
   if (hasInstallmentData && (value.installmentNumber === null || value.installmentTotal === null)) {
     context.addIssue({
@@ -358,6 +384,11 @@ export const removeCreditCardExpenseInputSchema = z.object({
   scope: removeTransactionScopeSchema.default("single"),
 })
 
+export const changeCreditCardExpenseCardInputSchema = z.object({
+  expenseId: z.uuid("Lançamento inválido para alteração."),
+  targetCardId: z.uuid("Selecione um cartão válido."),
+})
+
 export const transactionRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
@@ -384,7 +415,6 @@ export const transactionRecordSchema = z.object({
 
 export const transactionListRecordSchema = transactionRecordSchema.extend({
   accountName: z.string(),
-  accountInstitution: z.string(),
 })
 
 export const creditCardInvoiceExpenseRecordSchema = z.object({
@@ -397,6 +427,7 @@ export const creditCardInvoiceExpenseRecordSchema = z.object({
   category: z.string(),
   amountCents: signedCentsSchema,
   occurredOn: isoDateSchema,
+  isEffective: z.boolean().default(true),
   installmentNumber: z.number().int().positive().nullable().optional(),
   installmentTotal: z.number().int().positive().nullable().optional(),
   notes: z.string().nullable().optional(),
@@ -423,6 +454,7 @@ export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema
 export type RemoveTransactionScope = z.infer<typeof removeTransactionScopeSchema>
 export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema>
 export type RemoveCreditCardExpenseInput = z.infer<typeof removeCreditCardExpenseInputSchema>
+export type ChangeCreditCardExpenseCardInput = z.infer<typeof changeCreditCardExpenseCardInputSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>
 export type CreditCardInvoiceExpenseRecord = z.infer<typeof creditCardInvoiceExpenseRecordSchema>
