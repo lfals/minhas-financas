@@ -5,6 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+    --dialog-mobile-edge-offset: 0.5rem;
+    --dialog-safe-area-bottom: env(safe-area-inset-bottom, 0px);
     --background: #f7f3ea;
     --foreground: #101010;
     --card: #ffffff;
@@ -136,4 +138,30 @@
     background: #101010;
     color: #d8f36a;
     }
+}
+
+.modal-scroll-body {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.dialog-viewport-aware {
+    top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-mobile-edge-offset));
+    max-height: calc(
+      var(--dialog-viewport-height, 100dvh) -
+      var(--dialog-mobile-edge-offset) -
+      max(var(--dialog-mobile-edge-offset), var(--dialog-safe-area-bottom))
+    );
+}
+
+@media (min-width: 640px) {
+  .dialog-viewport-aware {
+      top: 50%;
+      max-height: none;
+  }
+
+  .modal-scroll-body {
+      padding-bottom: 1.25rem;
+  }
 }

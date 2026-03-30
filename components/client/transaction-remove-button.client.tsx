@@ -119,8 +119,8 @@ export function TransactionRemoveButton({
         <Button
           type="button"
           variant="ghost"
-          size="icon"
-          className="size-8 text-white/45 hover:bg-white/5 hover:text-[#ff9c7a]"
+          size="icon-sm"
+          className="shrink-0 border border-white/10 bg-white/5 text-white/45 hover:border-white/20 hover:bg-white/10 hover:text-[#ff9c7a] sm:size-8"
           aria-label={`Remover lançamento ${transactionTitle}`}
         >
           <Trash2 className="size-4" />

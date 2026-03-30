@@ -5,6 +5,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useDialogViewportStyle } from "@/hooks/use-dialog-viewport-style"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -51,19 +52,23 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  style,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const viewportStyle = useDialogViewportStyle(style)
+
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content
+        <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-1rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-none bg-background p-4 text-xs/relaxed ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "dialog-viewport-aware fixed left-1/2 z-50 grid w-full max-w-[calc(100%-1rem)] -translate-x-1/2 translate-y-0 gap-4 overflow-y-auto rounded-none bg-background p-4 text-xs/relaxed ring-1 ring-foreground/10 duration-100 outline-none overscroll-contain sm:max-w-sm sm:-translate-y-1/2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
+        style={viewportStyle}
         {...props}
       >
         {children}

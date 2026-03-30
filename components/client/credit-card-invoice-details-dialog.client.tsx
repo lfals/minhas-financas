@@ -142,7 +142,7 @@ export function CreditCardInvoiceDetailsDialog({
           </button>
         </DialogTrigger>
       )}
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
+      <DialogContent className="flex max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 pb-5">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-3">
@@ -176,7 +176,7 @@ export function CreditCardInvoiceDetailsDialog({
             </div>
           </div>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <div className="modal-scroll-body min-h-0 overflow-y-auto px-6 py-5">
           <div className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/45">
             <ReceiptText className="size-4" />
             {expenses.length} lançamentos na fatura

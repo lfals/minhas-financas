@@ -205,7 +205,7 @@ export function TransactionsPageView({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-8 border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
+                          className="h-7 border-white/10 bg-white/5 px-2.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/10 sm:h-8 sm:px-3 sm:tracking-[0.2em]"
                         >
                           Parcelas
                         </Button>

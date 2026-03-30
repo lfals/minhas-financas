@@ -59,14 +59,15 @@ export function AccountRemoveButton({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
-          className="text-white/55 hover:text-white"
+          size="icon-sm"
+          className="shrink-0 border border-white/10 bg-white/5 text-white/45 hover:border-white/20 hover:bg-white/10 hover:text-white sm:h-7 sm:w-auto sm:px-2.5"
+          aria-label={`Remover conta ${accountName}`}
           onClick={(event) => {
             event.stopPropagation()
           }}
         >
           <Trash2 className="size-4" />
-          Remover
+          <span className="hidden sm:inline">Remover</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent className="border border-white/10 bg-[#141414] text-white ring-0">

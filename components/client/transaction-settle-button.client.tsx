@@ -40,8 +40,8 @@ function SubmitButton({ isCompensated }: { isCompensated: boolean }) {
       size="sm"
       className={
         isCompensated
-          ? "h-8 border border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
-          : "h-8 border border-[#d8f36a]/70 bg-[#d8f36a] px-3 text-[10px] uppercase tracking-[0.2em] text-black hover:bg-[#c9e45f]"
+          ? "h-7 border border-white/10 bg-white/5 px-2.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/10 sm:h-8 sm:px-3 sm:tracking-[0.2em]"
+          : "h-7 border border-[#d8f36a]/70 bg-[#d8f36a] px-2.5 text-[10px] uppercase tracking-[0.18em] text-black hover:bg-[#c9e45f] sm:h-8 sm:px-3 sm:tracking-[0.2em]"
       }
       disabled={pending}
     >
@@ -112,8 +112,8 @@ export function TransactionSettleButton({
           size="sm"
           className={
             isCompensated
-              ? "h-8 border border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.2em] text-white hover:bg-white/10"
-              : "h-8 border border-[#d8f36a]/70 bg-[#d8f36a] px-3 text-[10px] uppercase tracking-[0.2em] text-black hover:bg-[#c9e45f]"
+              ? "h-7 border border-white/10 bg-white/5 px-2.5 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/10 sm:h-8 sm:px-3 sm:tracking-[0.2em]"
+              : "h-7 border border-[#d8f36a]/70 bg-[#d8f36a] px-2.5 text-[10px] uppercase tracking-[0.18em] text-black hover:bg-[#c9e45f] sm:h-8 sm:px-3 sm:tracking-[0.2em]"
           }
         >
           {isCompensated ? "Desfetivar" : "Efetivar"}

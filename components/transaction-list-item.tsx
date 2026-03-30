@@ -1,6 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react"
 import type { ReactNode } from "react"
 
+import { Badge } from "@/components/ui/badge"
 import { formatCents } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
@@ -43,29 +44,51 @@ export function TransactionListItem({
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-start gap-2">
-          <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
-            {title}
-          </p>
+          {kind === "income" ? (
+            <Badge
+              variant="outline"
+              className="border-[#d8f36a]/25 bg-[#d8f36a]/10 px-2 text-[10px] uppercase tracking-[0.14em] text-[#d8f36a]"
+            >
+              Entrada
+            </Badge>
+          ) : (
+            <Badge
+              variant="outline"
+              className="border-[#ff9c7a]/25 bg-[#ff9c7a]/10 px-2 text-[10px] uppercase tracking-[0.14em] text-[#ff9c7a]"
+            >
+              Saída
+            </Badge>
+          )}
           {badgeLabel ? (
-            <span className="border border-[#c4f1ff]/30 bg-[#c4f1ff]/10 px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-[#c4f1ff]">
+            <Badge
+              variant="outline"
+              className="border-[#c4f1ff]/30 bg-[#c4f1ff]/10 px-2 text-[10px] uppercase tracking-[0.18em] text-[#c4f1ff]"
+            >
               {badgeLabel}
-            </span>
+            </Badge>
           ) : null}
           {statusLabel ? (
-            <span
+            <Badge
+              variant="outline"
               className={cn(
-                "border px-2 py-1 text-[10px] uppercase tracking-[0.18em]",
+                "px-2 text-[10px] uppercase tracking-[0.18em]",
                 statusClassName
               )}
             >
               {statusLabel}
-            </span>
+            </Badge>
           ) : null}
         </div>
-        <p className="mt-2 text-sm leading-6 text-white/55">{metadata}</p>
+        <p className="mt-3 text-lg leading-tight font-semibold tracking-[-0.05em] text-white sm:text-xl">
+            {title}
+        </p>
       </div>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
+
+      <div className="mt-4 border-t border-white/10 pt-4 sm:mt-5 sm:pt-5">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+          {kind === "income" ? "Valor recebido" : "Valor lançado"}
+        </p>
+        <div className="mt-2 flex min-w-0 items-center gap-3">
           {kind === "income" ? (
             <ArrowUpRight className="size-4 text-[#d8f36a]" />
           ) : (
@@ -73,12 +96,12 @@ export function TransactionListItem({
           )}
           <p
             className={cn(
-              "text-lg font-semibold tracking-[-0.05em]",
+              "text-[2rem] leading-none font-semibold tracking-[-0.07em] sm:text-3xl",
               kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
             )}
           >
             {isAmountOverridden ? (
-              <span className="flex flex-col items-start">
+              <span className="flex flex-col items-start gap-1">
                 <span className="text-sm font-medium text-white/35 line-through decoration-white/35">
                   {kind === "income" ? "+" : "-"}
                   {formatCents(amountCents)}
@@ -96,6 +119,10 @@ export function TransactionListItem({
             )}
           </p>
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+        <p className="text-sm leading-6 text-white/50">{metadata}</p>
         {actions ? (
           <div className="flex w-full shrink-0 items-center sm:w-auto sm:justify-end">{actions}</div>
         ) : null}

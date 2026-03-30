@@ -198,13 +198,13 @@ export function CreditCardExpenseDetailsDialog({
       >
         {children}
       </div>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0">
+      <DialogContent className="flex max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
           <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
             Detalhes do lançamento
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <div className="modal-scroll-body min-h-0 overflow-y-auto px-6 py-5">
           <form action={formAction} className="space-y-5">
             <input type="hidden" name="expenseId" value={formValues.expenseId} />
 

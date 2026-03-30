@@ -4,6 +4,7 @@ import { AccountEditDialog } from "@/components/client/account-edit-dialog.clien
 import { AccountCreateDialog } from "@/components/client/account-create-dialog.client"
 import { AccountRemoveButton } from "@/components/client/account-remove-button.client"
 import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCents } from "@/lib/money"
 import type { AccountsPageData } from "@/modules/accounts/domain/types"
@@ -72,26 +73,47 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                   }}
                 >
                   <div className="w-full border border-white/10 bg-[#121212] p-4 text-left transition-colors hover:bg-[#181818] sm:p-5">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className={cn("h-2 w-20", account.tone)} />
-                        <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-white/45">
-                          {account.typeLabel}
-                        </p>
-                        <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
+                        <div className={cn("h-1.5 w-16 sm:h-2 sm:w-20", account.tone)} />
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="border-white/10 bg-white/5 px-2 text-[10px] uppercase tracking-[0.18em] text-white/62"
+                          >
+                            {account.typeLabel}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "px-2 text-[10px] uppercase tracking-[0.14em]",
+                              account.includeInNetWorth
+                                ? "border-[#d8f36a]/25 bg-[#d8f36a]/10 text-[#d8f36a]"
+                                : "border-white/10 bg-transparent text-white/45"
+                            )}
+                          >
+                            {account.includeInNetWorth ? "Patrimônio" : "Fora do patrimônio"}
+                          </Badge>
+                        </div>
+                        <p className="mt-3 text-xl leading-tight font-semibold tracking-[-0.05em] text-white sm:mt-4 sm:text-2xl">
                           {account.name}
                         </p>
                       </div>
                       <AccountRemoveButton accountId={account.id} accountName={account.name} />
                     </div>
-                    <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
-                      {formatCents(account.balanceCents)}
-                    </p>
-                    <div className="mt-4 flex flex-col gap-2 text-xs uppercase tracking-[0.2em] text-white/45 sm:flex-row sm:items-center sm:justify-between">
-                      <span>criada em {account.createdAtLabel}</span>
-                      <span>
-                        {account.includeInNetWorth ? "entra no patrimônio" : "fora do patrimônio"}
-                      </span>
+
+                    <div className="mt-4 border-t border-white/10 pt-4 sm:mt-5 sm:pt-5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/45">
+                        Saldo atual
+                      </p>
+                      <p className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.07em] text-white sm:text-3xl">
+                        {formatCents(account.balanceCents)}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex flex-col gap-2 border-t border-white/10 pt-3 text-[11px] text-white/50 sm:mt-5 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+                      <span className="uppercase tracking-[0.18em]">Criada em {account.createdAtLabel}</span>
+                      <span className="text-white/38">Toque para editar</span>
                     </div>
                   </div>
                 </AccountEditDialog>
