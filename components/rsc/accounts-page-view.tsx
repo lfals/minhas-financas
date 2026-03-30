@@ -57,16 +57,16 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">
-          <CardHeader className="gap-3">
-            <div>
+          <CardHeader className="gap-4">
+            <div className="min-w-0">
               <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
                 Lista de contas
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
                 Visão atual dos saldos cadastrados.
               </CardTitle>
             </div>
-            <CardAction>
+            <CardAction className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-self-end">
               <AccountCreateDialog />
             </CardAction>
           </CardHeader>
@@ -83,14 +83,14 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                     includeInNetWorth: account.includeInNetWorth,
                   }}
                 >
-                  <div className="w-full border border-white/10 bg-[#121212] p-4 text-left transition-colors hover:bg-[#181818]">
-                    <div className="flex items-start justify-between gap-4">
+                  <div className="w-full border border-white/10 bg-[#121212] p-4 text-left transition-colors hover:bg-[#181818] sm:p-5">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className={cn("h-2 w-20", account.tone)} />
                         <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-white/45">
                           {account.typeLabel}
                         </p>
-                        <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                        <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
                           {account.name}
                         </p>
                       </div>
@@ -99,7 +99,7 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                     <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
                       {formatCents(account.balanceCents)}
                     </p>
-                    <div className="mt-4 flex items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
+                    <div className="mt-4 flex flex-col gap-2 text-xs uppercase tracking-[0.2em] text-white/45 sm:flex-row sm:items-center sm:justify-between">
                       <span>criada em {account.createdAtLabel}</span>
                       <span>
                         {account.includeInNetWorth ? "entra no patrimônio" : "fora do patrimônio"}

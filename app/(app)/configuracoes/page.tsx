@@ -9,14 +9,14 @@ export default function SettingsPage() {
           <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/50">
             Configurações
           </CardDescription>
-          <CardTitle className="max-w-3xl text-4xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-5xl">
+          <CardTitle className="max-w-3xl text-3xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-4xl lg:text-5xl">
             Gerencie ações sensíveis do ambiente financeiro.
           </CardTitle>
-          <p className="max-w-2xl text-sm leading-7 text-white/65 sm:text-base">
+          <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
             Use esta área para limpar dados do app quando quiser testar novamente do zero ou
             descartar movimentações já cadastradas.
           </p>
-          <CardAction>
+          <CardAction className="col-start-1 row-start-4 justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-self-end">
             <SettingsResetDialog />
           </CardAction>
         </CardHeader>

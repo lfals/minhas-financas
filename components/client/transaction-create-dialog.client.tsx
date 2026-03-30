@@ -35,19 +35,19 @@ export function TransactionCreateDialog({
       <DialogTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-2 border border-[#d8f36a] bg-[#d8f36a] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-black transition-colors hover:bg-[#c9e45f]"
+          className="flex w-full items-center justify-center gap-2 border border-[#d8f36a] bg-[#d8f36a] px-3 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-black transition-colors hover:bg-[#c9e45f] sm:w-auto"
         >
           <Plus className="size-4" />
           Adicionar lançamento
         </button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0">
-        <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
-          <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
+        <DialogHeader className="shrink-0 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
+          <DialogTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
             Novo lançamento
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           <TransactionCreateForm
             accountOptions={accountOptions}
             creditCardOptions={creditCardOptions}

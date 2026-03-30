@@ -26,21 +26,21 @@ export function DashboardView({
     <div className="space-y-6">
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="border border-white/10 bg-[#141414] ring-0">
-          <CardHeader className="gap-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+          <CardHeader className="gap-4 sm:gap-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/50">
                   Dashboard
                 </CardDescription>
-                <CardTitle className="mt-3 max-w-3xl text-4xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-5xl">
+                <CardTitle className="mt-3 max-w-3xl text-3xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-4xl lg:text-5xl">
                   Visão consolidada da sua vida financeira.
                 </CardTitle>
               </div>
-              <Badge className="bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-black">
+              <Badge className="w-fit bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-black">
                 {snapshot.periodLabel}
               </Badge>
             </div>
-            <p className="max-w-2xl text-sm leading-7 text-white/65 sm:text-base">
+            <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
               Acompanhe saldos, contas a pagar, movimentações e investimentos em uma leitura
               rápida do período.
             </p>
@@ -57,7 +57,7 @@ export function DashboardView({
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 pt-0">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="border border-white/10 bg-white/5 p-3">
                 <p className="text-[11px] uppercase tracking-[0.28em] text-white/50">
                   Patrimônio
@@ -97,7 +97,12 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 {metric.label}
               </CardDescription>
-              <CardTitle className={cn("text-3xl font-semibold tracking-[-0.06em]", metricTone(metric.trend))}>
+              <CardTitle
+                className={cn(
+                  "text-[1.75rem] font-semibold tracking-[-0.06em] sm:text-3xl",
+                  metricTone(metric.trend)
+                )}
+              >
                 {formatCompactCurrency(metric.value)}
               </CardTitle>
             </CardHeader>
@@ -113,7 +118,7 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 Contas
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.06em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
                 Saldos por conta.
               </CardTitle>
             </CardHeader>
@@ -124,7 +129,7 @@ export function DashboardView({
                   <p className="mt-4 text-[11px] uppercase tracking-[0.28em] text-white/45">
                     {account.type}
                   </p>
-                  <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                  <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
                     {account.name}
                   </p>
                   <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
@@ -140,19 +145,19 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 Lançamentos
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.06em]">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] sm:text-3xl">
                 Movimentações recentes.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
               {transactions.map((transaction, index) => (
                 <div key={transaction.id}>
-                  <div className="flex items-center justify-between gap-3 py-2">
-                    <div>
-                      <p className="text-sm uppercase tracking-[0.18em] text-white">
+                  <div className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
                         {transaction.title}
                       </p>
-                      <p className="text-sm text-white/55">
+                      <p className="text-sm leading-6 text-white/55">
                         {transaction.category} • {transaction.dateLabel}
                       </p>
                     </div>
@@ -179,16 +184,16 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 Obrigações
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.06em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
                 Compromissos financeiros do ciclo.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
               {obligations.map((obligation, index) => (
                 <div key={obligation.id}>
-                  <div className="grid grid-cols-[1fr_auto] gap-4 py-2">
+                  <div className="grid gap-2 py-2 sm:grid-cols-[1fr_auto] sm:gap-4">
                     <div>
-                      <p className="text-sm uppercase tracking-[0.18em] text-white">
+                      <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
                         {obligation.title}
                       </p>
                       <p className="text-sm text-white/55">{obligation.status}</p>
@@ -213,7 +218,7 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 Gastos
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.06em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
                 Distribuição do mês por categoria.
               </CardTitle>
             </CardHeader>
@@ -221,7 +226,9 @@ export function DashboardView({
               {categories.map((category) => (
                 <div key={category.id} className="space-y-2">
                   <div className="flex items-center justify-between gap-4 text-sm">
-                    <span className="uppercase tracking-[0.18em] text-white">{category.name}</span>
+                    <span className="min-w-0 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
+                      {category.name}
+                    </span>
                     <span className="text-white/55">{formatCurrency(category.amount)}</span>
                   </div>
                   <div className="h-3 border border-white/10 bg-white/5">
@@ -237,7 +244,7 @@ export function DashboardView({
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
                 Patrimônio
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.06em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
                 Alocação consolidada e desempenho.
               </CardTitle>
             </CardHeader>
@@ -245,7 +252,9 @@ export function DashboardView({
               {investments.map((investment) => (
                 <div key={investment.id} className="space-y-2">
                   <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="uppercase tracking-[0.18em] text-white">{investment.name}</span>
+                    <span className="min-w-0 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
+                      {investment.name}
+                    </span>
                     <span className={cn(investment.result >= 0 ? "text-[#d8f36a]" : "text-[#ff9c7a]")}>
                       {formatPercent(investment.result)}
                     </span>

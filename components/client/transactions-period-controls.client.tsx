@@ -41,7 +41,7 @@ export function TransactionsPeriodControls({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-full items-center gap-2 sm:w-auto">
       <Button
         type="button"
         variant="outline"
@@ -53,7 +53,7 @@ export function TransactionsPeriodControls({
         <ChevronLeft className="size-4" />
       </Button>
 
-      <div className="border border-white/10 bg-white/5 px-3">
+      <div className="min-w-0 flex-1 border border-white/10 bg-white/5 px-3 sm:flex-none">
         <Input
           type="month"
           aria-label="Selecionar mês"
@@ -74,7 +74,7 @@ export function TransactionsPeriodControls({
 
             updateSelectedDate(new Date(`${value}-01T00:00:00`))
           }}
-          className="h-8 w-[9.5rem] border-0 bg-transparent px-0 text-[11px] uppercase tracking-[0.2em] text-white shadow-none focus-visible:ring-0"
+          className="h-8 w-full min-w-0 border-0 bg-transparent px-0 text-[11px] uppercase tracking-[0.2em] text-white shadow-none sm:w-[9.5rem] focus-visible:ring-0"
         />
       </div>
 

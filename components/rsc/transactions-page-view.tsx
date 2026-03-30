@@ -142,18 +142,18 @@ export function TransactionsPageView({
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">
-          <CardHeader className="gap-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
+          <CardHeader className="gap-4">
+            <div className="flex flex-col gap-3">
+              <div className="min-w-0">
                 <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
                   Lançamentos
                 </CardDescription>
-                <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+                <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
                   {summary.title}
                 </CardTitle>
               </div>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
               <TransactionsPeriodControls selectedDate={selectedDate} />
               <TransactionCreateDialog
                 accountOptions={accountOptions}

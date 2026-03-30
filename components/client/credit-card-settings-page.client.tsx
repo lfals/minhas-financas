@@ -280,16 +280,16 @@ export function CreditCardSettingsPage({
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">
-          <CardHeader className="gap-3">
-            <div>
+          <CardHeader className="gap-4">
+            <div className="min-w-0">
               <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
                 Lista de cartões
               </CardDescription>
-              <CardTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
                 Visão atual dos cartões cadastrados.
               </CardTitle>
             </div>
-            <CardAction>
+            <CardAction className="col-start-1 row-start-3 justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-self-end">
               <CreditCardCreateDialog accountOptions={accountOptions} />
             </CardAction>
           </CardHeader>
@@ -309,21 +309,21 @@ export function CreditCardSettingsPage({
                       setSelectedCardId(card.id)
                     }
                   }}
-                  className="cursor-pointer border border-white/10 bg-[#121212] p-4 transition-colors hover:bg-[#161616] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4f1ff]/40"
+                  className="cursor-pointer border border-white/10 bg-[#121212] p-4 transition-colors hover:bg-[#161616] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c4f1ff]/40 sm:p-5"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
                         cartão de crédito
                       </p>
-                      <p className="mt-2 text-2xl font-semibold tracking-[-0.06em] text-white">
+                      <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
                         {card.nickname}
                       </p>
                       <p className="mt-4 text-sm tracking-[0.3em] text-white/72">
                         {formatCardSuffix(card.finalDigits)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 self-start">
                       <div onClick={(event) => event.stopPropagation()}>
                         <CreditCardEditDialog
                           accountOptions={accountOptions}
@@ -365,7 +365,7 @@ export function CreditCardSettingsPage({
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.2em] text-white/45">
+                  <div className="mt-4 flex flex-col gap-2 text-xs uppercase tracking-[0.2em] text-white/45 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <span>fecha dia {card.closingDay}</span>
                     <span>vence dia {card.dueDay}</span>
                     <span>pagamento em {card.expenseAccountLabel}</span>
@@ -392,11 +392,11 @@ export function CreditCardSettingsPage({
           }
         }}
       >
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
-          <DialogHeader className="shrink-0 border-b border-white/10 px-6 pb-5">
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="shrink-0 border-b border-white/10 px-4 pb-4 sm:px-6 sm:pb-5">
             <div className="space-y-3">
               <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Compras do cartão</p>
-              <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+              <DialogTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
                 {selectedCard ? selectedCard.nickname : "Cartão"}
               </DialogTitle>
               {selectedCard ? (
@@ -406,7 +406,7 @@ export function CreditCardSettingsPage({
               ) : null}
             </div>
           </DialogHeader>
-          <div className="min-h-0 overflow-y-auto px-6 py-5">
+          <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
             <div className="mb-4 flex items-center gap-2 text-[11px] uppercase tracking-[0.24em] text-white/45">
               <ReceiptText className="size-4" />
               {selectedCardPurchases.length} compras
