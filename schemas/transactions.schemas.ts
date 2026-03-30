@@ -50,6 +50,14 @@ const isoDateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe uma data válida.")
   .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`)), "Informe uma data válida.")
 
+const isoMonthSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}$/, "Informe uma fatura válida.")
+  .refine((value) => {
+    const [year, month] = value.split("-").map(Number)
+    return Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12
+  }, "Informe uma fatura válida.")
+
 const booleanInputSchema = z
   .union([z.boolean(), z.literal("true"), z.literal("false"), z.literal("on"), z.null(), z.undefined()])
   .transform((value) => value === true || value === "true" || value === "on")
@@ -417,6 +425,26 @@ export const changeCreditCardExpenseCardInputSchema = z.object({
   targetCardId: z.uuid("Selecione um cartão válido."),
 })
 
+export const updateCreditCardExpenseInputSchema = z.object({
+  expenseId: z.uuid("Lançamento inválido para atualização."),
+  title: z.string().trim().min(1, "Informe a descrição da compra.").max(120),
+  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  amountCents: centsSchema,
+  occurredOn: isoDateSchema,
+  targetInvoiceMonth: isoMonthSchema,
+  notes: z.string().trim().max(500).optional(),
+})
+
+export const updateCreditCardExpenseFormSchema = z.object({
+  expenseId: z.uuid("Lançamento inválido para atualização."),
+  title: z.string().trim().min(1, "Informe a descrição da compra.").max(120),
+  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  amount: z.string().trim().min(1, "Informe o valor."),
+  occurredOn: isoDateSchema,
+  targetInvoiceMonth: isoMonthSchema,
+  notes: z.string().trim().max(500).optional(),
+})
+
 export const transactionRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),
@@ -450,6 +478,7 @@ export const creditCardInvoiceExpenseRecordSchema = z.object({
   cardId: z.uuid(),
   cardName: z.string(),
   invoiceTransactionId: z.uuid(),
+  invoiceMonth: isoDateSchema.nullable().optional(),
   seriesId: z.uuid().nullable().optional(),
   title: z.string(),
   category: z.string(),
@@ -486,6 +515,8 @@ export type RemoveTransactionInput = z.infer<typeof removeTransactionInputSchema
 export type RemoveCreditCardExpenseInput = z.infer<typeof removeCreditCardExpenseInputSchema>
 export type SettleCreditCardExpenseInput = z.infer<typeof settleCreditCardExpenseInputSchema>
 export type ChangeCreditCardExpenseCardInput = z.infer<typeof changeCreditCardExpenseCardInputSchema>
+export type UpdateCreditCardExpenseInput = z.infer<typeof updateCreditCardExpenseInputSchema>
+export type UpdateCreditCardExpenseFormInput = z.infer<typeof updateCreditCardExpenseFormSchema>
 export type TransactionRecord = z.infer<typeof transactionRecordSchema>
 export type TransactionListRecord = z.infer<typeof transactionListRecordSchema>
 export type CreditCardInvoiceExpenseRecord = z.infer<typeof creditCardInvoiceExpenseRecordSchema>

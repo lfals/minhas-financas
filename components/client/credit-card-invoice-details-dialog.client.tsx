@@ -4,14 +4,17 @@ import { useState, type KeyboardEvent, type ReactNode } from "react"
 import { ReceiptText } from "lucide-react"
 
 import { CreditCardExpenseChangeCardDialog } from "@/components/client/credit-card-expense-change-card-dialog.client"
+import { CreditCardExpenseDetailsDialog } from "@/components/client/credit-card-expense-details-dialog.client"
 import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
 import { CreditCardExpenseSettleButton } from "@/components/client/credit-card-expense-settle-button.client"
+import { ClickPropagationStopper } from "@/components/client/click-propagation-stopper.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { TransactionListItem } from "@/components/transaction-list-item"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { formatCompactCurrency } from "@/lib/formatters"
 import type {
   CreditCardInvoiceExpensePageItem,
+  TransactionCategoryOption,
   TransactionCreditCardOption,
   TransactionPageItem,
 } from "@/modules/transactions/domain/types"
@@ -19,9 +22,11 @@ import type {
 function InvoiceExpenseList({
   expenses,
   cardOptions,
+  categoryOptions,
 }: {
   expenses: CreditCardInvoiceExpensePageItem[]
   cardOptions: TransactionCreditCardOption[]
+  categoryOptions: TransactionCategoryOption[]
 }) {
   if (!expenses.length) {
     return (
@@ -33,16 +38,19 @@ function InvoiceExpenseList({
 
   return (
     <div className="space-y-3">
-          {expenses.map((expense) => (
-            <TransactionListItem
-              key={expense.id}
-              title={expense.title}
-              metadata={`${expense.category} • ${expense.cardName} • ${expense.dateLabel}${expense.isEffective ? "" : " • Não contabilizado no limite"}`}
-              amountCents={Math.abs(expense.amountCents)}
-              kind={expense.amountCents < 0 ? "income" : "expense"}
-              badgeLabel={expense.isEffective ? null : "Agendado"}
-              actions={
-                expense.notes === "__credit_card_invoice_settlement_adjustment__" ? null : (
+      {expenses.map((expense) => {
+        const listItem = (
+          <TransactionListItem
+            key={expense.id}
+            title={expense.title}
+            metadata={`${expense.category} • ${expense.cardName} • ${expense.dateLabel}${expense.isEffective ? "" : " • Não contabilizado no limite"}`}
+            amountCents={Math.abs(expense.amountCents)}
+            kind={expense.amountCents < 0 ? "income" : "expense"}
+            badgeLabel={expense.isEffective ? null : "Agendado"}
+            className="transition-colors hover:bg-[#161616]"
+            actions={
+              expense.notes === "__credit_card_invoice_settlement_adjustment__" ? null : (
+                <ClickPropagationStopper>
                   <div className="flex items-center gap-2">
                     <CreditCardExpenseChangeCardDialog
                       expenseId={expense.id}
@@ -60,11 +68,27 @@ function InvoiceExpenseList({
                       supportsFutureRemoval={expense.supportsFutureRemoval}
                     />
                   </div>
-                )
-              }
-            />
-          ))}
-        </div>
+                </ClickPropagationStopper>
+              )
+            }
+          />
+        )
+
+        if (expense.notes === "__credit_card_invoice_settlement_adjustment__") {
+          return <div key={expense.id}>{listItem}</div>
+        }
+
+        return (
+          <CreditCardExpenseDetailsDialog
+            key={expense.id}
+            expense={expense}
+            categoryOptions={categoryOptions}
+          >
+            {listItem}
+          </CreditCardExpenseDetailsDialog>
+        )
+      })}
+    </div>
   )
 }
 
@@ -74,6 +98,7 @@ export function CreditCardInvoiceDetailsDialog({
   statusClassName,
   expenses,
   cardOptions,
+  categoryOptions,
   children,
 }: {
   transaction: TransactionPageItem
@@ -81,6 +106,7 @@ export function CreditCardInvoiceDetailsDialog({
   statusClassName: string
   expenses: CreditCardInvoiceExpensePageItem[]
   cardOptions: TransactionCreditCardOption[]
+  categoryOptions: TransactionCategoryOption[]
   children?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -155,7 +181,11 @@ export function CreditCardInvoiceDetailsDialog({
             <ReceiptText className="size-4" />
             {expenses.length} lançamentos na fatura
           </div>
-          <InvoiceExpenseList expenses={expenses} cardOptions={cardOptions} />
+          <InvoiceExpenseList
+            expenses={expenses}
+            cardOptions={cardOptions}
+            categoryOptions={categoryOptions}
+          />
         </div>
       </DialogContent>
     </Dialog>

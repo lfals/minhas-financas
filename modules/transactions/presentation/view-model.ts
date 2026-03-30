@@ -34,6 +34,8 @@ function buildInvoiceExpenses(
       title: expense.title,
       category: expense.category,
       cardName: expense.cardName,
+      occurredOn: expense.occurredOn,
+      invoiceMonth: expense.invoiceMonth?.slice(0, 7) ?? expense.occurredOn.slice(0, 7),
       dateLabel: format(new Date(`${expense.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
       amountCents: expense.amountCents,
       isEffective: expense.isEffective,
@@ -192,14 +194,6 @@ export function buildTransactionsPageData(
     transaction.kind === "income" ? getEffectiveAmount(transaction) : -getEffectiveAmount(transaction)
 
   const previousTransactions = options?.previousTransactions ?? []
-
-  const previousCompensatedIncomeCents = previousTransactions
-    .filter((transaction) => transaction.kind === "income" && transaction.status === "compensated")
-    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
-
-  const previousCompensatedExpenseCents = previousTransactions
-    .filter((transaction) => transaction.kind === "expense" && transaction.status === "compensated")
-    .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
 
   const previousPendingProjectedBalanceCents = previousTransactions
     .filter((transaction) => transaction.status !== "compensated")

@@ -12,6 +12,8 @@ import type {
   RemoveCreditCardExpenseInput,
   SettleCreditCardExpenseInput,
   ChangeCreditCardExpenseCardInput,
+  UpdateCreditCardExpenseInput,
+  UpdateCreditCardExpenseFormInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
@@ -37,6 +39,8 @@ export type {
   RemoveCreditCardExpenseInput,
   SettleCreditCardExpenseInput,
   ChangeCreditCardExpenseCardInput,
+  UpdateCreditCardExpenseInput,
+  UpdateCreditCardExpenseFormInput,
   RemoveTransactionScope,
   SettleTransactionInput,
   TransactionFormKind,
@@ -90,6 +94,10 @@ export type ChangeCreditCardExpenseCardCommand = ChangeCreditCardExpenseCardInpu
   clerkUserId: string
 }
 
+export type UpdateCreditCardExpenseCommand = UpdateCreditCardExpenseInput & {
+  clerkUserId: string
+}
+
 export type TransactionMetric = {
   label: string
   valueCents: number
@@ -131,6 +139,8 @@ export type CreditCardInvoiceExpensePageItem = {
   title: string
   category: string
   cardName: string
+  occurredOn: string
+  invoiceMonth: string
   dateLabel: string
   amountCents: number
   isEffective: boolean

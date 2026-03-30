@@ -7,6 +7,7 @@ import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
 import { changeCreditCardExpenseCardUseCase } from "@/modules/transactions/application/change-credit-card-expense-card-use-case"
+import { updateCreditCardExpenseUseCase } from "@/modules/transactions/application/update-credit-card-expense-use-case"
 import { removeCreditCardExpenseUseCase } from "@/modules/transactions/application/remove-credit-card-expense-use-case"
 import { settleCreditCardExpenseUseCase } from "@/modules/transactions/application/settle-credit-card-expense-use-case"
 import { createTransactionUseCase } from "@/modules/transactions/application/create-transaction-use-case"
@@ -22,6 +23,7 @@ import {
   removeCreditCardExpenseInputSchema,
   settleCreditCardExpenseInputSchema,
   changeCreditCardExpenseCardInputSchema,
+  updateCreditCardExpenseFormSchema,
   settleTransactionInputSchema,
 } from "@/schemas/transactions.schemas"
 
@@ -63,6 +65,12 @@ export type SettleCreditCardExpenseActionState = {
 }
 
 export type ChangeCreditCardExpenseCardActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+  fieldErrors?: Record<string, string[] | undefined>
+}
+
+export type UpdateCreditCardExpenseActionState = {
   status: "idle" | "success" | "error"
   message?: string
   fieldErrors?: Record<string, string[] | undefined>
@@ -503,6 +511,65 @@ export async function changeCreditCardExpenseCardAction(
     return {
       status: "error",
       message: "Não foi possivel alterar o cartão agora.",
+    }
+  }
+}
+
+export async function updateCreditCardExpenseAction(
+  _previousState: UpdateCreditCardExpenseActionState,
+  formData: FormData
+): Promise<UpdateCreditCardExpenseActionState> {
+  const parsed = updateCreditCardExpenseFormSchema.safeParse({
+    expenseId: formData.get("expenseId"),
+    title: formData.get("title"),
+    category: formData.get("category"),
+    amount: formData.get("amount"),
+    occurredOn: formData.get("occurredOn"),
+    targetInvoiceMonth: formData.get("targetInvoiceMonth"),
+    notes: formData.get("notes"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Revise os campos obrigatórios.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await updateCreditCardExpenseUseCase({
+      clerkUserId,
+      expenseId: parsed.data.expenseId,
+      title: parsed.data.title,
+      category: parsed.data.category,
+      amountCents: parseCurrencyInputToCents(parsed.data.amount),
+      occurredOn: parsed.data.occurredOn,
+      targetInvoiceMonth: parsed.data.targetInvoiceMonth,
+      notes: parsed.data.notes,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/contas")
+    revalidatePath("/cartoes")
+
+    return {
+      status: "success",
+      message: "Lançamento atualizado com sucesso.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível atualizar o lançamento agora.",
     }
   }
 }

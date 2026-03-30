@@ -65,6 +65,7 @@ export const listCreditCardInvoiceExpensesSql = `
     e.card_id,
     c.nickname as card_name,
     e.invoice_transaction_id,
+    t.invoice_month::text as invoice_month,
     e.series_id,
     e.title,
     e.category,
@@ -77,6 +78,7 @@ export const listCreditCardInvoiceExpensesSql = `
     e.updated_at::text as updated_at
   from credit_card_expenses e
   inner join credit_cards c on c.id = e.card_id
+  inner join transactions t on t.id = e.invoice_transaction_id
   where e.clerk_user_id = $1
   order by e.occurred_on desc, e.created_at desc
 `
@@ -223,6 +225,7 @@ export const findCreditCardExpenseByIdForUpdateSql = `
     e.card_id,
     c.nickname as card_name,
     e.invoice_transaction_id,
+    t.invoice_month::text as invoice_month,
     e.series_id,
     e.title,
     e.category,
@@ -234,6 +237,7 @@ export const findCreditCardExpenseByIdForUpdateSql = `
     e.updated_at::text as updated_at
   from credit_card_expenses e
   inner join credit_cards c on c.id = e.card_id
+  inner join transactions t on t.id = e.invoice_transaction_id
   where e.clerk_user_id = $1
     and e.id = $2
   limit 1
@@ -246,6 +250,7 @@ export const listFutureCreditCardExpensesBySeriesForUpdateSql = `
     e.card_id,
     c.nickname as card_name,
     e.invoice_transaction_id,
+    t.invoice_month::text as invoice_month,
     e.series_id,
     e.title,
     e.category,
@@ -257,6 +262,7 @@ export const listFutureCreditCardExpensesBySeriesForUpdateSql = `
     e.updated_at::text as updated_at
   from credit_card_expenses e
   inner join credit_cards c on c.id = e.card_id
+  inner join transactions t on t.id = e.invoice_transaction_id
   where e.clerk_user_id = $1
     and e.series_id = $2
     and e.occurred_on >= $3::date
@@ -270,6 +276,7 @@ export const listCreditCardExpensesBySeriesForUpdateSql = `
     e.card_id,
     c.nickname as card_name,
     e.invoice_transaction_id,
+    t.invoice_month::text as invoice_month,
     e.series_id,
     e.title,
     e.category,
@@ -281,6 +288,7 @@ export const listCreditCardExpensesBySeriesForUpdateSql = `
     e.updated_at::text as updated_at
   from credit_card_expenses e
   inner join credit_cards c on c.id = e.card_id
+  inner join transactions t on t.id = e.invoice_transaction_id
   where e.clerk_user_id = $1
     and e.series_id = $2
   order by e.occurred_on asc, e.created_at asc
@@ -298,6 +306,21 @@ export const updateCreditCardExpenseCardSql = `
   set
     card_id = $3,
     invoice_transaction_id = $4,
+    updated_at = now()
+  where clerk_user_id = $1
+    and id = $2
+`
+
+export const updateCreditCardExpenseSql = `
+  update credit_card_expenses
+  set
+    invoice_transaction_id = $3,
+    title = $4,
+    category = $5,
+    category_id = $6,
+    amount_cents = $7,
+    occurred_on = $8::date,
+    notes = nullif($9, ''),
     updated_at = now()
   where clerk_user_id = $1
     and id = $2

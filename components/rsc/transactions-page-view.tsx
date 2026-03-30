@@ -251,6 +251,7 @@ export function TransactionsPageView({
                         statusClassName={statusTone(transaction.statusLabel)}
                         expenses={invoiceExpensesForTransaction}
                         cardOptions={creditCardOptions}
+                        categoryOptions={categoryOptions}
                       >
                         <div
                           role="button"
