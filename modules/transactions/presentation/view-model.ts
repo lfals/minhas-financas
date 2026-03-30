@@ -219,7 +219,7 @@ export function buildTransactionsPageData(
   const estimatedBalanceCents =
     totalAccountBalanceCents + previousPendingProjectedBalanceCents + projectedPendingBalanceCents
 
-  const selectedDate = options?.selectedDate ?? transactions[0]?.occurredOn ?? format(new Date(), "yyyy-MM-dd")
+  const selectedDate = options?.selectedDate ?? format(new Date(), "yyyy-MM-dd")
   const periodLabel = format(new Date(`${selectedDate}T00:00:00`), "MMMM yyyy", { locale: ptBR })
 
   const weekly = new Map<string, { label: string; incomeCents: number; expenseCents: number }>()

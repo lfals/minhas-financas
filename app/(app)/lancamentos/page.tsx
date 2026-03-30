@@ -49,8 +49,7 @@ async function getTransactionsPageState(selectedDateInput: string | null) {
       listTransactionsUseCase({ clerkUserId }),
       listTransactionCategoriesUseCase({ clerkUserId }),
     ])
-    const fallbackSelectedDate = transactions.transactions[0]?.occurredOn ?? getTodayIsoDate()
-    const selectedDate = selectedDateInput ?? fallbackSelectedDate
+    const selectedDate = selectedDateInput ?? getTodayIsoDate()
     const selectedMonth = selectedDate.slice(0, 7)
     const transactionsInMonth = transactions.transactions.filter((transaction) =>
       transaction.occurredOn.startsWith(selectedMonth)
