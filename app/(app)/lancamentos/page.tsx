@@ -105,7 +105,7 @@ export default async function TransactionsPage({
 
   if (state.error) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-0">
         <Card className="border border-white/10 bg-[#141414] ring-0">
           <CardHeader className="gap-3">
             <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">

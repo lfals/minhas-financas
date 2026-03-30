@@ -52,7 +52,7 @@ export function AppShell({
           />
         </header>
 
-        <div className="flex-1 py-5 sm:py-6">{children}</div>
+        <div className="flex-1">{children}</div>
       </div>
     </div>
   )

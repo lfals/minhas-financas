@@ -41,7 +41,7 @@ export function DashboardView({
   investments,
 }: DashboardData) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-0">
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="border border-white/10 bg-[#141414] ring-0">
           <CardHeader className="gap-4 sm:gap-5">
@@ -111,7 +111,7 @@ export function DashboardView({
         </Card>
       </section>
 
-      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-0 lg:grid-cols-4">
         {metrics.map((metric) => (
           <DashboardMetricCard key={metric.label} {...metric} />
         ))}

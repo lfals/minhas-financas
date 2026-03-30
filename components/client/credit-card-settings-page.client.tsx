@@ -255,8 +255,8 @@ export function CreditCardSettingsPage({
   )
 
   return (
-    <div className="space-y-6">
-      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
+    <div className="space-y-0">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-0 xl:grid-cols-3">
         <MetricCard label="Cartões ativos" value={String(pageData.activeCount)} icon={CreditCard} />
         <MetricCard label="Limite total" value={formatCents(pageData.totalLimitCents)} icon={Wallet} />
         <MetricCard

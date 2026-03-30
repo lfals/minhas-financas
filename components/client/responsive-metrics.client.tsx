@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 export function ResponsiveMetrics({
   children,
-  mobileItemClassName = "basis-[88%] pl-3",
+  mobileItemClassName = "basis-[90%] pl-0",
   gridClassName,
   className,
 }: {
@@ -19,10 +19,10 @@ export function ResponsiveMetrics({
   const items = React.Children.toArray(children)
 
   return (
-    <section className={cn("space-y-3", className)}>
+    <section className={className}>
       <div className="sm:hidden">
         <Carousel opts={{ align: "start" }} className="w-full">
-          <CarouselContent className="-ml-3">
+          <CarouselContent className="!-ml-0">
             {items.map((item, index) => (
               <CarouselItem key={index} className={mobileItemClassName}>
                 {item}
