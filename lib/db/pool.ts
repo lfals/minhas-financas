@@ -7,12 +7,27 @@ import { getServerEnv } from "@/lib/env/server"
 
 let pool: Pool | undefined
 
+function normalizeDatabaseUrl(connectionString: string) {
+  const normalizedUrl = new URL(connectionString)
+  const sslMode = normalizedUrl.searchParams.get("sslmode")
+
+  if (
+    sslMode === "prefer" ||
+    sslMode === "require" ||
+    sslMode === "verify-ca"
+  ) {
+    normalizedUrl.searchParams.set("sslmode", "verify-full")
+  }
+
+  return normalizedUrl.toString()
+}
+
 function getPool() {
   if (!pool) {
     const env = getServerEnv()
 
     pool = new Pool({
-      connectionString: env.DATABASE_URL,
+      connectionString: normalizeDatabaseUrl(env.DATABASE_URL),
       max: 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
