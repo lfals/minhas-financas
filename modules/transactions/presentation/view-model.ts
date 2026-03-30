@@ -104,6 +104,37 @@ function buildCategoryBreakdown(
     }))
 }
 
+function getTransactionDisplayGroup(transaction: TransactionListRecord) {
+  const isPending = transaction.status !== "compensated"
+  const isInvoice = transaction.sourceType === "credit_card_invoice"
+
+  if (transaction.kind === "income" && isPending) return 0
+  if (transaction.kind === "expense" && !isInvoice && isPending) return 1
+  if (transaction.kind === "expense" && isInvoice && isPending) return 2
+  if (transaction.kind === "income" && !isPending) return 3
+  if (transaction.kind === "expense" && !isInvoice && !isPending) return 4
+  return 5
+}
+
+function sortTransactionsForDisplay(transactions: TransactionListRecord[]) {
+  return [...transactions].sort((left, right) => {
+    const groupDifference =
+      getTransactionDisplayGroup(left) - getTransactionDisplayGroup(right)
+
+    if (groupDifference !== 0) {
+      return groupDifference
+    }
+
+    const occurredOnDifference = left.occurredOn.localeCompare(right.occurredOn)
+
+    if (occurredOnDifference !== 0) {
+      return occurredOnDifference
+    }
+
+    return left.createdAt.localeCompare(right.createdAt)
+  })
+}
+
 export function buildTransactionPageItem(
   transaction: TransactionListRecord
 ): TransactionPageItem {
@@ -219,6 +250,7 @@ export function buildTransactionsPageData(
   const estimatedBalanceCents =
     totalAccountBalanceCents + previousPendingProjectedBalanceCents + projectedPendingBalanceCents
 
+  const sortedTransactions = sortTransactionsForDisplay(transactions)
   const selectedDate = options?.selectedDate ?? format(new Date(), "yyyy-MM-dd")
   const periodLabel = format(new Date(`${selectedDate}T00:00:00`), "MMMM yyyy", { locale: ptBR })
 
@@ -286,7 +318,7 @@ export function buildTransactionsPageData(
         tone: estimatedBalanceCents >= 0 ? "income" : "expense",
       },
     ],
-    transactions: transactions.map((transaction) => {
+    transactions: sortedTransactions.map((transaction) => {
       const effectiveAmount = getEffectiveAmount(transaction)
       const item = buildTransactionPageItem(transaction)
 
