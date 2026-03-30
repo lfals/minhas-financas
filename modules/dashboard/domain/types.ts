@@ -1,63 +1,64 @@
-export type Metric = {
-  label: string
-  value: number
-  deltaLabel: string
-  trend: "up" | "down" | "neutral"
+export type DashboardFilterMode = "month" | "custom"
+
+export type DashboardFilter = {
+  mode: DashboardFilterMode
+  month: string
+  startDate: string
+  endDate: string
+  periodLabel: string
 }
 
-export type AccountSnapshot = {
+export type DashboardMetric = {
+  label: string
+  valueCents: number
+  detail: string
+  tone: "income" | "expense" | "neutral"
+}
+
+export type DashboardAccountSnapshot = {
   id: string
   name: string
-  type: string
-  balance: number
+  typeLabel: string
+  balanceCents: number
   tone: string
+  includeInNetWorth: boolean
 }
 
-export type TransactionSnapshot = {
+export type DashboardTransactionSnapshot = {
   id: string
   title: string
   category: string
   dateLabel: string
-  amount: number
+  amountCents: number
   kind: "income" | "expense"
 }
 
-export type ObligationSnapshot = {
+export type DashboardObligationSnapshot = {
   id: string
   title: string
   dueLabel: string
-  amount: number
-  status: string
+  amountCents: number
+  statusLabel: string
 }
 
-export type BudgetCategory = {
+export type DashboardCategorySnapshot = {
   id: string
   name: string
+  amountCents: number
   share: number
-  amount: number
 }
 
-export type InvestmentSnapshot = {
-  id: string
-  name: string
-  allocation: number
-  result: number
-}
-
-export type DashboardSnapshot = {
-  periodLabel: string
-  totalBalance: number
-  netWorth: number
-  monthlyYield: number
-  currentInvoice: number
+export type DashboardSummary = {
+  totalBalanceCents: number
+  netWorthBalanceCents: number
 }
 
 export type DashboardData = {
-  snapshot: DashboardSnapshot
-  metrics: Metric[]
-  accounts: AccountSnapshot[]
-  transactions: TransactionSnapshot[]
-  obligations: ObligationSnapshot[]
-  categories: BudgetCategory[]
-  investments: InvestmentSnapshot[]
+  filter: DashboardFilter
+  summary: DashboardSummary
+  metrics: DashboardMetric[]
+  accounts: DashboardAccountSnapshot[]
+  transactions: DashboardTransactionSnapshot[]
+  obligations: DashboardObligationSnapshot[]
+  categories: DashboardCategorySnapshot[]
 }

@@ -1,117 +1,99 @@
-import { ArrowUpRight, Receipt, ShieldCheck, TrendingUp } from "lucide-react"
-
-import { Badge } from "@/components/ui/badge"
+import { DashboardPeriodControls } from "@/components/client/dashboard-period-controls.client"
 import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { formatCompactCurrency, formatCurrency, formatPercent } from "@/lib/formatters"
+import { formatCompactCurrency, formatCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import type { DashboardData } from "@/modules/dashboard/domain/types"
-import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 
-function metricTone(trend: DashboardData["metrics"][number]["trend"]) {
-  if (trend === "up") return "text-[#d8f36a]"
-  if (trend === "down") return "text-[#ff9c7a]"
+function metricTone(tone: DashboardData["metrics"][number]["tone"]) {
+  if (tone === "income") return "text-[#d8f36a]"
+  if (tone === "expense") return "text-[#ff9c7a]"
   return "text-white"
 }
 
 function DashboardMetricCard({
   label,
-  value,
-  trend,
-  deltaLabel,
+  valueCents,
+  tone,
+  detail,
 }: DashboardData["metrics"][number]) {
   return (
     <SummaryMetricCard
       label={label}
-      value={formatCompactCurrency(value)}
-      detail={deltaLabel}
-      valueClassName={metricTone(trend)}
+      value={formatCompactCurrency(valueCents / 100)}
+      detail={detail}
+      valueClassName={metricTone(tone)}
     />
   )
 }
 
 export function DashboardView({
-  snapshot,
+  filter,
+  summary,
   metrics,
   accounts,
   transactions,
   obligations,
   categories,
-  investments,
 }: DashboardData) {
   return (
     <div className="space-y-0">
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <Card className="border border-white/10 bg-[#141414] ring-0">
           <CardHeader className="gap-4 sm:gap-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/50">
-                  Dashboard
-                </CardDescription>
-                <CardTitle className="mt-3 max-w-3xl text-3xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-4xl lg:text-5xl">
-                  Visão consolidada da sua vida financeira.
-                </CardTitle>
+            <div className="flex flex-col gap-4 sm:gap-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/50">
+                    Dashboard
+                  </CardDescription>
+                  <CardTitle className="mt-3 max-w-3xl text-3xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-4xl lg:text-5xl">
+                    Visão consolidada da sua vida financeira.
+                  </CardTitle>
+                </div>
+                <Badge className="w-fit bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-black">
+                  {filter.periodLabel}
+                </Badge>
               </div>
-              <Badge className="w-fit bg-[#d8f36a] px-3 py-1 text-[11px] uppercase tracking-[0.25em] text-black">
-                {snapshot.periodLabel}
-              </Badge>
+              <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
+                Acompanhe saldos, pendências e movimentações com o mesmo filtro de período em
+                toda a página.
+              </p>
             </div>
-            <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
-              Acompanhe saldos, contas a pagar, movimentações e investimentos em uma leitura
-              rápida do período.
-            </p>
           </CardHeader>
         </Card>
 
         <Card className="border border-black bg-black text-[#f7f3ea] ring-0">
-          <CardHeader className="gap-2 sm:gap-3">
-            <CardDescription className="text-[10px] uppercase tracking-[0.24em] text-white/55 sm:text-[11px] sm:tracking-[0.35em]">
-              Resumo do período
-            </CardDescription>
-            <CardTitle className="text-[2rem] leading-none font-semibold tracking-[-0.08em] sm:text-4xl">
-              {formatCompactCurrency(snapshot.totalBalance)}
-            </CardTitle>
+          <CardHeader className="gap-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardDescription className="text-[10px] uppercase tracking-[0.24em] text-white/55 sm:text-[11px] sm:tracking-[0.35em]">
+                  Filtro do período
+                </CardDescription>
+                <CardTitle className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.08em] sm:text-4xl">
+                  {filter.mode === "month" ? "Mensal" : "Personalizado"}
+                </CardTitle>
+              </div>
+            </div>
+            <DashboardPeriodControls filter={filter} />
           </CardHeader>
           <CardContent className="grid gap-3 pt-0 sm:gap-4">
-            <ResponsiveMetrics
-              mobileItemClassName="basis-[84%] pl-3"
-              gridClassName="sm:grid-cols-2 sm:gap-3"
-            >
-              <div className="border border-white/10 bg-white/5 p-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 sm:text-[11px] sm:tracking-[0.28em]">
-                  Patrimônio
-                </p>
-                <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
-                  {formatCompactCurrency(snapshot.netWorth)}
-                </p>
-              </div>
-              <div className="border border-white/10 bg-white/5 p-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 sm:text-[11px] sm:tracking-[0.28em]">
-                  Fatura atual
-                </p>
-                <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
-                  {formatCompactCurrency(snapshot.currentInvoice)}
-                </p>
-              </div>
-            </ResponsiveMetrics>
-            <div className="border border-[#d8f36a]/20 bg-[#d8f36a] p-3 text-black sm:p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-black/60 sm:text-[11px] sm:tracking-[0.28em]">
-                  Rentabilidade mensal
-                </p>
-                <TrendingUp className="size-4" />
-              </div>
-              <p className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.08em] sm:text-4xl">
-                {formatPercent(snapshot.monthlyYield)}
+            <div className="border border-white/10 bg-white/5 p-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 sm:text-[11px] sm:tracking-[0.28em]">
+                Intervalo aplicado
+              </p>
+              <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
+                {filter.periodLabel}
               </p>
             </div>
           </CardContent>
         </Card>
       </section>
 
-      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-0 lg:grid-cols-4">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-0 xl:grid-cols-5">
         {metrics.map((metric) => (
           <DashboardMetricCard key={metric.label} {...metric} />
         ))}
@@ -119,6 +101,19 @@ export function DashboardView({
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
+          <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-0">
+            <SummaryMetricCard
+              label="Saldo consolidado"
+              value={formatCompactCurrency(summary.totalBalanceCents / 100)}
+              detail="Saldo atual de todas as contas ativas"
+            />
+            <SummaryMetricCard
+              label="Patrimônio elegível"
+              value={formatCompactCurrency(summary.netWorthBalanceCents / 100)}
+              detail="Soma das contas marcadas para patrimônio"
+            />
+          </ResponsiveMetrics>
+
           <Card className="border border-white/10 bg-[#171717] ring-0">
             <CardHeader className="gap-3">
               <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
@@ -129,20 +124,39 @@ export function DashboardView({
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 pt-0 md:grid-cols-2">
-              {accounts.map((account) => (
-                <div key={account.id} className="border border-white/10 bg-[#121212] p-4">
-                  <div className={cn("h-2 w-20", account.tone)} />
-                  <p className="mt-4 text-[11px] uppercase tracking-[0.28em] text-white/45">
-                    {account.type}
-                  </p>
-                  <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
-                    {account.name}
-                  </p>
-                  <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
-                    {formatCurrency(account.balance)}
-                  </p>
+              {accounts.length ? (
+                accounts.map((account) => (
+                  <div key={account.id} className="border border-white/10 bg-[#121212] p-4">
+                    <div className={cn("h-2 w-20", account.tone)} />
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
+                        {account.typeLabel}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "px-2 text-[10px] uppercase tracking-[0.16em]",
+                          account.includeInNetWorth
+                            ? "border-[#d8f36a]/25 bg-[#d8f36a]/10 text-[#d8f36a]"
+                            : "border-white/10 bg-transparent text-white/45"
+                        )}
+                      >
+                        {account.includeInNetWorth ? "Patrimônio" : "Fora do patrimônio"}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-xl font-semibold tracking-[-0.06em] text-white sm:text-2xl">
+                      {account.name}
+                    </p>
+                    <p className="mt-4 text-3xl font-semibold tracking-[-0.06em] text-white">
+                      {formatCurrency(account.balanceCents / 100)}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60 md:col-span-2">
+                  Nenhuma conta cadastrada ainda.
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -152,34 +166,40 @@ export function DashboardView({
                 Lançamentos
               </CardDescription>
               <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] sm:text-3xl">
-                Movimentações recentes.
+                Movimentações do período.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              {transactions.map((transaction, index) => (
-                <div key={transaction.id}>
-                  <div className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
-                        {transaction.title}
-                      </p>
-                      <p className="text-sm leading-6 text-white/55">
-                        {transaction.category} • {transaction.dateLabel}
+              {transactions.length ? (
+                transactions.map((transaction, index) => (
+                  <div key={transaction.id}>
+                    <div className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
+                          {transaction.title}
+                        </p>
+                        <p className="text-sm leading-6 text-white/55">
+                          {transaction.category} • {transaction.dateLabel}
+                        </p>
+                      </div>
+                      <p
+                        className={cn(
+                          "text-lg font-semibold tracking-[-0.05em]",
+                          transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
+                        )}
+                      >
+                        {transaction.kind === "income" ? "+" : "-"}
+                        {formatCurrency(transaction.amountCents / 100)}
                       </p>
                     </div>
-                    <p
-                      className={cn(
-                        "text-lg font-semibold tracking-[-0.05em]",
-                        transaction.kind === "income" ? "text-[#d8f36a]" : "text-[#ff9c7a]"
-                      )}
-                    >
-                      {transaction.amount > 0 ? "+" : "-"}
-                      {formatCurrency(Math.abs(transaction.amount))}
-                    </p>
+                    {index < transactions.length - 1 ? <Separator className="bg-white/10" /> : null}
                   </div>
-                  {index < transactions.length - 1 ? <Separator className="bg-white/10" /> : null}
+                ))
+              ) : (
+                <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
+                  Nenhuma movimentação encontrada no período selecionado.
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -191,31 +211,37 @@ export function DashboardView({
                 Obrigações
               </CardDescription>
               <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
-                Compromissos financeiros do ciclo.
+                Compromissos do período.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
-              {obligations.map((obligation, index) => (
-                <div key={obligation.id}>
-                  <div className="grid gap-2 py-2 sm:grid-cols-[1fr_auto] sm:gap-4">
-                    <div>
-                      <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
-                        {obligation.title}
-                      </p>
-                      <p className="text-sm text-white/55">{obligation.status}</p>
+              {obligations.length ? (
+                obligations.map((obligation, index) => (
+                  <div key={obligation.id}>
+                    <div className="grid gap-2 py-2 sm:grid-cols-[1fr_auto] sm:gap-4">
+                      <div>
+                        <p className="text-sm leading-6 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
+                          {obligation.title}
+                        </p>
+                        <p className="text-sm text-white/55">{obligation.statusLabel}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
+                          {obligation.dueLabel}
+                        </p>
+                        <p className="mt-1 text-lg font-semibold tracking-[-0.05em] text-white">
+                          {formatCurrency(obligation.amountCents / 100)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[11px] uppercase tracking-[0.25em] text-white/45">
-                        {obligation.dueLabel}
-                      </p>
-                      <p className="mt-1 text-lg font-semibold tracking-[-0.05em] text-white">
-                        {formatCurrency(obligation.amount)}
-                      </p>
-                    </div>
+                    {index < obligations.length - 1 ? <Separator className="bg-white/10" /> : null}
                   </div>
-                  {index < obligations.length - 1 ? <Separator className="bg-white/10" /> : null}
+                ))
+              ) : (
+                <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
+                  Nenhuma obrigação pendente dentro do período selecionado.
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -225,102 +251,36 @@ export function DashboardView({
                 Gastos
               </CardDescription>
               <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
-                Distribuição do mês por categoria.
+                Distribuição do período por categoria.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-0">
-              {categories.map((category) => (
-                <div key={category.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-4 text-sm">
-                    <span className="min-w-0 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
-                      {category.name}
-                    </span>
-                    <span className="text-white/55">{formatCurrency(category.amount)}</span>
-                  </div>
-                  <div className="h-3 border border-white/10 bg-white/5">
-                    <div className="h-full bg-[#d8f36a]" style={{ width: `${category.share}%` }} />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="border border-white/10 bg-[#171717] ring-0">
-            <CardHeader className="gap-3">
-              <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                Patrimônio
-              </CardDescription>
-              <CardTitle className="text-2xl font-semibold uppercase tracking-[-0.06em] text-white sm:text-3xl">
-                Alocação consolidada e desempenho.
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-0">
-              {investments.map((investment) => (
-                <div key={investment.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="min-w-0 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
-                      {investment.name}
-                    </span>
-                    <span className={cn(investment.result >= 0 ? "text-[#d8f36a]" : "text-[#ff9c7a]")}>
-                      {formatPercent(investment.result)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 flex-1 border border-white/10 bg-white/5">
-                      <div
-                        className="h-full bg-[#c4f1ff]"
-                        style={{ width: `${investment.allocation}%` }}
-                      />
+              {categories.length ? (
+                categories.map((category) => (
+                  <div key={category.id} className="space-y-2">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="min-w-0 uppercase tracking-[0.16em] text-white sm:tracking-[0.18em]">
+                        {category.name}
+                      </span>
+                      <span className="text-white/55">
+                        {formatCurrency(category.amountCents / 100)}
+                      </span>
                     </div>
-                    <span className="w-12 text-right text-sm text-white/55">
-                      {investment.allocation}%
-                    </span>
+                    <div className="h-3 border border-white/10 bg-white/5">
+                      <div className="h-full bg-[#d8f36a]" style={{ width: `${category.share}%` }} />
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="border border-dashed border-white/10 bg-[#121212] p-6 text-sm leading-7 text-white/60">
+                  Sem despesas categorizadas no período selecionado.
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <Card className="border border-white/10 bg-[#131313] ring-0">
-          <CardHeader className="gap-3">
-            <ShieldCheck className="size-5 text-[#d8f36a]" />
-            <CardTitle className="text-xl uppercase tracking-[-0.05em] text-white">
-              Leitura clara do panorama
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-sm leading-7 text-white/60">
-            Veja rapidamente quanto entrou, quanto saiu e como está a distribuição do seu
-            dinheiro.
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-[#131313] ring-0">
-          <CardHeader className="gap-3">
-            <Receipt className="size-5 text-[#d8f36a]" />
-            <CardTitle className="text-xl uppercase tracking-[-0.05em] text-white">
-              Movimentações organizadas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-sm leading-7 text-white/60">
-            Entradas, saídas e compromissos aparecem separados para facilitar a leitura do
-            que já aconteceu e do que ainda vem pela frente.
-          </CardContent>
-        </Card>
-        <Card className="border border-white/10 bg-[#131313] ring-0">
-          <CardHeader className="gap-3">
-            <ArrowUpRight className="size-5 text-[#d8f36a]" />
-            <CardTitle className="text-xl uppercase tracking-[-0.05em] text-white">
-              Decisão com mais contexto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 text-sm leading-7 text-white/60">
-            Use o painel para antecipar vencimentos, acompanhar resultados e agir com mais
-            segurança no dia a dia.
-          </CardContent>
-        </Card>
-      </section>
     </div>
   )
 }
