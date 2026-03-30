@@ -3,10 +3,12 @@ import { Landmark, PiggyBank, Wallet } from "lucide-react"
 import { AccountEditDialog } from "@/components/client/account-edit-dialog.client"
 import { AccountCreateDialog } from "@/components/client/account-create-dialog.client"
 import { AccountRemoveButton } from "@/components/client/account-remove-button.client"
+import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCents } from "@/lib/money"
 import type { AccountsPageData } from "@/modules/accounts/domain/types"
 import { cn } from "@/lib/utils"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 
 function MetricCard({
   label,
@@ -17,27 +19,13 @@ function MetricCard({
   value: string
   icon: typeof Landmark
 }) {
-  return (
-    <Card className="border border-white/10 bg-[#151515] ring-0">
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-            {label}
-          </CardDescription>
-          <Icon className="size-4 text-white/55" />
-        </div>
-        <CardTitle className="text-3xl font-semibold tracking-[-0.06em] text-white">
-          {value}
-        </CardTitle>
-      </CardHeader>
-    </Card>
-  )
+  return <SummaryMetricCard label={label} value={value} icon={Icon} />
 }
 
 export function AccountsPageView({ data }: { data: AccountsPageData }) {
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
         <MetricCard
           label="Saldo consolidado"
           value={formatCents(data.totalBalanceCents)}
@@ -53,7 +41,7 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
           value={String(data.activeCount)}
           icon={Landmark}
         />
-      </section>
+      </ResponsiveMetrics>
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">

@@ -1,16 +1,34 @@
 import { ArrowUpRight, Receipt, ShieldCheck, TrendingUp } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { formatCompactCurrency, formatCurrency, formatPercent } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import type { DashboardData } from "@/modules/dashboard/domain/types"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 
 function metricTone(trend: DashboardData["metrics"][number]["trend"]) {
   if (trend === "up") return "text-[#d8f36a]"
   if (trend === "down") return "text-[#ff9c7a]"
   return "text-white"
+}
+
+function DashboardMetricCard({
+  label,
+  value,
+  trend,
+  deltaLabel,
+}: DashboardData["metrics"][number]) {
+  return (
+    <SummaryMetricCard
+      label={label}
+      value={formatCompactCurrency(value)}
+      detail={deltaLabel}
+      valueClassName={metricTone(trend)}
+    />
+  )
 }
 
 export function DashboardView({
@@ -48,41 +66,44 @@ export function DashboardView({
         </Card>
 
         <Card className="border border-black bg-black text-[#f7f3ea] ring-0">
-            <CardHeader className="gap-3">
-              <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/55">
-                Resumo do período
-              </CardDescription>
-            <CardTitle className="text-4xl font-semibold tracking-[-0.08em]">
+          <CardHeader className="gap-2 sm:gap-3">
+            <CardDescription className="text-[10px] uppercase tracking-[0.24em] text-white/55 sm:text-[11px] sm:tracking-[0.35em]">
+              Resumo do período
+            </CardDescription>
+            <CardTitle className="text-[2rem] leading-none font-semibold tracking-[-0.08em] sm:text-4xl">
               {formatCompactCurrency(snapshot.totalBalance)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 pt-0">
-            <div className="grid gap-3 sm:grid-cols-2">
+          <CardContent className="grid gap-3 pt-0 sm:gap-4">
+            <ResponsiveMetrics
+              mobileItemClassName="basis-[84%] pl-3"
+              gridClassName="sm:grid-cols-2 sm:gap-3"
+            >
               <div className="border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 sm:text-[11px] sm:tracking-[0.28em]">
                   Patrimônio
                 </p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.06em]">
+                <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
                   {formatCompactCurrency(snapshot.netWorth)}
                 </p>
               </div>
               <div className="border border-white/10 bg-white/5 p-3">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-white/50">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 sm:text-[11px] sm:tracking-[0.28em]">
                   Fatura atual
                 </p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.06em]">
+                <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
                   {formatCompactCurrency(snapshot.currentInvoice)}
                 </p>
               </div>
-            </div>
-            <div className="border border-[#d8f36a]/20 bg-[#d8f36a] p-4 text-black">
+            </ResponsiveMetrics>
+            <div className="border border-[#d8f36a]/20 bg-[#d8f36a] p-3 text-black sm:p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] uppercase tracking-[0.28em] text-black/60">
+                <p className="text-[10px] uppercase tracking-[0.22em] text-black/60 sm:text-[11px] sm:tracking-[0.28em]">
                   Rentabilidade mensal
                 </p>
                 <TrendingUp className="size-4" />
               </div>
-              <p className="mt-2 text-4xl font-semibold tracking-[-0.08em]">
+              <p className="mt-2 text-[2rem] leading-none font-semibold tracking-[-0.08em] sm:text-4xl">
                 {formatPercent(snapshot.monthlyYield)}
               </p>
             </div>
@@ -90,26 +111,11 @@ export function DashboardView({
         </Card>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-4">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <Card key={metric.label} className="border border-white/10 bg-[#151515] ring-0">
-            <CardHeader className="gap-3">
-              <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                {metric.label}
-              </CardDescription>
-              <CardTitle
-                className={cn(
-                  "text-[1.75rem] font-semibold tracking-[-0.06em] sm:text-3xl",
-                  metricTone(metric.trend)
-                )}
-              >
-                {formatCompactCurrency(metric.value)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 text-sm text-white/60">{metric.deltaLabel}</CardContent>
-          </Card>
+          <DashboardMetricCard key={metric.label} {...metric} />
         ))}
-      </section>
+      </ResponsiveMetrics>
 
       <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">

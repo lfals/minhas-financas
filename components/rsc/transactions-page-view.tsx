@@ -10,10 +10,12 @@ import { TransactionRemoveButton } from "@/components/client/transaction-remove-
 import { TransactionsPeriodControls } from "@/components/client/transactions-period-controls.client"
 import { TransactionSettleButton } from "@/components/client/transaction-settle-button.client"
 import { TransactionListItem } from "@/components/transaction-list-item"
+import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCompactCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 import type {
   TransactionAccountOption,
   TransactionPageItem,
@@ -78,6 +80,22 @@ function isCreditCardInvoiceTransaction(
   return transaction.category === "Cartão de crédito" && transaction.title.startsWith("Fatura ")
 }
 
+function TransactionsMetricCard({
+  label,
+  valueCents,
+  tone,
+  detail,
+}: TransactionsPageData["metrics"][number]) {
+  return (
+    <SummaryMetricCard
+      label={label}
+      value={formatCompactCurrency(valueCents / 100)}
+      detail={detail}
+      valueClassName={metricToneClass(tone)}
+    />
+  )
+}
+
 export function TransactionsPageView({
   summary,
   metrics,
@@ -124,21 +142,11 @@ export function TransactionsPageView({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 xl:grid-cols-5">
         {metrics.map((metric) => (
-          <Card key={metric.label} className="border border-white/10 bg-[#151515] ring-0">
-            <CardHeader className="gap-3">
-              <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-                {metric.label}
-              </CardDescription>
-              <CardTitle className={cn("text-3xl font-semibold tracking-[-0.06em]", metricToneClass(metric.tone))}>
-                {formatCompactCurrency(metric.valueCents / 100)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 text-sm text-white/60">{metric.detail}</CardContent>
-          </Card>
+          <TransactionsMetricCard key={metric.label} {...metric} />
         ))}
-      </section>
+      </ResponsiveMetrics>
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">

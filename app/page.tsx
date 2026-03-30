@@ -8,6 +8,8 @@ import {
   Wallet,
 } from "lucide-react"
 
+import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -116,17 +118,12 @@ function MetricCard({
   detail: string
 }) {
   return (
-    <Card className="border border-black/10 bg-black text-[#f7f3ea] ring-0">
-      <CardHeader className="gap-3">
-        <CardDescription className="text-[11px] uppercase tracking-[0.28em] text-white/60">
-          {label}
-        </CardDescription>
-        <CardTitle className="text-3xl font-semibold tracking-[-0.06em] sm:text-4xl">
-          {value}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 text-white/65">{detail}</CardContent>
-    </Card>
+    <SummaryMetricCard
+      label={label}
+      value={value}
+      detail={detail}
+      className="border border-black/10 bg-black text-[#f7f3ea]"
+    />
   )
 }
 
@@ -234,24 +231,27 @@ export default function Page() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 pb-6">
-                <div className="grid grid-cols-2 gap-3 text-white">
-                  <div className="border border-white/10 bg-white/5 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-white/55">
+                <ResponsiveMetrics
+                  mobileItemClassName="basis-[84%] pl-3"
+                  gridClassName="grid-cols-2 gap-3"
+                >
+                  <div className="border border-white/10 bg-white/5 p-3 text-white">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-white/55 sm:text-[11px] sm:tracking-[0.28em]">
                       Saldo total
                     </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.06em]">
+                    <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
                       {formatCurrency(snapshot.totalBalance)}
                     </p>
                   </div>
-                  <div className="border border-white/10 bg-white/5 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.28em] text-white/55">
+                  <div className="border border-white/10 bg-white/5 p-3 text-white">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-white/55 sm:text-[11px] sm:tracking-[0.28em]">
                       Patrimônio
                     </p>
-                    <p className="mt-2 text-2xl font-semibold tracking-[-0.06em]">
+                    <p className="mt-2 text-xl leading-none font-semibold tracking-[-0.06em] sm:text-2xl">
                       {formatCurrency(snapshot.netWorth)}
                     </p>
                   </div>
-                </div>
+                </ResponsiveMetrics>
                 <div className="border border-[#d8f36a]/20 bg-[#d8f36a] p-4 text-black">
                   <div className="flex items-center justify-between gap-4">
                     <p className="text-[11px] uppercase tracking-[0.28em] text-black/60">
@@ -272,7 +272,10 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-4 px-6 py-6 sm:px-8 lg:grid-cols-4 lg:px-12">
+      <ResponsiveMetrics
+        className="mx-auto max-w-7xl px-6 py-6 sm:px-8 lg:px-12"
+        gridClassName="sm:grid-cols-2 sm:gap-4 lg:grid-cols-4"
+      >
         <MetricCard
           label="Entradas do mês"
           value={formatCurrency(snapshot.monthlyIncome)}
@@ -293,7 +296,7 @@ export default function Page() {
           value={formatCurrency(1840)}
           detail="Dividendos, JCP, FIIs e eventos patrimoniais recebidos."
         />
-      </section>
+      </ResponsiveMetrics>
 
       <section id="modulos" className="border-y border-white/10 bg-[#151515]">
         <div className="mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:px-8 lg:grid-cols-[0.7fr_1.3fr] lg:px-12">

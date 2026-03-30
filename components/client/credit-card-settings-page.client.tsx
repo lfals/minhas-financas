@@ -6,6 +6,8 @@ import { useMemo, useState } from "react"
 import { CreditCardCreateDialog } from "@/components/client/credit-card-create-dialog.client"
 import { CreditCardEditDialog } from "@/components/client/credit-card-edit-dialog.client"
 import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
+import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
+import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -228,21 +230,7 @@ function MetricCard({
   value: string
   icon: typeof CreditCard
 }) {
-  return (
-    <Card className="border border-white/10 bg-[#151515] ring-0">
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardDescription className="text-[11px] uppercase tracking-[0.3em] text-white/55">
-            {label}
-          </CardDescription>
-          <Icon className="size-4 text-white/55" />
-        </div>
-        <CardTitle className="text-3xl font-semibold tracking-[-0.06em] text-white">
-          {value}
-        </CardTitle>
-      </CardHeader>
-    </Card>
-  )
+  return <SummaryMetricCard label={label} value={value} icon={Icon} />
 }
 
 export function CreditCardSettingsPage({
@@ -268,7 +256,7 @@ export function CreditCardSettingsPage({
 
   return (
     <div className="space-y-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ResponsiveMetrics gridClassName="sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
         <MetricCard label="Cartões ativos" value={String(pageData.activeCount)} icon={CreditCard} />
         <MetricCard label="Limite total" value={formatCents(pageData.totalLimitCents)} icon={Wallet} />
         <MetricCard
@@ -276,7 +264,7 @@ export function CreditCardSettingsPage({
           value={formatCents(pageData.availableLimitCents)}
           icon={CalendarClock}
         />
-      </section>
+      </ResponsiveMetrics>
 
       <section>
         <Card className="border border-white/10 bg-[#171717] ring-0">
