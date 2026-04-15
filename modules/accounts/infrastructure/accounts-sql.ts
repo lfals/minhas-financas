@@ -4,9 +4,9 @@ const accountColumns = `
   name,
   type,
   currency_code,
-  initial_balance_cents::text as initial_balance_cents,
+  initial_balance_cents as initial_balance_cents,
   (
-    initial_balance_cents::bigint +
+    initial_balance_cents +
     coalesce(
       (
         select sum(
@@ -21,19 +21,19 @@ const accountColumns = `
       ),
       0
     )
-  )::text as current_balance_cents,
+  ) as current_balance_cents,
   include_in_net_worth,
   is_archived,
   display_order,
-  created_at::text as created_at,
-  updated_at::text as updated_at
+  created_at as created_at,
+  updated_at as updated_at
 `
 
 export const listAccountsSql = `
   select
     ${accountColumns}
   from accounts a
-  where clerk_user_id = $1
+  where clerk_user_id = ?1
     and is_archived = false
   order by display_order asc, created_at asc
 `
@@ -42,7 +42,7 @@ export const listAllAccountsSql = `
   select
     ${accountColumns}
   from accounts a
-  where clerk_user_id = $1
+  where clerk_user_id = ?1
   order by display_order asc, created_at asc
 `
 
@@ -53,16 +53,16 @@ export const findAccountByNameSql = `
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
   from accounts
-  where clerk_user_id = $1
-    and lower(name) = lower($2)
+  where clerk_user_id = ?1
+    and lower(name) = lower(?2)
   limit 1
 `
 
@@ -73,16 +73,16 @@ export const findAccountByClientRequestSql = `
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
   from accounts
-  where clerk_user_id = $1
-    and client_request_id = $2
+  where clerk_user_id = ?1
+    and client_request_id = ?2
   limit 1
 `
 
@@ -93,21 +93,22 @@ export const findAccountByIdSql = `
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
   from accounts
-  where clerk_user_id = $1
-    and id = $2
+  where clerk_user_id = ?1
+    and id = ?2
   limit 1
 `
 
 export const insertAccountSql = `
   insert into accounts (
+    id,
     clerk_user_id,
     client_request_id,
     name,
@@ -117,29 +118,29 @@ export const insertAccountSql = `
     current_balance_cents,
     include_in_net_worth,
     display_order
-  ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  ) values (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-a' || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))), ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
   returning
     id,
     clerk_user_id,
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
 `
 
 export const archiveAccountSql = `
   update accounts
   set
     is_archived = true,
-    updated_at = now()
-  where clerk_user_id = $1
-    and id = $2
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and id = ?2
     and is_archived = false
   returning
     id,
@@ -147,26 +148,26 @@ export const archiveAccountSql = `
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
 `
 
 export const updateAccountSql = `
   update accounts
   set
-    name = $3,
-    type = $4,
-    initial_balance_cents = $5,
-    current_balance_cents = current_balance_cents + $5 - initial_balance_cents,
-    include_in_net_worth = $6,
-    updated_at = now()
-  where clerk_user_id = $1
-    and id = $2
+    name = ?3,
+    type = ?4,
+    initial_balance_cents = ?5,
+    current_balance_cents = current_balance_cents + ?5 - initial_balance_cents,
+    include_in_net_worth = ?6,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and id = ?2
     and is_archived = false
   returning
     id,
@@ -174,17 +175,18 @@ export const updateAccountSql = `
     name,
     type,
     currency_code,
-    initial_balance_cents::text as initial_balance_cents,
-    current_balance_cents::text as current_balance_cents,
+    initial_balance_cents as initial_balance_cents,
+    current_balance_cents as current_balance_cents,
     include_in_net_worth,
     is_archived,
     display_order,
-    created_at::text as created_at,
-    updated_at::text as updated_at
+    created_at as created_at,
+    updated_at as updated_at
 `
 
 export const insertAuditLogSql = `
   insert into audit_log (
+    id,
     clerk_user_id,
     actor_type,
     action,
@@ -194,5 +196,5 @@ export const insertAuditLogSql = `
     after,
     request_id,
     idempotency_key
-  ) values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, $8, $9)
+  ) values (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-a' || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))), ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
 `

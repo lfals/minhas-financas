@@ -1,9 +1,8 @@
 import "server-only"
 
-import type { PoolClient } from "pg"
-
 import { queryDb } from "@/lib/db/pool"
 import { withTransaction } from "@/lib/db/tx"
+import type { DatabaseClient } from "@/lib/db/types"
 import type {
   AccountRecord,
   ArchiveAccountCommand,
@@ -49,8 +48,8 @@ function mapAccountRow(row: DbAccountRow): AccountRecord {
     currencyCode: row.currency_code,
     initialBalanceCents: row.initial_balance_cents,
     currentBalanceCents: row.current_balance_cents,
-    includeInNetWorth: row.include_in_net_worth,
-    isArchived: row.is_archived,
+    includeInNetWorth: Boolean(row.include_in_net_worth),
+    isArchived: Boolean(row.is_archived),
     displayOrder: row.display_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -58,7 +57,7 @@ function mapAccountRow(row: DbAccountRow): AccountRecord {
 }
 
 async function queryOne(
-  client: PoolClient,
+  client: DatabaseClient,
   text: string,
   params: readonly unknown[]
 ) {

@@ -1,11 +1,11 @@
 import "server-only"
 
 import { randomUUID } from "node:crypto"
-import type { PoolClient } from "pg"
 
 import { queryDb } from "@/lib/db/pool"
 import { withTransaction } from "@/lib/db/tx"
 import { NotFoundAppError, ValidationAppError } from "@/lib/errors/app-error"
+import type { DatabaseClient } from "@/lib/db/types"
 import type {
   CreditCardInvoiceExpenseRecord,
   CreateCreditCardExpenseCommand,
@@ -148,7 +148,7 @@ function mapTransactionRow(row: DbTransactionRow): TransactionRecord {
     creditCardId: row.credit_card_id,
     invoiceMonth: row.invoice_month,
     seriesId: row.series_id,
-    isFixed: row.is_fixed,
+    isFixed: Boolean(row.is_fixed),
     fixedExpenseFrequency: row.fixed_expense_frequency,
     installmentNumber: row.installment_number,
     installmentTotal: row.installment_total,
@@ -191,7 +191,7 @@ function mapCreditCardInvoiceExpenseRow(
     category: row.category,
     amountCents: row.amount_cents,
     occurredOn: row.occurred_on,
-    isEffective: row.is_effective,
+    isEffective: Boolean(row.is_effective),
     installmentNumber: installmentMatch ? Number(installmentMatch[1]) : null,
     installmentTotal: installmentMatch ? Number(installmentMatch[2]) : null,
     notes: row.notes,
@@ -383,7 +383,7 @@ function buildCreditCardExpenseTitle(
 }
 
 async function removeAmountFromCreditCardInvoice(
-  client: PoolClient,
+  client: DatabaseClient,
   clerkUserId: string,
   invoiceTransactionId: string,
   removedAmountCents: number,
@@ -521,7 +521,7 @@ async function removeAmountFromCreditCardInvoice(
 }
 
 async function addAmountToCreditCardInvoice(
-  client: PoolClient,
+  client: DatabaseClient,
   clerkUserId: string,
   card: DbCreditCardExpenseRow,
   invoiceMonth: string,
@@ -611,18 +611,18 @@ async function addAmountToCreditCardInvoice(
   return insertedTransaction
 }
 
-async function queryOne(client: PoolClient, text: string, params: readonly unknown[]) {
+async function queryOne(client: DatabaseClient, text: string, params: readonly unknown[]) {
   const result = await client.query<DbTransactionRow>(text, params as unknown[])
   return result.rows[0] ? mapTransactionRow(result.rows[0]) : null
 }
 
-async function queryMany(client: PoolClient, text: string, params: readonly unknown[]) {
+async function queryMany(client: DatabaseClient, text: string, params: readonly unknown[]) {
   const result = await client.query<DbTransactionRow>(text, params as unknown[])
   return result.rows.map(mapTransactionRow)
 }
 
 async function resolveTransactionCategoryId(
-  client: PoolClient,
+  client: DatabaseClient,
   clerkUserId: string,
   category: string
 ) {
@@ -659,7 +659,7 @@ async function resolveTransactionCategoryId(
 const CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE = "__credit_card_invoice_settlement_adjustment__"
 
 async function syncCreditCardInvoiceSettlementAdjustment(
-  client: PoolClient,
+  client: DatabaseClient,
   transaction: TransactionRecord,
   adjustedAmountCents: number
 ) {

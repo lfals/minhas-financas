@@ -9,7 +9,7 @@ Este repositório contém a **documentação base para desenvolvimento assistido
 - TailwindCSS
 - shadcn/ui
 - Clerk (auth)
-- PostgreSQL
+- libsql + Turso
 - SQL manual
 - Zod
 - Effect (backend)
@@ -27,9 +27,23 @@ Este repositório contém a **documentação base para desenvolvimento assistido
 ## Configuração local
 
 1. Copie `.env.example` para `.env.local`.
-2. Suba o banco com `docker compose up -d`.
-3. O projeto já inclui `DATABASE_URL` apontando para o PostgreSQL local em `compose.yaml`.
+2. Preencha `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`.
+3. Rode `npm run db:push-schema` para aplicar o baseline em um banco Turso vazio.
 4. Preencha as credenciais do Clerk.
 5. Rode `npm run dev`.
 
-O schema inicial de contas é aplicado automaticamente a partir de `db/migrations/` na primeira conexão com o banco.
+## Migração assistida do PostgreSQL
+
+O runtime não aplica schema automaticamente. O fluxo de migração para Turso é explícito:
+
+1. Configure `DATABASE_URL` com o PostgreSQL legado.
+2. Rode `npm run db:migrate-from-postgres`.
+3. Importe o arquivo gerado em `tmp/minhas-financas-turso.db` com `npm run db:import-turso`.
+4. Aponte a aplicação para `TURSO_DATABASE_URL` e `TURSO_AUTH_TOKEN`.
+
+O baseline SQLite/libsql fica em `db/schema/libsql-baseline.sql`.
+
+## Observações
+
+- `compose.yaml` permanece apenas como apoio legado para exportação one-off a partir do PostgreSQL antigo.
+- O banco continua sem ORM e com SQL manual.

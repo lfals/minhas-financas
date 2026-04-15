@@ -5,12 +5,14 @@ import { z } from "zod"
 import { ConfigurationAppError } from "@/lib/errors/app-error"
 
 const serverEnvSchema = z.object({
-  DATABASE_URL: z.string().min(1, "DATABASE_URL é obrigatória."),
+  TURSO_DATABASE_URL: z.string().min(1, "TURSO_DATABASE_URL é obrigatória."),
+  TURSO_AUTH_TOKEN: z.string().min(1, "TURSO_AUTH_TOKEN é obrigatória."),
 })
 
 export function getServerEnv() {
   const result = serverEnvSchema.safeParse({
-    DATABASE_URL: process.env.DATABASE_URL,
+    TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL,
+    TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN,
   })
 
   if (!result.success) {

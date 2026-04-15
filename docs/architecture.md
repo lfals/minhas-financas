@@ -6,7 +6,7 @@ Monólito modular com Next.js.
 
 Fluxo:
 
-UI → Application → Infrastructure → PostgreSQL
+UI → Application → Infrastructure → libsql/Turso
 
 ## Camadas
 
@@ -23,3 +23,4 @@ Domain
 Infrastructure
 - SQL
 - integrações
+- cliente libsql

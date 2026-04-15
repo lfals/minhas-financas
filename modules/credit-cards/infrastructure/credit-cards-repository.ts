@@ -1,10 +1,9 @@
 import "server-only"
 
-import type { PoolClient } from "pg"
-
 import { queryDb } from "@/lib/db/pool"
 import { withTransaction } from "@/lib/db/tx"
 import { NotFoundAppError } from "@/lib/errors/app-error"
+import type { DatabaseClient } from "@/lib/db/types"
 import type {
   CreateCreditCardCommand,
   CreateCreditCardResult,
@@ -60,14 +59,14 @@ function mapCreditCardRow(row: DbCreditCardRow): CreditCardRecord {
     dueDay: row.due_day,
     expenseAccountId: row.expense_account_id,
     expenseAccountName: row.expense_account_name,
-    autoCategorizationEnabled: row.auto_categorization_enabled,
-    isArchived: row.is_archived,
+    autoCategorizationEnabled: Boolean(row.auto_categorization_enabled),
+    isArchived: Boolean(row.is_archived),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   })
 }
 
-async function loadAccount(client: PoolClient, clerkUserId: string, accountId: string) {
+async function loadAccount(client: DatabaseClient, clerkUserId: string, accountId: string) {
   const result = await client.query<DbAccountRow>(findAccountForCreditCardSql, [clerkUserId, accountId])
   const account = result.rows[0]
 
@@ -79,7 +78,7 @@ async function loadAccount(client: PoolClient, clerkUserId: string, accountId: s
 }
 
 async function hydrateCreditCard(
-  client: PoolClient,
+  client: DatabaseClient,
   row: DbInsertedCreditCardRow
 ): Promise<CreditCardRecord> {
   const account = await loadAccount(client, row.clerk_user_id, row.expense_account_id)
@@ -92,7 +91,7 @@ async function hydrateCreditCard(
 }
 
 async function queryOne(
-  client: PoolClient,
+  client: DatabaseClient,
   text: string,
   params: readonly unknown[]
 ): Promise<CreditCardRecord | null> {

@@ -2,18 +2,16 @@
 
 Tabelas iniciais:
 
-- app_users
 - accounts
-- categories
+- transaction_categories
 - transactions
-- transfers
 - credit_cards
-- invoices
+- credit_card_expenses
 - audit_log
 
 ## Convenções
 
-- id uuid
+- `id` em `TEXT`, carregando UUID gerado pela aplicação
 - created_at
 - updated_at
 - clerk_user_id

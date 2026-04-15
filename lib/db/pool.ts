@@ -1,54 +1,115 @@
 import "server-only"
 
-import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg"
+import {
+  createClient,
+  type Client as LibsqlClient,
+  type InArgs,
+  type InStatement,
+  type InValue,
+} from "@libsql/client"
 
-import { ensureDatabaseBootstrap } from "@/lib/db/bootstrap"
+import { toQueryResult } from "@/lib/db/sql"
 import { getServerEnv } from "@/lib/env/server"
+import { ConfigurationAppError } from "@/lib/errors/app-error"
+import type { DatabaseClient, QueryResult, QueryResultRow } from "@/lib/db/types"
 
-let pool: Pool | undefined
+let dbPromise: Promise<LibsqlClient> | undefined
 
-function normalizeDatabaseUrl(connectionString: string) {
-  const normalizedUrl = new URL(connectionString)
-  const sslMode = normalizedUrl.searchParams.get("sslmode")
-
-  if (
-    sslMode === "prefer" ||
-    sslMode === "require" ||
-    sslMode === "verify-ca"
-  ) {
-    normalizedUrl.searchParams.set("sslmode", "verify-full")
-  }
-
-  return normalizedUrl.toString()
+type QueryExecutor = {
+  execute(statement: InStatement): Promise<{
+    columns: string[]
+    lastInsertRowid: bigint | undefined
+    rows: unknown[]
+    rowsAffected: number
+  }>
 }
 
-function getPool() {
-  if (!pool) {
+function normalizeArgs(params: readonly unknown[]): InArgs {
+  return params.map((param) => {
+    if (typeof param === "boolean") {
+      return param ? 1 : 0
+    }
+
+    if (param instanceof Date) {
+      return param.toISOString()
+    }
+
+    if (param === undefined) {
+      return null
+    }
+
+    return param as InValue
+  })
+}
+
+function wrapLibsqlError(error: unknown) {
+  if (error instanceof Error && error.message === "fetch failed") {
+    return new ConfigurationAppError(
+      "Nao foi possivel conectar ao Turso. Verifique acesso de rede do processo, TURSO_DATABASE_URL e TURSO_AUTH_TOKEN.",
+      {
+        cause: error.message,
+      }
+    )
+  }
+
+  return error
+}
+
+function createDatabaseClient(executor: QueryExecutor): DatabaseClient {
+  return {
+    async query<T extends QueryResultRow>(text: string, params: readonly unknown[] = []): Promise<QueryResult<T>> {
+      let result
+
+      try {
+        result = await executor.execute({
+          sql: text,
+          args: normalizeArgs(params),
+        })
+      } catch (error) {
+        throw wrapLibsqlError(error)
+      }
+
+      return toQueryResult<T>(result)
+    },
+    release() {},
+  }
+}
+
+export async function getLibsqlClient() {
+  if (!dbPromise) {
     const env = getServerEnv()
 
-    pool = new Pool({
-      connectionString: normalizeDatabaseUrl(env.DATABASE_URL),
-      max: 10,
-      idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
-      statement_timeout: 10_000,
+    dbPromise = (async () => {
+      const client = createClient({
+        url: env.TURSO_DATABASE_URL,
+        authToken: env.TURSO_AUTH_TOKEN,
+        concurrency: 10,
+      })
+
+      try {
+        await client.execute("PRAGMA foreign_keys = ON")
+      } catch (error) {
+        throw wrapLibsqlError(error)
+      }
+
+      return client
+    })().catch((error) => {
+      dbPromise = undefined
+      throw wrapLibsqlError(error)
     })
   }
 
-  return pool
+  return dbPromise
 }
 
 export async function queryDb<T extends QueryResultRow>(
   text: string,
   params: readonly unknown[] = []
 ): Promise<QueryResult<T>> {
-  const currentPool = getPool()
-  await ensureDatabaseBootstrap(currentPool)
-  return currentPool.query<T>(text, params as unknown[])
+  const client = createDatabaseClient(await getLibsqlClient())
+  return client.query<T>(text, params)
 }
 
-export async function getDbClient(): Promise<PoolClient> {
-  const currentPool = getPool()
-  await ensureDatabaseBootstrap(currentPool)
-  return currentPool.connect()
+export async function getDbClient(): Promise<DatabaseClient> {
+  return createDatabaseClient(await getLibsqlClient())
 }
