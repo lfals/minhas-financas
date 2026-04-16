@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useId, useState } from "react"
-import { RotateCcw, TriangleAlert } from "lucide-react"
+import { ChevronRight, RotateCcw, TriangleAlert } from "lucide-react"
 import { useFormStatus } from "react-dom"
 
 import { Button } from "@/components/ui/button"
@@ -75,14 +75,23 @@ export function SettingsResetDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button
+        <button
           type="button"
-          variant="destructive"
-          className="border border-[#ff9c7a]/30 bg-[#ff9c7a]/10 text-[#ff9c7a] hover:bg-[#ff9c7a]/20"
+          className="group flex w-full items-center justify-between border border-white/10 bg-[#171717] px-4 py-4 text-left transition-colors hover:bg-white/5"
         >
-          <RotateCcw className="size-4" />
-          Recomeçar
-        </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex size-10 items-center justify-center border border-[#ff9c7a]/30 bg-[#ff9c7a]/10">
+              <RotateCcw className="size-5 text-[#ff9c7a] transition-colors" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium uppercase tracking-[0.1em] text-[#ff9c7a]">
+                Recomeçar
+              </p>
+              <p className="text-[11px] text-[#ff9c7a]/70">Limpar dados e histórico</p>
+            </div>
+          </div>
+          <ChevronRight className="size-5 text-white/30 transition-colors group-hover:text-white" />
+        </button>
       </DialogTrigger>
       <DialogContent className="border border-white/10 bg-[#141414] p-0 text-white ring-0 sm:max-w-lg">
         <DialogHeader className="border-b border-white/10 px-6 py-5">

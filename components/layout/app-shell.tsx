@@ -3,9 +3,7 @@ import { AppShellNav, type NavigationItem } from "@/components/layout/app-shell-
 
 const navigation = [
   { href: "/dashboard", label: "Dashboard", icon: "layout-dashboard" },
-  { href: "/contas", label: "Contas", icon: "landmark" },
   { href: "/lancamentos", label: "Lançamentos", icon: "wallet" },
-  { href: "/cartoes", label: "Cartões", icon: "credit-card" },
   { href: "/investimentos", label: "Investimentos", icon: "trending-up" },
   { href: "/configuracoes", label: "Configurações", icon: "settings" },
 ] satisfies NavigationItem[]

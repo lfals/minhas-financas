@@ -50,7 +50,7 @@ export function TransactionInstallmentsDetailsDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="flex max-w-4xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="max-w-4xl border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 pb-5">
           <div className="space-y-3">
             <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Parcelas do lançamento</p>

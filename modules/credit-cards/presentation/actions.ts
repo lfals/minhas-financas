@@ -54,7 +54,7 @@ export async function createCreditCardAction(
       autoCategorizationEnabled: parsed.data.autoCategorizationEnabled,
     })
 
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -120,7 +120,7 @@ export async function updateCreditCardAction(
       autoCategorizationEnabled: parsed.data.autoCategorizationEnabled,
     })
 
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",

@@ -7,11 +7,25 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { hasClerkCredentials } from "@/lib/env/server"
+import { PWARegistration } from "@/components/pwa-registration"
 
 export const metadata: Metadata = {
   title: "Minhas Finanças",
   description:
     "Sistema de gestão financeira pessoal com foco em contas, lançamentos, cartões, recorrências e patrimônio.",
+  manifest: "/manifest.json",
+  themeColor: "#0f0f0f",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Minhas Finanças",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 }
 
 export default function RootLayout({
@@ -28,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning className="dark antialiased">
       <body className="font-sans">
+        <PWARegistration />
         {hasClerkCredentials() ? (
           <ClerkProvider
             signInUrl="/sign-in"

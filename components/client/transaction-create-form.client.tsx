@@ -14,6 +14,9 @@ import { Field, FieldContent, FieldError, FieldGroup, FieldLabel } from "@/compo
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { MonthPicker } from "@/components/ui/month-picker"
 import {
   createTransactionAction,
   type CreateTransactionActionState,
@@ -61,7 +64,7 @@ export type TransactionFormValues = {
   installmentNumber: string
   installmentTotal: string
   installmentAmountInputMode: InstallmentAmountInputMode
-  notes: string
+  targetInvoiceMonth: string
 }
 
 export function getDefaultTransactionFormValues(
@@ -83,7 +86,7 @@ export function getDefaultTransactionFormValues(
     installmentNumber: "1",
     installmentTotal: "2",
     installmentAmountInputMode: "installment" as InstallmentAmountInputMode,
-    notes: "",
+    targetInvoiceMonth: "",
   }
 }
 
@@ -141,6 +144,13 @@ function formatDateForButton(value: string) {
   return format(date, "dd/MM/yyyy", { locale: ptBR })
 }
 
+function formatInvoiceMonthLabel(isoMonth: string) {
+  if (!isoMonth) {
+    return "Selecione a fatura"
+  }
+  return format(new Date(`${isoMonth}-01T00:00:00`), "MMMM yyyy", { locale: ptBR })
+}
+
 function SubmitButton({ disabled, label }: { disabled?: boolean; label: string }) {
   const { pending } = useFormStatus()
 
@@ -180,6 +190,7 @@ export function TransactionCreateForm({
     actionType === "update" ? updateTransactionAction : createTransactionAction,
     initialState
   )
+  const [keepOpen, setKeepOpen] = useState(false)
   const defaultAccountId = accountOptions[0]?.id ?? ""
   const defaultCardId = creditCardOptions[0]?.id ?? ""
   const router = useRouter()
@@ -188,9 +199,11 @@ export function TransactionCreateForm({
       return initialValues
     }
 
+    const currentIsoMonth = format(new Date(), "yyyy-MM")
     return {
       ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
       cardId: defaultCardId,
+      targetInvoiceMonth: initialValues?.targetInvoiceMonth || (defaultCardId ? currentIsoMonth : ""),
     }
   })
   const allowCardExpense = actionType === "create"
@@ -206,6 +219,8 @@ export function TransactionCreateForm({
     installmentTotalCount > 0
       ? Math.floor(parseCurrencyInputToCents(formValues.amount) / installmentTotalCount)
       : null
+
+  const currentIsoMonth = format(new Date(), "yyyy-MM")
   const handleSuccess = useEffectEvent(() => {
     setFormValues(
       actionType === "update"
@@ -218,7 +233,10 @@ export function TransactionCreateForm({
             cardId: defaultCardId,
           }
     )
-    onSuccess?.()
+    if (!keepOpen) {
+      onSuccess?.()
+    }
+
     startTransition(() => {
       router.refresh()
     })
@@ -301,6 +319,10 @@ export function TransactionCreateForm({
                     installmentTotal: value === "card-expense" ? "2" : current.installmentTotal,
                     installmentAmountInputMode:
                       value === "card-expense" ? "installment" : current.installmentAmountInputMode,
+                    targetInvoiceMonth:
+                      value === "card-expense" && !current.targetInvoiceMonth
+                        ? format(new Date(), "yyyy-MM")
+                        : current.targetInvoiceMonth,
                   }))
                 }}
                 className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
@@ -412,42 +434,44 @@ export function TransactionCreateForm({
             </FieldContent>
           </Field>
 
-          <Field>
-            <FieldLabel htmlFor="status" className="text-white/80">
-              Status
-            </FieldLabel>
-            <FieldContent>
-              {forcePendingStatus ? (
-                <input type="hidden" name="status" value="pending" />
-              ) : null}
-              <NativeSelect
-                id="status"
-                name={forcePendingStatus ? undefined : "status"}
-                value={formValues.status}
-                onChange={(event) => {
-                  const { value } = event.currentTarget
-                  setFormValues((current) => ({
-                    ...current,
-                    status: value as TransactionFormValues["status"],
-                  }))
-                }}
-                className="h-10 border-white/10 bg-white/5 text-sm text-white"
-                disabled={forcePendingStatus}
-              >
-                <NativeSelectOption value="compensated">Compensado</NativeSelectOption>
-                <NativeSelectOption value="pending">Pendente</NativeSelectOption>
-                <NativeSelectOption value="scheduled">Agendado</NativeSelectOption>
-              </NativeSelect>
-              <FieldError errors={state.fieldErrors?.status?.map((message) => ({ message }))} />
-              {forcePendingStatus ? (
-                <p className="text-xs text-white/55">
-                  {isCardExpense
-                    ? "Compras no cartão entram na fatura e ficam pendentes até o pagamento da fatura."
-                    : "Despesas fixas sao criadas como pendentes em todos os meses."}
-                </p>
-              ) : null}
-            </FieldContent>
-          </Field>
+          {isCardExpense ? (
+            <input type="hidden" name="status" value="pending" />
+          ) : (
+            <Field>
+              <FieldLabel htmlFor="status" className="text-white/80">
+                Status
+              </FieldLabel>
+              <FieldContent>
+                {forcePendingStatus ? (
+                  <input type="hidden" name="status" value="pending" />
+                ) : null}
+                <NativeSelect
+                  id="status"
+                  name={forcePendingStatus ? undefined : "status"}
+                  value={formValues.status}
+                  onChange={(event) => {
+                    const { value } = event.currentTarget
+                    setFormValues((current) => ({
+                      ...current,
+                      status: value as TransactionFormValues["status"],
+                    }))
+                  }}
+                  className="h-10 border-white/10 bg-white/5 text-sm text-white"
+                  disabled={forcePendingStatus}
+                >
+                  <NativeSelectOption value="compensated">Compensado</NativeSelectOption>
+                  <NativeSelectOption value="pending">Pendente</NativeSelectOption>
+                  <NativeSelectOption value="scheduled">Agendado</NativeSelectOption>
+                </NativeSelect>
+                <FieldError errors={state.fieldErrors?.status?.map((message) => ({ message }))} />
+                {forcePendingStatus ? (
+                  <p className="text-xs text-white/55">
+                    Despesas fixas sao criadas como pendentes em todos os meses.
+                  </p>
+                ) : null}
+              </FieldContent>
+            </Field>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_max-content]">
@@ -483,57 +507,104 @@ export function TransactionCreateForm({
             </FieldContent>
           </Field>
 
-          <Field className="md:w-fit">
-            <FieldLabel htmlFor="occurredOn" className="text-white/80">
-              Data
-            </FieldLabel>
-            <FieldContent className="md:w-fit">
-              <input
-                name="occurredOn"
-                value={formValues.occurredOn}
-                type="hidden"
-              />
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="occurredOn"
-                    type="button"
-                    variant="outline"
-                    className={cn(
-                      "h-10 w-full justify-between border-white/10 bg-white/5 px-3 text-left text-sm text-white hover:bg-white/10 hover:text-white md:w-auto md:min-w-0",
-                      !formValues.occurredOn && "text-white/55"
-                    )}
+          {isCardExpense ? (
+            <Field className="md:w-full">
+              <FieldLabel htmlFor="targetInvoiceMonth" className="text-white/80">
+                Fatura
+              </FieldLabel>
+              <FieldContent>
+                <input type="hidden" name="targetInvoiceMonth" value={formValues.targetInvoiceMonth} />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="targetInvoiceMonth"
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-10 w-full justify-between border-white/10 bg-white/5 px-3 text-left text-sm text-white hover:bg-white/10 hover:text-white md:min-w-0",
+                        !formValues.targetInvoiceMonth && "text-white/55"
+                      )}
+                    >
+                      <span className="capitalize">
+                        {formatInvoiceMonthLabel(formValues.targetInvoiceMonth)}
+                      </span>
+                      <CalendarIcon className="size-4 text-white/70" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto border border-white/10 bg-[#141414] p-0 text-white"
                   >
-                    <span>{formatDateForButton(formValues.occurredOn)}</span>
-                    <CalendarIcon className="size-4 text-white/70" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  align="start"
-                  className="w-auto border border-white/10 bg-[#141414] p-2 text-white"
-                >
-                  <Calendar
-                    mode="single"
-                    locale={ptBR}
-                    selected={getDateFromIsoDate(formValues.occurredOn)}
-                    onSelect={(date) => {
-                      if (!date) {
-                        return
-                      }
+                    <MonthPicker
+                      value={formValues.targetInvoiceMonth}
+                      onChange={(month) => {
+                        setFormValues((current) => ({
+                          ...current,
+                          targetInvoiceMonth: month,
+                        }))
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FieldError
+                  errors={state.fieldErrors?.targetInvoiceMonth?.map((message) => ({
+                    message,
+                  }))}
+                />
+              </FieldContent>
+              <input type="hidden" name="occurredOn" value={formValues.occurredOn} />
+            </Field>
+          ) : (
+            <Field className="md:w-fit">
+              <FieldLabel htmlFor="occurredOn" className="text-white/80">
+                Data
+              </FieldLabel>
+              <FieldContent className="md:w-fit">
+                <input name="occurredOn" value={formValues.occurredOn} type="hidden" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="occurredOn"
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "h-10 w-full justify-between border-white/10 bg-white/5 px-3 text-left text-sm text-white hover:bg-white/10 hover:text-white md:w-auto md:min-w-0",
+                        !formValues.occurredOn && "text-white/55"
+                      )}
+                    >
+                      <span>{formatDateForButton(formValues.occurredOn)}</span>
+                      <CalendarIcon className="size-4 text-white/70" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto border border-white/10 bg-[#141414] p-2 text-white"
+                  >
+                    <Calendar
+                      mode="single"
+                      locale={ptBR}
+                      selected={getDateFromIsoDate(formValues.occurredOn)}
+                      onSelect={(date) => {
+                        if (!date) {
+                          return
+                        }
 
-                      setFormValues((current) => ({
-                        ...current,
-                        occurredOn: format(date, "yyyy-MM-dd"),
-                      }))
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FieldError
-                errors={state.fieldErrors?.occurredOn?.map((message) => ({ message }))}
-              />
-            </FieldContent>
-          </Field>
+                        setFormValues((current) => ({
+                          ...current,
+                          occurredOn: format(date, "yyyy-MM-dd"),
+                        }))
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FieldError
+                  errors={state.fieldErrors?.occurredOn?.map((message) => ({
+                    message,
+                  }))}
+                />
+              </FieldContent>
+            </Field>
+          )}
         </div>
 
         {actionType === "create" ? (
@@ -566,43 +637,13 @@ export function TransactionCreateForm({
                 }}
                 className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
               >
-                <NativeSelectOption value="single">
-                  {isCardExpense ? "À vista" : "Lançamento avulso"}
-                </NativeSelectOption>
-                <NativeSelectOption value="fixed">
-                  {isCardExpense ? "Fixo mensal" : fixedLabel}
-                </NativeSelectOption>
-                <NativeSelectOption value="installment">
-                  {isCardExpense ? "Parcelado" : installmentLabel}
-                </NativeSelectOption>
+                <NativeSelectOption value="single">Lançamento avulso</NativeSelectOption>
+                <NativeSelectOption value="fixed">{fixedLabel}</NativeSelectOption>
+                <NativeSelectOption value="installment">{installmentLabel}</NativeSelectOption>
               </NativeSelect>
 
               {formValues.cadence === "fixed" ? (
                 <Field className="w-full">
-                  {isCardExpense ? (
-                    <>
-                      <FieldLabel htmlFor="fixedExpenseFrequencyCard" className="text-white/80">
-                        Recorrência
-                      </FieldLabel>
-                      <FieldContent className="w-full">
-                        <input type="hidden" name="fixedExpenseFrequency" value="monthly" />
-                        <Input
-                          id="fixedExpenseFrequencyCard"
-                          value="Mensal"
-                          readOnly
-                          className="h-10 border-white/10 bg-white/5 text-white"
-                        />
-                        <p className="text-xs text-white/55">
-                          A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
-                        </p>
-                        <FieldError
-                          errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
-                            message,
-                          }))}
-                        />
-                      </FieldContent>
-                    </>
-                  ) : (
                     <>
                       <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
                         Recorrência
@@ -611,7 +652,7 @@ export function TransactionCreateForm({
                         <NativeSelect
                           id="fixedExpenseFrequency"
                           name="fixedExpenseFrequency"
-                          value={formValues.fixedExpenseFrequency}
+                          value={isCardExpense ? "monthly" : formValues.fixedExpenseFrequency}
                           onChange={(event) => {
                             const { value } = event.currentTarget
                             setFormValues((current) => ({
@@ -620,6 +661,7 @@ export function TransactionCreateForm({
                             }))
                           }}
                           className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
+                          disabled={isCardExpense}
                         >
                           {fixedExpenseFrequencyOptions.map((option) => (
                             <NativeSelectOption key={option.value} value={option.value}>
@@ -627,6 +669,11 @@ export function TransactionCreateForm({
                             </NativeSelectOption>
                           ))}
                         </NativeSelect>
+                        {isCardExpense && (
+                          <p className="text-xs text-white/55">
+                            A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
+                          </p>
+                        )}
                         <FieldError
                           errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
                             message,
@@ -634,7 +681,6 @@ export function TransactionCreateForm({
                         />
                       </FieldContent>
                     </>
-                  )}
                 </Field>
               ) : (
                 <input type="hidden" name="fixedExpenseFrequency" value="" />
@@ -789,28 +835,7 @@ export function TransactionCreateForm({
           </>
         )}
 
-        <Field>
-          <FieldLabel htmlFor="notes" className="text-white/80">
-            Observações
-          </FieldLabel>
-          <FieldContent>
-            <Textarea
-              id="notes"
-              name="notes"
-              placeholder="Opcional"
-              value={formValues.notes}
-              onChange={(event) => {
-                const { value } = event.currentTarget
-                setFormValues((current) => ({
-                  ...current,
-                  notes: value,
-                }))
-              }}
-              className="min-h-20 border-white/10 bg-white/5 text-white"
-            />
-            <FieldError errors={state.fieldErrors?.notes?.map((message) => ({ message }))} />
-          </FieldContent>
-        </Field>
+
       </FieldGroup>
 
       {!accountOptions.length && !isCardExpense ? (
@@ -835,10 +860,27 @@ export function TransactionCreateForm({
         </p>
       ) : null}
 
-      <SubmitButton
-        disabled={isCardExpense ? !creditCardOptions.length : !accountOptions.length}
-        label={submitLabel}
-      />
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+        {actionType === "create" ? (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="keep-open"
+              checked={keepOpen}
+              onCheckedChange={setKeepOpen}
+              size="sm"
+              className="data-checked:bg-[#d8f36a]"
+            />
+            <Label htmlFor="keep-open" className="cursor-pointer text-[10px] uppercase tracking-wider text-white/60">
+              Salvar e continuar
+            </Label>
+          </div>
+        ) : <div />}
+
+        <SubmitButton
+          disabled={isCardExpense ? !creditCardOptions.length : !accountOptions.length}
+          label={submitLabel}
+        />
+      </div>
     </form>
   )
 

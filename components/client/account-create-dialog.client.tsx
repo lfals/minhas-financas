@@ -27,7 +27,7 @@ export function AccountCreateDialog() {
           Adicionar conta
         </button>
       </DialogTrigger>
-      <DialogContent className="flex max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="max-w-2xl border border-white/10 bg-[#141414] p-0 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-4 py-4 sm:px-6 sm:py-5">
           <DialogTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
             Nova conta

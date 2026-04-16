@@ -1,49 +1,58 @@
+import Link from "next/link"
+import { ChevronRight, CreditCard, Landmark } from "lucide-react"
+
 import { SettingsResetDialog } from "@/components/client/settings-reset-dialog.client"
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <Card className="border border-white/10 bg-[#141414] ring-0">
-        <CardHeader className="gap-4">
+        <CardHeader className="gap-4 border-b border-white/5 pb-6">
           <CardDescription className="text-[11px] uppercase tracking-[0.35em] text-white/50">
-            Configurações
+            Configurações e Módulos
           </CardDescription>
-          <CardTitle className="max-w-3xl text-3xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-4xl lg:text-5xl">
-            Gerencie ações sensíveis do ambiente financeiro.
+          <CardTitle className="max-w-3xl text-2xl font-semibold uppercase tracking-[-0.08em] text-white sm:text-3xl lg:text-4xl">
+            Acesse e gerencie cadastros base.
           </CardTitle>
           <p className="max-w-2xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
-            Use esta área para limpar dados do app quando quiser testar novamente do zero ou
-            descartar movimentações já cadastradas.
+            Aqui você encontra os cadastros do sistema para gerenciar suas contas bancárias, cartões de crédito e ações sensíveis do ambiente.
           </p>
-          <CardAction className="col-start-1 row-start-4 justify-self-start sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-self-end">
-            <SettingsResetDialog />
-          </CardAction>
         </CardHeader>
-      </Card>
+        <CardContent className="flex flex-col gap-4 pt-6">
+          <Link
+            href="/configuracoes/contas"
+            className="group flex items-center justify-between border border-white/10 bg-[#171717] px-4 py-4 transition-colors hover:bg-white/5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex size-10 items-center justify-center border border-white/10 bg-white/5">
+                <Landmark className="size-5 text-white/70 transition-colors group-hover:text-[#d8f36a]" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium uppercase tracking-[0.1em] text-white">Contas</p>
+                <p className="text-[11px] text-white/50">Gerenciar contas bancárias</p>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-white/30 transition-colors group-hover:text-white" />
+          </Link>
 
-      <Card className="border border-white/10 bg-[#171717] ring-0">
-        <CardContent className="grid gap-4 pt-6 md:grid-cols-3">
-          <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-white/45">Recomeçar tudo</p>
-            <p className="text-sm leading-7 text-white/62">
-              Remove contas, cartões, lançamentos, faturas e categorias para voltar ao estado
-              inicial.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-white/45">Limpar lançamentos</p>
-            <p className="text-sm leading-7 text-white/62">
-              Apaga o histórico financeiro e recalcula os saldos com base apenas no saldo inicial
-              das contas.
-            </p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-[0.3em] text-white/45">Limpar faturas</p>
-            <p className="text-sm leading-7 text-white/62">
-              Remove despesas e faturas de cartão sem afetar contas nem lançamentos manuais.
-            </p>
-          </div>
+          <Link
+            href="/configuracoes/cartoes"
+            className="group flex items-center justify-between border border-white/10 bg-[#171717] px-4 py-4 transition-colors hover:bg-white/5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex size-10 items-center justify-center border border-white/10 bg-white/5">
+                <CreditCard className="size-5 text-white/70 transition-colors group-hover:text-[#d8f36a]" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium uppercase tracking-[0.1em] text-white">Cartões</p>
+                <p className="text-[11px] text-white/50">Gerenciar cartões de crédito</p>
+              </div>
+            </div>
+            <ChevronRight className="size-5 text-white/30 transition-colors group-hover:text-white" />
+          </Link>
+
+          <SettingsResetDialog />
         </CardContent>
       </Card>
     </div>

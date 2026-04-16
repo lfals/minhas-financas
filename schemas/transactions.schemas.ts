@@ -94,7 +94,7 @@ export const createTransactionInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
   accountId: z.uuid(),
   title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   kind: transactionKindSchema,
   status: transactionStatusSchema,
   amountCents: centsSchema,
@@ -104,10 +104,12 @@ export const createTransactionInputSchema = z.object({
   installmentNumber: optionalInstallmentNumberSchema,
   installmentTotal: optionalInstallmentNumberSchema,
   installmentAmountInputMode: installmentAmountInputModeSchema.default("installment"),
-  notes: z.string().trim().max(500).optional(),
+
   sourceType: transactionSourceTypeSchema.default("manual"),
   creditCardId: z.uuid().nullable().optional(),
   invoiceMonth: isoDateSchema.nullable().optional(),
+  targetInvoiceMonth: isoMonthSchema.nullable().optional(),
+  notes: z.string().nullable().optional(),
 }).superRefine((value, context) => {
   if (value.isFixed && !value.fixedExpenseFrequency) {
     context.addIssue({
@@ -181,7 +183,7 @@ export const createTransactionFormSchema = z.object({
   accountId: optionalUuidInputSchema,
   cardId: optionalUuidInputSchema,
   title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   kind: transactionFormKindSchema,
   status: z.union([transactionStatusSchema, z.literal(""), z.null(), z.undefined()])
     .transform((value) => (value ? value : null)),
@@ -198,7 +200,9 @@ export const createTransactionFormSchema = z.object({
     z.null(),
     z.undefined(),
   ]).transform((value) => (value ? value : "installment")),
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+  targetInvoiceMonth: z.union([isoMonthSchema, z.literal(""), z.null(), z.undefined()])
+    .transform((value) => (value ? value : null)),
 }).superRefine((value, context) => {
   const isCardExpense = value.kind === "card-expense"
 
@@ -304,31 +308,33 @@ export const updateTransactionInputSchema = z.object({
   transactionId: z.uuid("Lançamento inválido para atualização."),
   accountId: z.uuid("Selecione uma conta válida."),
   title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   kind: transactionKindSchema,
   status: transactionStatusSchema,
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+
 })
 
 export const updateTransactionFormSchema = z.object({
   transactionId: z.uuid("Lançamento inválido para atualização."),
   accountId: z.uuid("Selecione uma conta válida."),
   title: z.string().trim().min(1, "Informe a descrição do lançamento.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   kind: transactionKindSchema,
   status: transactionStatusSchema,
   amount: z.string().trim().min(1, "Informe o valor."),
   occurredOn: isoDateSchema,
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+
 })
 
 export const createCreditCardExpenseInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
   cardId: z.uuid("Selecione um cartão válido."),
   title: z.string().trim().min(1, "Informe a descrição da compra.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
   isFixed: z.boolean().default(false),
@@ -336,7 +342,9 @@ export const createCreditCardExpenseInputSchema = z.object({
   installmentNumber: optionalInstallmentNumberSchema,
   installmentTotal: optionalInstallmentNumberSchema,
   installmentAmountInputMode: installmentAmountInputModeSchema.default("installment"),
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+  targetInvoiceMonth: z.union([isoMonthSchema, z.literal(""), z.null(), z.undefined()])
+    .transform((value) => (value ? value : null)),
 }).superRefine((value, context) => {
   if (value.isFixed && value.fixedExpenseFrequency !== "monthly") {
     context.addIssue({
@@ -428,21 +436,23 @@ export const changeCreditCardExpenseCardInputSchema = z.object({
 export const updateCreditCardExpenseInputSchema = z.object({
   expenseId: z.uuid("Lançamento inválido para atualização."),
   title: z.string().trim().min(1, "Informe a descrição da compra.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   amountCents: centsSchema,
   occurredOn: isoDateSchema,
   targetInvoiceMonth: isoMonthSchema,
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+
 })
 
 export const updateCreditCardExpenseFormSchema = z.object({
   expenseId: z.uuid("Lançamento inválido para atualização."),
   title: z.string().trim().min(1, "Informe a descrição da compra.").max(120),
-  category: z.string().trim().min(1, "Informe a categoria.").max(80),
+  category: z.string().trim().max(80).transform((v) => v || "Outros").default("Outros"),
   amount: z.string().trim().min(1, "Informe o valor."),
   occurredOn: isoDateSchema,
   targetInvoiceMonth: isoMonthSchema,
-  notes: z.string().trim().max(500).optional(),
+  notes: z.string().nullable().optional(),
+
 })
 
 export const transactionRecordSchema = z.object({

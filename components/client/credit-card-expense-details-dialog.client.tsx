@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
+import { MonthPicker } from "@/components/ui/month-picker"
 import { cn } from "@/lib/utils"
 import {
   updateCreditCardExpenseAction,
@@ -36,7 +37,7 @@ type CreditCardExpenseFormValues = {
   amount: string
   occurredOn: string
   targetInvoiceMonth: string
-  notes: string
+
 }
 
 function formatCentsToInput(value: number) {
@@ -91,39 +92,15 @@ function buildInitialValues(expense: CreditCardInvoiceExpensePageItem): CreditCa
     amount: formatCentsToInput(Math.abs(expense.amountCents)),
     occurredOn: expense.occurredOn,
     targetInvoiceMonth: expense.invoiceMonth,
-    notes: expense.notes ?? "",
+
   }
-}
-
-function addMonthsToIsoMonth(isoMonth: string, monthOffset: number) {
-  const [year, month] = isoMonth.split("-").map(Number)
-  const targetMonthIndex = month - 1 + monthOffset
-  const targetYear = year + Math.floor(targetMonthIndex / 12)
-  const normalizedMonthIndex = ((targetMonthIndex % 12) + 12) % 12
-
-  return `${targetYear}-${String(normalizedMonthIndex + 1).padStart(2, "0")}`
 }
 
 function formatInvoiceMonthLabel(isoMonth: string) {
-  return format(new Date(`${isoMonth}-01T00:00:00`), "MMMM yyyy", { locale: ptBR })
-}
-
-function buildInvoiceMonthOptions(expense: CreditCardInvoiceExpensePageItem) {
-  const baseMonth = expense.invoiceMonth
-  const months = new Set<string>()
-
-  for (let offset = -6; offset <= 12; offset += 1) {
-    months.add(addMonthsToIsoMonth(baseMonth, offset))
+  if (!isoMonth) {
+    return "Selecione a fatura"
   }
-
-  months.add(expense.occurredOn.slice(0, 7))
-
-  return [...months]
-    .sort((left, right) => left.localeCompare(right))
-    .map((value) => ({
-      value,
-      label: formatInvoiceMonthLabel(value),
-    }))
+  return format(new Date(`${isoMonth}-01T00:00:00`), "MMMM yyyy", { locale: ptBR })
 }
 
 function SubmitButton() {
@@ -150,7 +127,6 @@ export function CreditCardExpenseDetailsDialog({
   const [state, formAction] = useActionState(updateCreditCardExpenseAction, initialState)
   const [formValues, setFormValues] = useState(() => buildInitialValues(expense))
   const router = useRouter()
-  const invoiceMonthOptions = buildInvoiceMonthOptions(expense)
 
   const handleSuccess = useEffectEvent(() => {
     setFormValues(buildInitialValues(expense))
@@ -198,7 +174,7 @@ export function CreditCardExpenseDetailsDialog({
       >
         {children}
       </div>
-      <DialogContent className="flex max-w-2xl flex-col overflow-hidden border border-white/10 bg-[#141414] p-0 text-white ring-0 sm:max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="max-w-2xl border border-white/10 bg-[#141414] p-0 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
           <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
             Detalhes do lançamento
@@ -337,25 +313,38 @@ export function CreditCardExpenseDetailsDialog({
                   Fatura
                 </FieldLabel>
                 <FieldContent>
-                  <NativeSelect
-                    id="expense-invoice-month"
-                    name="targetInvoiceMonth"
-                    value={formValues.targetInvoiceMonth}
-                    onChange={(event) => {
-                      const { value } = event.currentTarget
-                      setFormValues((current) => ({
-                        ...current,
-                        targetInvoiceMonth: value,
-                      }))
-                    }}
-                    className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-                  >
-                    {invoiceMonthOptions.map((option) => (
-                      <NativeSelectOption key={option.value} value={option.value}>
-                        {option.label}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                  <input type="hidden" name="targetInvoiceMonth" value={formValues.targetInvoiceMonth} />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="expense-invoice-month"
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "h-10 w-full justify-between border-white/10 bg-white/5 px-3 text-left text-sm text-white hover:bg-white/10 hover:text-white md:min-w-0"
+                        )}
+                      >
+                        <span className="capitalize">
+                          {formatInvoiceMonthLabel(formValues.targetInvoiceMonth)}
+                        </span>
+                        <CalendarIcon className="size-4 text-white/70" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-auto border border-white/10 bg-[#141414] p-0 text-white"
+                    >
+                      <MonthPicker
+                        value={formValues.targetInvoiceMonth}
+                        onChange={(month) => {
+                          setFormValues((current) => ({
+                            ...current,
+                            targetInvoiceMonth: month,
+                          }))
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <FieldError
                     errors={state.fieldErrors?.targetInvoiceMonth?.map((message) => ({ message }))}
                   />
@@ -371,27 +360,7 @@ export function CreditCardExpenseDetailsDialog({
                 </div>
               )}
 
-              <Field>
-                <FieldLabel htmlFor="expense-notes" className="text-white/80">
-                  Observações
-                </FieldLabel>
-                <FieldContent>
-                  <Textarea
-                    id="expense-notes"
-                    name="notes"
-                    value={formValues.notes}
-                    onChange={(event) => {
-                      const { value } = event.currentTarget
-                      setFormValues((current) => ({
-                        ...current,
-                        notes: value,
-                      }))
-                    }}
-                    className="min-h-20 border-white/10 bg-white/5 text-white"
-                  />
-                  <FieldError errors={state.fieldErrors?.notes?.map((message) => ({ message }))} />
-                </FieldContent>
-              </Field>
+
             </FieldGroup>
 
             {state.message ? (

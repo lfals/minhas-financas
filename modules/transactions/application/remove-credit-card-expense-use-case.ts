@@ -11,8 +11,7 @@ export async function removeCreditCardExpenseUseCase(
   input: RemoveCreditCardExpenseInput & { clerkUserId: string }
 ) {
   const parsed = removeCreditCardExpenseInputSchema.parse(input)
-  const transactions = await repository.listByUser({ clerkUserId: input.clerkUserId })
-  const existingExpense = transactions.invoiceExpenses.find((expense) => expense.id === parsed.expenseId)
+  const existingExpense = await repository.findCreditCardExpenseById(input.clerkUserId, parsed.expenseId)
 
   if (!existingExpense) {
     throw new NotFoundAppError("Lançamento não encontrado.")

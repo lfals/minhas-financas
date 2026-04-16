@@ -29,7 +29,7 @@ export const createAccountInputSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
   type: accountTypeSchema,
   currencyCode: z.string().trim().length(3).default("BRL").transform((value) => value.toUpperCase()),
-  initialBalanceCents: signedCentsSchema,
+  initialBalanceCents: signedCentsSchema.default(0),
   includeInNetWorth: optionalBooleanSchema.default(true),
   displayOrder: z.coerce.number().int().min(0).max(9999).default(0),
 })
@@ -37,7 +37,7 @@ export const createAccountInputSchema = z.object({
 export const createAccountFormSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
   type: accountTypeSchema,
-  initialBalance: z.string().trim().min(1, "Informe o saldo inicial."),
+  initialBalance: z.string().trim().default(""),
   includeInNetWorth: optionalBooleanSchema.default(true),
 })
 
@@ -45,7 +45,7 @@ export const updateAccountInputSchema = z.object({
   accountId: z.uuid(),
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
   type: accountTypeSchema,
-  initialBalanceCents: signedCentsSchema,
+  initialBalanceCents: signedCentsSchema.default(0),
   includeInNetWorth: optionalBooleanSchema.default(true),
 })
 
@@ -53,7 +53,7 @@ export const updateAccountFormSchema = z.object({
   accountId: z.uuid(),
   name: z.string().trim().min(1, "Informe o nome da conta.").max(80),
   type: accountTypeSchema,
-  initialBalance: z.string().trim().min(1, "Informe o saldo inicial."),
+  initialBalance: z.string().trim().default(""),
   includeInNetWorth: optionalBooleanSchema.default(true),
 })
 

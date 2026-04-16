@@ -401,6 +401,7 @@ async function removeAmountFromCreditCardInvoice(
     throw new NotFoundAppError("Fatura vinculada não encontrada.")
   }
 
+  const currentEffectiveAmount = invoiceTransaction.settledAmountCents ?? invoiceTransaction.amountCents
   const nextAmountCents = invoiceTransaction.amountCents - removedAmountCents
 
   if (nextAmountCents < 0) {
@@ -422,7 +423,7 @@ async function removeAmountFromCreditCardInvoice(
       await client.query(updateAccountBalanceSql, [
         clerkUserId,
         invoiceTransaction.accountId,
-        Number(account.current_balance_cents) + removedAmountCents,
+        Number(account.current_balance_cents) + currentEffectiveAmount,
       ])
 
       await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
@@ -484,12 +485,16 @@ async function removeAmountFromCreditCardInvoice(
       nextEffectiveAmount,
     ])
 
+    if (nextEffectiveAmount === 0) {
+      await client.query(reopenTransactionSql, [clerkUserId, invoiceTransaction.id])
+    }
+
     updatedTransaction = mapTransactionRow(updatedRow.rows[0])
 
     await client.query(updateAccountBalanceSql, [
       clerkUserId,
       invoiceTransaction.accountId,
-      Number(account.current_balance_cents) + removedAmountCents,
+      Number(account.current_balance_cents) + (currentEffectiveAmount - nextEffectiveAmount),
     ])
   } else {
     const updatedRow = await client.query<DbTransactionRow>(updateCreditCardInvoiceTotalsSql, [
@@ -868,7 +873,9 @@ export class TransactionsRepository {
 
       for (const occurrence of occurrences) {
         const competenceMonth = getCreditCardInvoiceCompetenceMonth(occurrence.occurredOn, card.closing_day)
-        const invoiceMonth = getCreditCardInvoiceMonth(competenceMonth, card.closing_day, card.due_day)
+        const invoiceMonth =
+          command.targetInvoiceMonth ??
+          getCreditCardInvoiceMonth(competenceMonth, card.closing_day, card.due_day)
         const invoiceDate = buildInvoiceDate(invoiceMonth, card.due_day)
         const invoiceKey = `${invoiceMonth}-01`
         const invoiceTitle = buildCreditCardInvoiceTitle(card.nickname, invoiceMonth)
@@ -966,40 +973,21 @@ export class TransactionsRepository {
   }
 
   async findById(clerkUserId: string, transactionId: string) {
-    const result = await queryDb<DbTransactionRow>(
-      `
-        select
-          id,
-          clerk_user_id,
-          account_id,
-          title,
-          category,
-          category_id,
-          kind,
-          status,
-          source_type,
-          credit_card_id,
-          invoice_month::text as invoice_month,
-          series_id,
-          is_fixed,
-          fixed_expense_frequency,
-          installment_number,
-          installment_total,
-          amount_cents::text as amount_cents,
-          settled_amount_cents::text as settled_amount_cents,
-          occurred_on::text as occurred_on,
-          notes,
-          created_at::text as created_at,
-          updated_at::text as updated_at
-        from transactions
-        where clerk_user_id = $1
-          and id = $2
-        limit 1
-      `,
-      [clerkUserId, transactionId]
-    )
+    const result = await queryDb<DbTransactionRow>(findTransactionByIdForUpdateSql, [
+      clerkUserId,
+      transactionId,
+    ])
 
     return result.rows[0] ? mapTransactionRow(result.rows[0]) : null
+  }
+
+  async findCreditCardExpenseById(clerkUserId: string, expenseId: string) {
+    const result = await queryDb<DbCreditCardInvoiceExpenseListRow>(
+      findCreditCardExpenseByIdForUpdateSql,
+      [clerkUserId, expenseId]
+    )
+
+    return result.rows[0] ? mapCreditCardInvoiceExpenseRow(result.rows[0]) : null
   }
 
   async settleTransaction(command: SettleTransactionCommand) {
@@ -1384,10 +1372,9 @@ export class TransactionsRepository {
       const invoicesToDelete: TransactionRecord[] = []
 
       for (const expense of expenses) {
-        const amount = Math.abs(expense.amountCents)
         removalTotals.set(
           expense.invoiceTransactionId,
-          (removalTotals.get(expense.invoiceTransactionId) ?? 0) + amount
+          (removalTotals.get(expense.invoiceTransactionId) ?? 0) + expense.amountCents
         )
       }
 
@@ -1516,7 +1503,7 @@ export class TransactionsRepository {
         command.category
       )
 
-      const previousAmountCents = Math.abs(existingExpense.amountCents)
+      const previousAmountCents = existingExpense.amountCents
       const nextAmountCents = command.amountCents
       const previousCompetenceMonth = getCreditCardInvoiceCompetenceMonth(existingExpense.occurredOn, card.closing_day)
       const previousInvoiceMonth =
@@ -1718,7 +1705,7 @@ export class TransactionsRepository {
       const removedByInvoice = expensesToRemove.reduce<Map<string, number>>((accumulator, expense) => {
         accumulator.set(
           expense.invoiceTransactionId,
-          (accumulator.get(expense.invoiceTransactionId) ?? 0) + Math.abs(expense.amountCents)
+          (accumulator.get(expense.invoiceTransactionId) ?? 0) + expense.amountCents
         )
         return accumulator
       }, new Map())
@@ -1763,10 +1750,12 @@ export class TransactionsRepository {
               throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
             }
 
+            const currentEffectiveAmount = affectedInvoiceTransaction.settledAmountCents ?? affectedInvoiceTransaction.amountCents
+
             await client.query(updateAccountBalanceSql, [
               command.clerkUserId,
               affectedInvoiceTransaction.accountId,
-              Number(account.current_balance_cents) + removedInvoiceAmountCents,
+              Number(account.current_balance_cents) + currentEffectiveAmount,
             ])
 
             await client.query(deleteCreditCardInvoiceSettlementAdjustmentsSql, [
@@ -1795,6 +1784,7 @@ export class TransactionsRepository {
             throw new NotFoundAppError("Selecione uma conta válida para o lançamento.")
           }
 
+          const currentEffectiveAmount = affectedInvoiceTransaction.settledAmountCents ?? affectedInvoiceTransaction.amountCents
           const nextEffectiveAmount = getNextCreditCardInvoiceEffectiveAmount(
             affectedInvoiceTransaction,
             removedInvoiceAmountCents
@@ -1803,15 +1793,29 @@ export class TransactionsRepository {
           await client.query(updateAccountBalanceSql, [
             command.clerkUserId,
             affectedInvoiceTransaction.accountId,
-            Number(account.current_balance_cents) + removedInvoiceAmountCents,
+            Number(account.current_balance_cents) + (currentEffectiveAmount - nextEffectiveAmount),
           ])
 
-          await client.query(updateCreditCardInvoiceTotalsSql, [
-            command.clerkUserId,
-            affectedInvoiceTransaction.id,
-            nextAmountCents,
-            nextEffectiveAmount,
-          ])
+          if (nextEffectiveAmount === 0) {
+            await client.query(reopenTransactionSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.id,
+            ])
+
+            await client.query(updateCreditCardInvoiceTotalsSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.id,
+              nextAmountCents,
+              null,
+            ])
+          } else {
+            await client.query(updateCreditCardInvoiceTotalsSql, [
+              command.clerkUserId,
+              affectedInvoiceTransaction.id,
+              nextAmountCents,
+              nextEffectiveAmount,
+            ])
+          }
         } else {
           await client.query(updateCreditCardInvoiceTotalsSql, [
             command.clerkUserId,

@@ -94,6 +94,7 @@ export async function createTransactionAction(
     installmentNumber: formData.get("installmentNumber"),
     installmentTotal: formData.get("installmentTotal"),
     installmentAmountInputMode: formData.get("installmentAmountInputMode"),
+    targetInvoiceMonth: formData.get("targetInvoiceMonth"),
     notes: formData.get("notes"),
   })
 
@@ -122,6 +123,7 @@ export async function createTransactionAction(
         installmentNumber: parsed.data.installmentNumber,
         installmentTotal: parsed.data.installmentTotal,
         installmentAmountInputMode: parsed.data.installmentAmountInputMode,
+        targetInvoiceMonth: parsed.data.targetInvoiceMonth,
         notes: parsed.data.notes,
       })
     } else {
@@ -140,13 +142,14 @@ export async function createTransactionAction(
         installmentNumber: parsed.data.installmentNumber,
         installmentTotal: parsed.data.installmentTotal,
         installmentAmountInputMode: parsed.data.installmentAmountInputMode,
+        targetInvoiceMonth: parsed.data.targetInvoiceMonth,
         notes: parsed.data.notes,
       })
     }
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -193,8 +196,8 @@ export async function settleTransactionAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -256,8 +259,8 @@ export async function updateTransactionAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -302,8 +305,8 @@ export async function reopenTransactionAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -350,8 +353,8 @@ export async function removeTransactionAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -398,8 +401,8 @@ export async function removeCreditCardExpenseAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -444,8 +447,8 @@ export async function settleCreditCardExpenseAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -493,8 +496,8 @@ export async function changeCreditCardExpenseCardAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",
@@ -552,8 +555,8 @@ export async function updateCreditCardExpenseAction(
     })
 
     revalidatePath("/lancamentos")
-    revalidatePath("/contas")
-    revalidatePath("/cartoes")
+    revalidatePath("/configuracoes/contas")
+    revalidatePath("/configuracoes/cartoes")
 
     return {
       status: "success",

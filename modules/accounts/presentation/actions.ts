@@ -63,7 +63,7 @@ export async function createAccountAction(
       displayOrder: 0,
     })
 
-    revalidatePath("/contas")
+    revalidatePath("/configuracoes/contas")
 
     return {
       status: "success",
@@ -107,7 +107,7 @@ export async function archiveAccountAction(
       accountId: parsed.data.accountId,
     })
 
-    revalidatePath("/contas")
+    revalidatePath("/configuracoes/contas")
 
     return {
       status: "success",
@@ -160,7 +160,7 @@ export async function updateAccountAction(
       includeInNetWorth: parsed.data.includeInNetWorth,
     })
 
-    revalidatePath("/contas")
+    revalidatePath("/configuracoes/contas")
 
     return {
       status: "success",
