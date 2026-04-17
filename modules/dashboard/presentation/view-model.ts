@@ -169,7 +169,7 @@ export function buildDashboardData({
   accounts: AccountRecord[]
   transactions: TransactionListRecord[]
   filter: DashboardFilter
-}): DashboardData {
+}): Omit<DashboardData, "rawTransactions" | "rawInvoiceExpenses"> {
   const start = parseISO(filter.startDate)
   const end = parseISO(filter.endDate)
 
@@ -213,6 +213,7 @@ export function buildDashboardData({
       name: account.name,
       typeLabel: getAccountTypeLabel(account.type),
       balanceCents: account.currentBalanceCents,
+      initialBalanceCents: account.initialBalanceCents,
       tone: getAccountTone(account.type),
       includeInNetWorth: account.includeInNetWorth,
     }))

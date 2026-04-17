@@ -25,11 +25,15 @@ async function getDashboardPageState(
     ])
 
     return {
-      data: buildDashboardData({
-        accounts,
-        transactions: transactions.transactions,
-        filter,
-      }),
+      data: {
+        ...buildDashboardData({
+          accounts,
+          transactions: transactions.transactions,
+          filter,
+        }),
+        rawTransactions: transactions.transactions,
+        rawInvoiceExpenses: transactions.invoiceExpenses,
+      },
       error: null,
     }
   } catch (error) {

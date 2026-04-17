@@ -75,6 +75,15 @@ function createDatabaseClient(executor: QueryExecutor): DatabaseClient {
   }
 }
 
+export async function createRawLibsqlClient() {
+  const env = getServerEnv()
+  return createClient({
+    url: env.TURSO_DATABASE_URL,
+    authToken: env.TURSO_AUTH_TOKEN,
+    concurrency: 5,
+  })
+}
+
 export async function getLibsqlClient() {
   if (!dbPromise) {
     const env = getServerEnv()

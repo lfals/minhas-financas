@@ -148,6 +148,8 @@
 
 .dialog-viewport-aware {
     top: calc(var(--dialog-viewport-top, 0px) + var(--dialog-mobile-edge-offset));
+    min-width: 0;
+    width: 100%;
     max-height: calc(
       var(--dialog-viewport-height, 100dvh) -
       var(--dialog-mobile-edge-offset) -
@@ -158,6 +160,8 @@
 @media (min-width: 640px) {
   .dialog-viewport-aware {
       top: 50%;
+      min-width: 450px;
+      width: auto;
       max-height: calc(var(--dialog-viewport-height, 100dvh) - 2rem);
   }
 

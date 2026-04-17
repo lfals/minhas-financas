@@ -20,6 +20,7 @@ export type DashboardAccountSnapshot = {
   name: string
   typeLabel: string
   balanceCents: number
+  initialBalanceCents: number
   tone: string
   includeInNetWorth: boolean
 }
@@ -61,4 +62,6 @@ export type DashboardData = {
   transactions: DashboardTransactionSnapshot[]
   obligations: DashboardObligationSnapshot[]
   categories: DashboardCategorySnapshot[]
+  rawTransactions: import("@/modules/transactions/domain/types").TransactionListRecord[]
+  rawInvoiceExpenses: import("@/modules/transactions/domain/types").CreditCardInvoiceExpenseRecord[]
 }

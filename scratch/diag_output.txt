@@ -1,0 +1,72 @@
+[dotenv@17.3.1] injecting env (4) from .env.local -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Tables: accounts, audit_log, transaction_categories, credit_cards, transactions, credit_card_expenses, salaries, salary_deductions, salary_exclusions
+Table credit_cards FKs:
+┌─────────┬────┬─────┬────────────┬──────────────────────┬──────┬─────────────┬─────────────┬────────┐
+│ (index) │ id │ seq │ table      │ from                 │ to   │ on_update   │ on_delete   │ match  │
+├─────────┼────┼─────┼────────────┼──────────────────────┼──────┼─────────────┼─────────────┼────────┤
+│ 0       │ 0  │ 0   │ 'accounts' │ 'expense_account_id' │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+└─────────┴────┴─────┴────────────┴──────────────────────┴──────┴─────────────┴─────────────┴────────┘
+Table transactions FKs:
+┌─────────┬────┬─────┬──────────────────────────┬──────────────────┬──────┬─────────────┬─────────────┬────────┐
+│ (index) │ id │ seq │ table                    │ from             │ to   │ on_update   │ on_delete   │ match  │
+├─────────┼────┼─────┼──────────────────────────┼──────────────────┼──────┼─────────────┼─────────────┼────────┤
+│ 0       │ 0  │ 0   │ 'credit_cards'           │ 'credit_card_id' │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+│ 1       │ 1  │ 0   │ 'transaction_categories' │ 'category_id'    │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+│ 2       │ 2  │ 0   │ 'accounts'               │ 'account_id'     │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+└─────────┴────┴─────┴──────────────────────────┴──────────────────┴──────┴─────────────┴─────────────┴────────┘
+Table credit_card_expenses FKs:
+┌─────────┬────┬─────┬──────────────────────────┬──────────────────────────┬──────┬─────────────┬─────────────┬────────┐
+│ (index) │ id │ seq │ table                    │ from                     │ to   │ on_update   │ on_delete   │ match  │
+├─────────┼────┼─────┼──────────────────────────┼──────────────────────────┼──────┼─────────────┼─────────────┼────────┤
+│ 0       │ 0  │ 0   │ 'transaction_categories' │ 'category_id'            │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+│ 1       │ 1  │ 0   │ 'transactions'           │ 'invoice_transaction_id' │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+│ 2       │ 2  │ 0   │ 'credit_cards'           │ 'card_id'                │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+└─────────┴────┴─────┴──────────────────────────┴──────────────────────────┴──────┴─────────────┴─────────────┴────────┘
+Table salaries FKs:
+┌─────────┬────┬─────┬────────────┬──────────────┬──────┬─────────────┬─────────────┬────────┐
+│ (index) │ id │ seq │ table      │ from         │ to   │ on_update   │ on_delete   │ match  │
+├─────────┼────┼─────┼────────────┼──────────────┼──────┼─────────────┼─────────────┼────────┤
+│ 0       │ 0  │ 0   │ 'accounts' │ 'account_id' │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+└─────────┴────┴─────┴────────────┴──────────────┴──────┴─────────────┴─────────────┴────────┘
+Table salary_deductions FKs:
+┌─────────┬────┬─────┬────────────┬─────────────┬──────┬─────────────┬─────────────┬────────┐
+│ (index) │ id │ seq │ table      │ from        │ to   │ on_update   │ on_delete   │ match  │
+├─────────┼────┼─────┼────────────┼─────────────┼──────┼─────────────┼─────────────┼────────┤
+│ 0       │ 0  │ 0   │ 'salaries' │ 'salary_id' │ 'id' │ 'NO ACTION' │ 'NO ACTION' │ 'NONE' │
+└─────────┴────┴─────┴────────────┴─────────────┴──────┴─────────────┴─────────────┴────────┘
+Indexes:
+┌─────────┬─────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ (index) │ name                                            │ sql                                                                                                                                               │
+├─────────┼─────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 0       │ 'sqlite_autoindex_accounts_1'                   │ null                                                                                                                                              │
+│ 1       │ 'sqlite_autoindex_accounts_2'                   │ null                                                                                                                                              │
+│ 2       │ 'accounts_user_name_idx'                        │ 'CREATE UNIQUE INDEX accounts_user_name_idx\n  on accounts (clerk_user_id, lower(name))'                                                          │
+│ 3       │ 'accounts_user_active_idx'                      │ 'CREATE INDEX accounts_user_active_idx\n  on accounts (clerk_user_id, is_archived, display_order, created_at desc)'                               │
+│ 4       │ 'sqlite_autoindex_audit_log_1'                  │ null                                                                                                                                              │
+│ 5       │ 'audit_log_user_entity_idx'                     │ 'CREATE INDEX audit_log_user_entity_idx\n  on audit_log (clerk_user_id, entity, created_at desc)'                                                 │
+│ 6       │ 'sqlite_autoindex_transaction_categories_1'     │ null                                                                                                                                              │
+│ 7       │ 'transaction_categories_user_name_idx'          │ 'CREATE UNIQUE INDEX transaction_categories_user_name_idx\n  on transaction_categories (clerk_user_id, lower(trim(name)))'                        │
+│ 8       │ 'sqlite_autoindex_credit_cards_1'               │ null                                                                                                                                              │
+│ 9       │ 'sqlite_autoindex_credit_cards_2'               │ null                                                                                                                                              │
+│ 10      │ 'credit_cards_user_nickname_idx'                │ 'CREATE UNIQUE INDEX credit_cards_user_nickname_idx\n  on credit_cards (clerk_user_id, lower(nickname))\n  where is_archived = 0'                 │
+│ 11      │ 'credit_cards_user_active_idx'                  │ 'CREATE INDEX credit_cards_user_active_idx\n  on credit_cards (clerk_user_id, is_archived, created_at desc)'                                      │
+│ 12      │ 'sqlite_autoindex_transactions_1'               │ null                                                                                                                                              │
+│ 13      │ 'sqlite_autoindex_transactions_2'               │ null                                                                                                                                              │
+│ 14      │ 'transactions_user_occurred_idx'                │ 'CREATE INDEX transactions_user_occurred_idx\n  on transactions (clerk_user_id, occurred_on desc, created_at desc)'                               │
+│ 15      │ 'transactions_user_account_idx'                 │ 'CREATE INDEX transactions_user_account_idx\n  on transactions (clerk_user_id, account_id, occurred_on desc)'                                     │
+│ 16      │ 'transactions_user_series_occurred_idx'         │ 'CREATE INDEX transactions_user_series_occurred_idx\n  on transactions (clerk_user_id, series_id, occurred_on desc)'                              │
+│ 17      │ 'transactions_category_idx'                     │ 'CREATE INDEX transactions_category_idx\n  on transactions (clerk_user_id, category_id)'                                                          │
+│ 18      │ 'transactions_credit_card_invoice_idx'          │ 'CREATE UNIQUE INDEX transactions_credit_card_invoice_idx\n  on transactions (clerk_user_id, source_type, credit_card_id, invoice_month)'         │
+│ 19      │ 'sqlite_autoindex_credit_card_expenses_1'       │ null                                                                                                                                              │
+│ 20      │ 'sqlite_autoindex_credit_card_expenses_2'       │ null                                                                                                                                              │
+│ 21      │ 'credit_card_expenses_user_card_occurred_idx'   │ 'CREATE INDEX credit_card_expenses_user_card_occurred_idx\n  on credit_card_expenses (clerk_user_id, card_id, occurred_on desc, created_at desc)' │
+│ 22      │ 'credit_card_expenses_invoice_idx'              │ 'CREATE INDEX credit_card_expenses_invoice_idx\n  on credit_card_expenses (invoice_transaction_id, occurred_on desc)'                             │
+│ 23      │ 'credit_card_expenses_user_series_occurred_idx' │ 'CREATE INDEX credit_card_expenses_user_series_occurred_idx\n  on credit_card_expenses (clerk_user_id, series_id, occurred_on desc)'              │
+│ 24      │ 'credit_card_expenses_category_idx'             │ 'CREATE INDEX credit_card_expenses_category_idx\n  on credit_card_expenses (clerk_user_id, category_id)'                                          │
+│ 25      │ 'credit_card_expenses_user_card_effective_idx'  │ 'CREATE INDEX credit_card_expenses_user_card_effective_idx\n  on credit_card_expenses (clerk_user_id, card_id, is_effective, occurred_on desc)'   │
+│ 26      │ 'sqlite_autoindex_salaries_1'                   │ null                                                                                                                                              │
+│ 27      │ 'salaries_user_idx'                             │ 'CREATE UNIQUE INDEX salaries_user_idx\n  on salaries (clerk_user_id)'                                                                            │
+│ 28      │ 'sqlite_autoindex_salary_deductions_1'          │ null                                                                                                                                              │
+│ 29      │ 'salary_deductions_salary_idx'                  │ 'CREATE INDEX salary_deductions_salary_idx\n  on salary_deductions (salary_id)'                                                                   │
+│ 30      │ 'sqlite_autoindex_salary_exclusions_1'          │ null                                                                                                                                              │
+└─────────┴─────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

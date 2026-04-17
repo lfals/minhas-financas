@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useActionState, useEffect, useEffectEvent, useState } from "react"
+import { startTransition, useActionState, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useFormStatus } from "react-dom"
 import { format } from "date-fns"
@@ -191,6 +191,8 @@ export function TransactionCreateForm({
     initialState
   )
   const [keepOpen, setKeepOpen] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const titleInputRef = useRef<HTMLInputElement>(null)
   const defaultAccountId = accountOptions[0]?.id ?? ""
   const defaultCardId = creditCardOptions[0]?.id ?? ""
   const router = useRouter()
@@ -222,18 +224,31 @@ export function TransactionCreateForm({
 
   const currentIsoMonth = format(new Date(), "yyyy-MM")
   const handleSuccess = useEffectEvent(() => {
-    setFormValues(
-      actionType === "update"
-        ? (initialValues ?? {
-            ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
-            cardId: defaultCardId,
-          })
-        : {
-            ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
-            cardId: defaultCardId,
-          }
-    )
-    if (!keepOpen) {
+    if (keepOpen) {
+      // Keep kind, accountId, cardId, and status — only clear text/value fields
+      setFormValues((current) => ({
+        ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+        kind: current.kind,
+        accountId: current.accountId,
+        cardId: current.cardId,
+        status: current.status,
+        targetInvoiceMonth: current.targetInvoiceMonth,
+        occurredOn: current.occurredOn,
+      }))
+      setShowSuccessMessage(true)
+      titleInputRef.current?.focus()
+    } else {
+      setFormValues(
+        actionType === "update"
+          ? (initialValues ?? {
+              ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+              cardId: defaultCardId,
+            })
+          : {
+              ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+              cardId: defaultCardId,
+            }
+      )
       onSuccess?.()
     }
 
@@ -258,10 +273,10 @@ export function TransactionCreateForm({
     if (state.status === "success") {
       handleSuccess()
     }
-  }, [state.status])
+  }, [state])
 
   const content = (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} className="space-y-5" onFocus={() => setShowSuccessMessage(false)}>
       {actionType === "update" && formValues.transactionId ? (
         <input type="hidden" name="transactionId" value={formValues.transactionId} />
       ) : null}
@@ -272,6 +287,7 @@ export function TransactionCreateForm({
           </FieldLabel>
           <FieldContent>
             <Input
+              ref={titleInputRef}
               id="title"
               name="title"
               placeholder="Supermercado"
@@ -643,7 +659,10 @@ export function TransactionCreateForm({
               </NativeSelect>
 
               {formValues.cadence === "fixed" ? (
-                <Field className="w-full">
+                isCardExpense ? (
+                  <input type="hidden" name="fixedExpenseFrequency" value="monthly" />
+                ) : (
+                  <Field className="w-full">
                     <>
                       <FieldLabel htmlFor="fixedExpenseFrequency" className="text-white/80">
                         Recorrência
@@ -652,7 +671,7 @@ export function TransactionCreateForm({
                         <NativeSelect
                           id="fixedExpenseFrequency"
                           name="fixedExpenseFrequency"
-                          value={isCardExpense ? "monthly" : formValues.fixedExpenseFrequency}
+                          value={formValues.fixedExpenseFrequency}
                           onChange={(event) => {
                             const { value } = event.currentTarget
                             setFormValues((current) => ({
@@ -661,7 +680,6 @@ export function TransactionCreateForm({
                             }))
                           }}
                           className="h-10 w-full border-white/10 bg-white/5 text-sm text-white"
-                          disabled={isCardExpense}
                         >
                           {fixedExpenseFrequencyOptions.map((option) => (
                             <NativeSelectOption key={option.value} value={option.value}>
@@ -669,11 +687,6 @@ export function TransactionCreateForm({
                             </NativeSelectOption>
                           ))}
                         </NativeSelect>
-                        {isCardExpense && (
-                          <p className="text-xs text-white/55">
-                            A compra fixa só entra na fatura e no limite depois que a competência for efetivada.
-                          </p>
-                        )}
                         <FieldError
                           errors={state.fieldErrors?.fixedExpenseFrequency?.map((message) => ({
                             message,
@@ -681,7 +694,8 @@ export function TransactionCreateForm({
                         />
                       </FieldContent>
                     </>
-                </Field>
+                  </Field>
+                )
               ) : (
                 <input type="hidden" name="fixedExpenseFrequency" value="" />
               )}
@@ -850,7 +864,7 @@ export function TransactionCreateForm({
         </p>
       ) : null}
 
-      {state.message ? (
+      {state.message && (state.status !== "success" || showSuccessMessage) ? (
         <p
           className={
             state.status === "success" ? "text-sm text-[#d8f36a]" : "text-sm text-[#ff9c7a]"

@@ -3,7 +3,7 @@ import "server-only"
 import type { InArgs, InValue } from "@libsql/client"
 
 import { toQueryResult } from "@/lib/db/sql"
-import { getLibsqlClient } from "@/lib/db/pool"
+import { getLibsqlClient, createRawLibsqlClient } from "@/lib/db/pool"
 import { ConfigurationAppError } from "@/lib/errors/app-error"
 import type { DatabaseClient } from "@/lib/db/types"
 
@@ -39,11 +39,17 @@ function wrapLibsqlError(error: unknown) {
 }
 
 export async function withTransaction<T>(
-  callback: (client: DatabaseClient) => Promise<T>
+  callback: (client: DatabaseClient) => Promise<T>,
+  options?: { skipForeignKeys?: boolean }
 ): Promise<T> {
   const db = await getLibsqlClient()
   const transaction = await db.transaction("write")
-  await transaction.execute("PRAGMA foreign_keys = ON")
+  
+  if (options?.skipForeignKeys) {
+    await transaction.execute("PRAGMA foreign_keys = OFF")
+  } else {
+    await transaction.execute("PRAGMA foreign_keys = ON")
+  }
 
   const client: DatabaseClient = {
     async query(text, params = []) {
@@ -74,5 +80,46 @@ export async function withTransaction<T>(
     throw wrapLibsqlError(error)
   } finally {
     await client.release()
+  }
+}
+
+export async function withRawTransaction<T>(
+  callback: (client: DatabaseClient) => Promise<T>
+): Promise<T> {
+  const db = await createRawLibsqlClient()
+
+  try {
+    await db.execute("PRAGMA foreign_keys = OFF")
+    const transaction = await db.transaction("write")
+
+    const client: DatabaseClient = {
+      async query(text, params = []) {
+        try {
+          const result = await transaction.execute({
+            sql: text,
+            args: normalizeArgs(params),
+          })
+          return toQueryResult(result)
+        } catch (error) {
+          throw wrapLibsqlError(error)
+        }
+      },
+      async release() {
+        await transaction.close()
+      },
+    }
+
+    try {
+      const result = await callback(client)
+      await transaction.commit()
+      return result
+    } catch (error) {
+      await transaction.rollback()
+      throw wrapLibsqlError(error)
+    } finally {
+      await client.release()
+    }
+  } finally {
+    await db.close()
   }
 }

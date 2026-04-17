@@ -873,11 +873,13 @@ export class TransactionsRepository {
         invoiceCategory
       )
 
-      for (const occurrence of occurrences) {
+      for (let occurrenceIndex = 0; occurrenceIndex < occurrences.length; occurrenceIndex += 1) {
+        const occurrence = occurrences[occurrenceIndex]
         const competenceMonth = getCreditCardInvoiceCompetenceMonth(occurrence.occurredOn, card.closing_day)
         const invoiceMonth =
-          command.targetInvoiceMonth ??
-          getCreditCardInvoiceMonth(competenceMonth, card.closing_day, card.due_day)
+          command.targetInvoiceMonth
+            ? addMonthsToIsoDate(`${command.targetInvoiceMonth}-01`, occurrenceIndex).slice(0, 7)
+            : getCreditCardInvoiceMonth(competenceMonth, card.closing_day, card.due_day)
         const invoiceDate = buildInvoiceDate(invoiceMonth, card.due_day)
         const invoiceKey = `${invoiceMonth}-01`
         const invoiceTitle = buildCreditCardInvoiceTitle(card.nickname, invoiceMonth)
