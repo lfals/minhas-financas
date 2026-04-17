@@ -49,6 +49,7 @@ function buildInitialValues(transaction: TransactionPageItem): TransactionFormVa
     installmentNumber: transaction.installmentNumber ? String(transaction.installmentNumber) : "1",
     installmentTotal: transaction.installmentTotal ? String(transaction.installmentTotal) : "2",
     installmentAmountInputMode: "installment",
+    targetInvoiceMonth: "",
   }
 }
 

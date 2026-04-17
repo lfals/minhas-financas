@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -9,12 +9,15 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { hasClerkCredentials } from "@/lib/env/server"
 import { PWARegistration } from "@/components/pwa-registration"
 
+export const viewport: Viewport = {
+  themeColor: "#0f0f0f",
+}
+
 export const metadata: Metadata = {
   title: "Minhas Finanças",
   description:
     "Sistema de gestão financeira pessoal com foco em contas, lançamentos, cartões, recorrências e patrimônio.",
   manifest: "/manifest.json",
-  themeColor: "#0f0f0f",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

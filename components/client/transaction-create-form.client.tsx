@@ -203,7 +203,7 @@ export function TransactionCreateForm({
     return {
       ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
       cardId: defaultCardId,
-      targetInvoiceMonth: initialValues?.targetInvoiceMonth || (defaultCardId ? currentIsoMonth : ""),
+      targetInvoiceMonth: defaultCardId ? currentIsoMonth : "",
     }
   })
   const allowCardExpense = actionType === "create"
