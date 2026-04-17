@@ -13,6 +13,7 @@ import type {
   TransactionCreditCardOption,
   TransactionListRecord,
   TransactionPageItem,
+  TransactionTitleSuggestion,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
 
@@ -207,6 +208,36 @@ export function buildTransactionCreditCardOptions(
       id: card.id,
       label: card.finalDigits ? `${card.nickname} • ${card.finalDigits}` : card.nickname,
     }))
+}
+
+export function buildTransactionTitleSuggestions(
+  transactions: TransactionListRecord[]
+): TransactionTitleSuggestion[] {
+  const suggestionsMap = new Map<string, { title: string; category: string; occurredOn: string }>()
+
+  // Sort by date descending to get the most recent category for each title
+  const sortedTransactions = [...transactions].sort((left, right) =>
+    right.occurredOn.localeCompare(left.occurredOn)
+  )
+
+  for (const transaction of sortedTransactions) {
+    const title = transaction.title.trim()
+    const normalizedTitle = title.toLocaleLowerCase("pt-BR")
+
+    if (!normalizedTitle || suggestionsMap.has(normalizedTitle)) {
+      continue
+    }
+
+    suggestionsMap.set(normalizedTitle, {
+      title,
+      category: transaction.category,
+      occurredOn: transaction.occurredOn,
+    })
+  }
+
+  return [...suggestionsMap.values()]
+    .sort((left, right) => left.title.localeCompare(right.title, "pt-BR"))
+    .map(({ title, category }) => ({ title, category }))
 }
 
 export function buildTransactionsPageData(

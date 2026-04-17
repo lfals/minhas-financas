@@ -65,7 +65,7 @@ import {
   transactionRecordSchema,
   transactionCategoryRecordSchema,
 } from "@/schemas/transactions.schemas"
-import { SalariesRepository } from "@/modules/salaries/infrastructure/salaries-repository"
+
 
 type DbTransactionRow = {
   id: string
@@ -663,7 +663,7 @@ async function resolveTransactionCategoryId(
 }
 
 const CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE = "__credit_card_invoice_settlement_adjustment__"
-const salariesRepository = new SalariesRepository()
+
 
 async function syncCreditCardInvoiceSettlementAdjustment(
   client: DatabaseClient,
@@ -1271,14 +1271,7 @@ export class TransactionsRepository {
       const balanceDeltasByAccount = new Map<string, number>()
 
       for (const transaction of transactionsToRemove) {
-        if (transaction.category === "Salário") {
-          const match = transaction.title.match(/^Salário (\d{2})\/(\d{4})$/)
-          if (match) {
-            const [, month, year] = match
-            const monthYear = `${year}-${month}`
-            await salariesRepository.excludeMonth(command.clerkUserId, monthYear, client)
-          }
-        }
+
 
         if (transaction.status !== "compensated") {
           continue

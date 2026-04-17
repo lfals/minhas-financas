@@ -178,6 +178,11 @@ export type TransactionCreditCardOption = {
   label: string
 }
 
+export type TransactionTitleSuggestion = {
+  title: string
+  category: string
+}
+
 export type TransactionsPageData = {
   periodLabel: string
   summary: {

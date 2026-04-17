@@ -11,6 +11,7 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionPageItem,
+  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
 
 function formatCentsToInput(value: number) {
@@ -57,11 +58,13 @@ export function TransactionDetailsDialog({
   transaction,
   accountOptions,
   categoryOptions,
+  titleSuggestions,
   children,
 }: {
   transaction: TransactionPageItem
   accountOptions: TransactionAccountOption[]
   categoryOptions: TransactionCategoryOption[]
+  titleSuggestions: TransactionTitleSuggestion[]
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -97,6 +100,7 @@ export function TransactionDetailsDialog({
             accountOptions={accountOptions}
             creditCardOptions={[]}
             categoryOptions={categoryOptions}
+            titleSuggestions={titleSuggestions}
             defaultOccurredOn={transaction.occurredOn}
             initialValues={buildInitialValues(transaction)}
             mode="flat"

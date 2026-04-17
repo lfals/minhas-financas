@@ -21,6 +21,7 @@ import type {
   TransactionPageItem,
   TransactionCategoryOption,
   TransactionCreditCardOption,
+  TransactionTitleSuggestion,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
 import {
@@ -105,12 +106,14 @@ export function TransactionsPageView({
   accountOptions,
   creditCardOptions,
   categoryOptions,
+  titleSuggestions,
   defaultOccurredOn,
   selectedDate,
 }: TransactionsPageData & {
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
+  titleSuggestions: TransactionTitleSuggestion[]
   allTransactions: TransactionPageItem[]
   defaultOccurredOn: string
   selectedDate: string
@@ -167,6 +170,7 @@ export function TransactionsPageView({
                 accountOptions={accountOptions}
                 creditCardOptions={creditCardOptions}
                 categoryOptions={categoryOptions}
+                titleSuggestions={titleSuggestions}
                 defaultOccurredOn={defaultOccurredOn}
               />
             </div>
@@ -260,6 +264,7 @@ export function TransactionsPageView({
                         expenses={invoiceExpensesForTransaction}
                         cardOptions={creditCardOptions}
                         categoryOptions={categoryOptions}
+                        titleSuggestions={titleSuggestions}
                       >
                         <div
                           role="button"
@@ -278,6 +283,7 @@ export function TransactionsPageView({
                       transaction={transaction}
                       accountOptions={accountOptions}
                       categoryOptions={categoryOptions}
+                      titleSuggestions={titleSuggestions}
                     >
                       {listItem}
                     </TransactionDetailsDialog>

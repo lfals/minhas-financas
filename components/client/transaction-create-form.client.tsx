@@ -30,6 +30,7 @@ import type {
   TransactionCategoryOption,
   TransactionCreditCardOption,
   TransactionFormKind,
+  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -169,6 +170,7 @@ export function TransactionCreateForm({
   accountOptions,
   creditCardOptions,
   categoryOptions,
+  titleSuggestions,
   defaultOccurredOn,
   initialValues,
   mode = "card",
@@ -179,6 +181,7 @@ export function TransactionCreateForm({
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
+  titleSuggestions: TransactionTitleSuggestion[]
   defaultOccurredOn: string
   initialValues?: TransactionFormValues
   mode?: "card" | "flat"
@@ -290,17 +293,36 @@ export function TransactionCreateForm({
               ref={titleInputRef}
               id="title"
               name="title"
+              list="transaction-title-options"
               placeholder="Supermercado"
               value={formValues.title}
               onChange={(event) => {
                 const { value } = event.currentTarget
-                setFormValues((current) => ({
-                  ...current,
-                  title: value,
-                }))
+                setFormValues((current) => {
+                  const newState = {
+                    ...current,
+                    title: value,
+                  }
+
+                  // Auto-fill category if title matches a suggestion
+                  const matchingSuggestion = titleSuggestions.find(
+                    (s) => s.title.toLocaleLowerCase("pt-BR") === value.trim().toLocaleLowerCase("pt-BR")
+                  )
+
+                  if (matchingSuggestion) {
+                    newState.category = matchingSuggestion.category
+                  }
+
+                  return newState
+                })
               }}
               className="h-10 border-white/10 bg-white/5 text-white"
             />
+            <datalist id="transaction-title-options">
+              {titleSuggestions.map((suggestion) => (
+                <option key={suggestion.title} value={suggestion.title} />
+              ))}
+            </datalist>
             <FieldError errors={state.fieldErrors?.title?.map((message) => ({ message }))} />
           </FieldContent>
         </Field>

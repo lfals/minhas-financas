@@ -22,6 +22,7 @@ import {
 import type {
   CreditCardInvoiceExpensePageItem,
   TransactionCategoryOption,
+  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
@@ -117,10 +118,12 @@ function SubmitButton() {
 export function CreditCardExpenseDetailsDialog({
   expense,
   categoryOptions,
+  titleSuggestions,
   children,
 }: {
   expense: CreditCardInvoiceExpensePageItem
   categoryOptions: TransactionCategoryOption[]
+  titleSuggestions: TransactionTitleSuggestion[]
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -193,16 +196,37 @@ export function CreditCardExpenseDetailsDialog({
                   <Input
                     id="expense-title"
                     name="title"
+                    list="credit-card-expense-title-options"
                     value={formValues.title}
                     onChange={(event) => {
                       const { value } = event.currentTarget
-                      setFormValues((current) => ({
-                        ...current,
-                        title: value,
-                      }))
+                      setFormValues((current) => {
+                        const newState = {
+                          ...current,
+                          title: value,
+                        }
+
+                        // Auto-fill category if title matches a suggestion
+                        const matchingSuggestion = titleSuggestions.find(
+                          (s) =>
+                            s.title.toLocaleLowerCase("pt-BR") ===
+                            value.trim().toLocaleLowerCase("pt-BR")
+                        )
+
+                        if (matchingSuggestion) {
+                          newState.category = matchingSuggestion.category
+                        }
+
+                        return newState
+                      })
                     }}
                     className="h-10 border-white/10 bg-white/5 text-white"
                   />
+                  <datalist id="credit-card-expense-title-options">
+                    {titleSuggestions.map((suggestion) => (
+                      <option key={suggestion.title} value={suggestion.title} />
+                    ))}
+                  </datalist>
                   <FieldError errors={state.fieldErrors?.title?.map((message) => ({ message }))} />
                 </FieldContent>
               </Field>

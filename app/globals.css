@@ -130,8 +130,10 @@
   body {
     @apply bg-background text-foreground font-sans;
     background-image:
-      radial-gradient(circle at top left, rgba(216, 243, 106, 0.16), transparent 32%),
-      radial-gradient(circle at bottom right, rgba(196, 241, 255, 0.18), transparent 26%);
+      radial-gradient(circle at top left, rgba(216, 243, 106, 0.08), transparent 40%),
+      radial-gradient(circle at bottom right, rgba(16, 16, 16, 0.5), transparent 60%),
+      radial-gradient(circle at center, rgba(216, 243, 106, 0.05), transparent 50%);
+    background-attachment: fixed;
     }
 
   ::selection {
@@ -139,6 +141,22 @@
     color: #d8f36a;
     }
 }
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+}
+
 
 .modal-scroll-body {
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
