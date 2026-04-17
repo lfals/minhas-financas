@@ -3,8 +3,18 @@ import { ChevronRight, CreditCard, Landmark } from "lucide-react"
 
 import { SettingsResetDialog } from "@/components/client/settings-reset-dialog.client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SalaryConfigDialog } from "@/components/client/salary-config-dialog.client"
+import { getSalaryUseCase } from "@/modules/salaries/application/get-salary-use-case"
+import { getClerkUserIdOrThrow } from "@/lib/auth/server"
+import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const clerkUserId = await getClerkUserIdOrThrow()
+  const [salaryConfig, accounts] = await Promise.all([
+    getSalaryUseCase(clerkUserId),
+    listAccountsUseCase({ clerkUserId }),
+  ])
+
   return (
     <div className="space-y-6">
       <Card className="border border-white/10 bg-[#141414] ring-0">
@@ -51,6 +61,11 @@ export default function SettingsPage() {
             </div>
             <ChevronRight className="size-5 text-white/30 transition-colors group-hover:text-white" />
           </Link>
+
+          <SalaryConfigDialog 
+            initialConfig={salaryConfig} 
+            accounts={accounts.map(acc => ({ id: acc.id, name: acc.name }))} 
+          />
 
           <SettingsResetDialog />
         </CardContent>

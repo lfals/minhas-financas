@@ -8,11 +8,14 @@ const isProtectedRoute = createRouteMatcher([
   "/api/accounts(.*)",
 ])
 
-export default clerkMiddleware(async (auth, request) => {
-  if (isProtectedRoute(request)) {
-    await auth.protect()
-  }
-})
+export default clerkMiddleware(
+  async (auth, request) => {
+    if (isProtectedRoute(request)) {
+      await auth.protect()
+    }
+  },
+  { debug: process.env.NODE_ENV === "development" }
+)
 
 export const config = {
   matcher: [

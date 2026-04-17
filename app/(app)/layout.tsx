@@ -7,7 +7,13 @@ export default async function AuthenticatedLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const user = await currentUser()
+  let user = null
+  try {
+    user = await currentUser()
+  } catch (error) {
+    console.error("Erro ao buscar usuário do Clerk:", error)
+    // Se falhar, continuamos como não autenticado ou mostramos erro amigável dependendo da lógica
+  }
 
   return (
     <AppShell

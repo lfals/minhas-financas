@@ -169,3 +169,35 @@ create index if not exists credit_card_expenses_category_idx
 
 create index if not exists credit_card_expenses_user_card_effective_idx
   on credit_card_expenses (clerk_user_id, card_id, is_effective, occurred_on desc);
+
+create table if not exists salaries (
+  id text primary key,
+  clerk_user_id text not null,
+  amount_cents integer not null,
+  day_of_month integer not null check (day_of_month between 1 and 31),
+  account_id text not null references accounts(id),
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+create unique index if not exists salaries_user_idx
+  on salaries (clerk_user_id);
+
+create table if not exists salary_deductions (
+  id text primary key,
+  salary_id text not null references salaries(id),
+  description text not null,
+  amount_cents integer not null,
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  updated_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+create index if not exists salary_deductions_salary_idx
+  on salary_deductions (salary_id);
+
+create table if not exists salary_exclusions (
+  clerk_user_id text not null,
+  month_year text not null, -- format: YYYY-MM
+  created_at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  primary key (clerk_user_id, month_year)
+);

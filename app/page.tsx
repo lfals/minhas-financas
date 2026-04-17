@@ -59,11 +59,6 @@ const modules = [
     description: "Compras parceladas, fechamento automático e controle do limite disponível.",
     icon: CreditCard,
   },
-  {
-    title: "Patrimônio",
-    description: "Posição atual, proventos, CDI e rentabilidade por classe de ativo.",
-    icon: TrendingUp,
-  },
 ]
 
 const accounts = [
@@ -169,7 +164,7 @@ export default function Page() {
             </div>
 
             <nav className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.25em] text-white/60">
-              {["Visão geral", "Contas", "Faturas", "Investimentos"].map((item) => (
+              {["Visão geral", "Contas", "Faturas"].map((item) => (
                 <Badge
                   key={item}
                   variant="outline"
@@ -303,7 +298,7 @@ export default function Page() {
           <SectionHeading
             eyebrow="Módulos centrais"
             title="Tudo o que importa para cuidar do dinheiro em um só lugar."
-            copy="Contas, despesas, cartões e investimentos aparecem conectados na mesma experiência. Você enxerga o presente, antecipa compromissos e acompanha evolução patrimonial sem trocar de contexto."
+            copy="Contas, despesas e cartões aparecem conectados na mesma experiência. Você enxerga o presente e antecipa compromissos sem trocar de contexto."
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -331,7 +326,7 @@ export default function Page() {
           <SectionHeading
             eyebrow="Contas e extrato"
             title="Leitura rápida dos saldos e do histórico financeiro."
-            copy="Contas correntes, reserva, carteira e investimentos aparecem juntos para facilitar a leitura do todo sem perder o detalhe de cada origem do dinheiro."
+            copy="Contas correntes, reserva e carteira aparecem juntas para facilitar a leitura do todo sem perder o detalhe de cada origem do dinheiro."
           />
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -460,7 +455,7 @@ export default function Page() {
         <div className="mx-auto grid max-w-7xl gap-6 px-6 py-16 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
           <SectionHeading
             eyebrow="Cartões e patrimônio"
-            title="Faturas automáticas e investimentos convivem na mesma cadência."
+            title="Faturas automáticas e controle de gastos convivem na mesma cadência."
             copy="Compromissos de curto prazo e construção de patrimônio aparecem lado a lado. Isso acelera decisões melhores e dá mais segurança para planejar o próximo passo."
           />
 
