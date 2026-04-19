@@ -21,6 +21,11 @@ import {
   listAccountsSql,
   listAllAccountsSql,
   updateAccountSql,
+  countAccountDependenciesSql,
+  deleteAccountSql,
+  moveTransactionsToAccountSql,
+  moveCreditCardsToAccountSql,
+  moveSalariesToAccountSql,
 } from "@/modules/accounts/infrastructure/accounts-sql"
 import { accountRecordSchema } from "@/schemas/accounts.schemas"
 
@@ -202,6 +207,55 @@ export class AccountsRepository {
       ])
 
       return updated.rows[0] ? account : existingAccount
+    })
+  }
+
+  async countDependencies(clerkUserId: string, accountId: string) {
+    const result = await queryDb<{
+      transactions_count: number
+      cards_count: number
+      salaries_count: number
+    }>(countAccountDependenciesSql, [clerkUserId, accountId])
+
+    const row = result.rows[0]
+    return {
+      transactionsCount: Number(row.transactions_count),
+      cardsCount: Number(row.cards_count),
+      salariesCount: Number(row.salaries_count),
+      total: Number(row.transactions_count) + Number(row.cards_count) + Number(row.salaries_count),
+    }
+  }
+
+  async delete(clerkUserId: string, accountId: string, targetAccountId?: string) {
+    return withTransaction(async (client) => {
+      const existingAccount = await queryOne(client, findAccountByIdSql, [
+        clerkUserId,
+        accountId,
+      ])
+
+      if (!existingAccount) {
+        return
+      }
+
+      if (targetAccountId) {
+        await client.query(moveTransactionsToAccountSql, [clerkUserId, accountId, targetAccountId])
+        await client.query(moveCreditCardsToAccountSql, [clerkUserId, accountId, targetAccountId])
+        await client.query(moveSalariesToAccountSql, [clerkUserId, accountId, targetAccountId])
+      }
+
+      await client.query(deleteAccountSql, [clerkUserId, accountId])
+
+      await client.query(insertAuditLogSql, [
+        clerkUserId,
+        "user",
+        "account.deleted",
+        "accounts",
+        accountId,
+        JSON.stringify(existingAccount),
+        null,
+        null,
+        null,
+      ])
     })
   }
 }

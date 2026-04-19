@@ -156,13 +156,13 @@ export function DashboardView({
             <Table className="border-separate border-spacing-0 text-xs">
               <TableHeader className="sticky top-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-md">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="sticky left-0 top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[100px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead className="sticky md:left-0 top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[100px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
                     Tipo
                   </TableHead>
-                  <TableHead className="sticky left-[100px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[80px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead className="sticky md:left-[100px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[80px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
                     Parcelas
                   </TableHead>
-                  <TableHead className="sticky left-[180px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[200px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead className="sticky md:left-[180px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[200px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
                     Nome/Mês
                   </TableHead>
                   {sortedMonths.map((month) => (
@@ -182,7 +182,7 @@ export function DashboardView({
                     className="group border-none transition-colors hover:bg-white/[0.03]"
                   >
                     <TableCell className={cn(
-                      "sticky left-0 z-10 bg-[#0a0a0a] border-r border-white/5 font-medium py-3 group-hover:bg-[#121212] transition-colors",
+                      "sticky md:left-0 z-10 bg-[#0a0a0a] border-r border-white/5 font-medium py-3 group-hover:bg-[#121212] transition-colors",
                       "border-b border-white/5"
                     )}>
                       <span className={cn(
@@ -195,7 +195,7 @@ export function DashboardView({
                       </span>
                     </TableCell>
                     <TableCell className={cn(
-                      "sticky left-[100px] z-10 bg-[#0a0a0a] border-r border-white/5 text-center py-3 group-hover:bg-[#121212] transition-colors",
+                      "sticky md:left-[100px] z-10 bg-[#0a0a0a] border-r border-white/5 text-center py-3 group-hover:bg-[#121212] transition-colors",
                       "border-b border-white/5",
                       row.installmentLabel === "Fixo"
                         ? "text-[#c4b5fd] font-semibold text-[9px] uppercase tracking-wider"
@@ -206,7 +206,7 @@ export function DashboardView({
                       {row.installmentLabel}
                     </TableCell>
                     <TableCell className={cn(
-                      "sticky left-[180px] z-10 bg-[#0a0a0a] border-r border-white/5 font-medium text-white/80 py-3 group-hover:bg-[#121212] transition-colors",
+                      "sticky md:left-[180px] z-10 bg-[#0a0a0a] border-r border-white/5 font-medium text-white/80 py-3 group-hover:bg-[#121212] transition-colors",
                       "border-b border-white/5"
                     )}>
                       {row.name}
@@ -231,13 +231,13 @@ export function DashboardView({
               </TableBody>
               <TableFooter className="sticky bottom-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-md border-t border-white/10">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableCell className="sticky left-0 z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
+                  <TableCell className="sticky md:left-0 z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
                     Resultado
                   </TableCell>
-                  <TableCell className="sticky left-[100px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-center text-white/40 font-mono text-[9px]">
+                  <TableCell className="sticky md:left-[100px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-center text-white/40 font-mono text-[9px]">
                     {rows.length}
                   </TableCell>
-                  <TableCell className="sticky left-[180px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
+                  <TableCell className="sticky md:left-[180px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
                     Saldo Mensal
                   </TableCell>
                   {(() => {

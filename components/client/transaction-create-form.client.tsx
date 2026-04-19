@@ -293,7 +293,7 @@ export function TransactionCreateForm({
               ref={titleInputRef}
               id="title"
               name="title"
-              list="transaction-title-options"
+
               placeholder="Supermercado"
               value={formValues.title}
               onChange={(event) => {
@@ -318,11 +318,7 @@ export function TransactionCreateForm({
               }}
               className="h-10 border-white/10 bg-white/5 text-white"
             />
-            <datalist id="transaction-title-options">
-              {titleSuggestions.map((suggestion) => (
-                <option key={suggestion.title} value={suggestion.title} />
-              ))}
-            </datalist>
+
             <FieldError errors={state.fieldErrors?.title?.map((message) => ({ message }))} />
           </FieldContent>
         </Field>

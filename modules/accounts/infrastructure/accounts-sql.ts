@@ -157,6 +157,54 @@ export const archiveAccountSql = `
     updated_at as updated_at
 `
 
+export const deleteAccountSql = `
+  delete from accounts
+  where clerk_user_id = ?1
+    and id = ?2
+`
+
+export const countAccountDependenciesSql = `
+  select
+    (select count(*) from transactions where clerk_user_id = ?1 and account_id = ?2) as transactions_count,
+    (select count(*) from credit_cards where clerk_user_id = ?1 and expense_account_id = ?2) as cards_count,
+    (select count(*) from salaries where clerk_user_id = ?1 and account_id = ?2) as salaries_count
+`
+
+export const moveAccountDependenciesSql = `
+  -- This will be handled by multiple updates or a single transaction in the repository
+  -- but we'll provide the individual update queries here for clarity
+  update transactions set account_id = ?3 where clerk_user_id = ?1 and account_id = ?2;
+  update credit_cards set expense_account_id = ?3 where clerk_user_id = ?1 and expense_account_id = ?2;
+  update salaries set account_id = ?3 where clerk_user_id = ?1 and account_id = ?2;
+`
+
+export const moveTransactionsToAccountSql = `
+  update transactions
+  set
+    account_id = ?3,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and account_id = ?2
+`
+
+export const moveCreditCardsToAccountSql = `
+  update credit_cards
+  set
+    expense_account_id = ?3,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and expense_account_id = ?2
+`
+
+export const moveSalariesToAccountSql = `
+  update salaries
+  set
+    account_id = ?3,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and account_id = ?2
+`
+
 export const updateAccountSql = `
   update accounts
   set

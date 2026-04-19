@@ -1,7 +1,7 @@
 import type {
   AccountRecord,
   AccountType,
-  ArchiveAccountInput,
+  DeleteAccountInput,
   CreateAccountInput,
   ListAccountsQuery,
   UpdateAccountInput,
@@ -10,7 +10,7 @@ import type {
 export type {
   AccountRecord,
   AccountType,
-  ArchiveAccountInput,
+  DeleteAccountInput,
   CreateAccountInput,
   ListAccountsQuery,
   UpdateAccountInput,
@@ -24,12 +24,17 @@ export type ListAccountsCommand = ListAccountsQuery & {
   clerkUserId: string
 }
 
-export type ArchiveAccountCommand = ArchiveAccountInput & {
+export type DeleteAccountCommand = DeleteAccountInput & {
   clerkUserId: string
 }
 
 export type UpdateAccountCommand = UpdateAccountInput & {
   clerkUserId: string
+}
+
+export type ArchiveAccountCommand = {
+  clerkUserId: string
+  accountId: string
 }
 
 export type AccountListItem = {

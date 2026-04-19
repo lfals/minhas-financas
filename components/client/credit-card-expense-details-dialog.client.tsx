@@ -196,7 +196,7 @@ export function CreditCardExpenseDetailsDialog({
                   <Input
                     id="expense-title"
                     name="title"
-                    list="credit-card-expense-title-options"
+
                     value={formValues.title}
                     onChange={(event) => {
                       const { value } = event.currentTarget
@@ -222,11 +222,7 @@ export function CreditCardExpenseDetailsDialog({
                     }}
                     className="h-10 border-white/10 bg-white/5 text-white"
                   />
-                  <datalist id="credit-card-expense-title-options">
-                    {titleSuggestions.map((suggestion) => (
-                      <option key={suggestion.title} value={suggestion.title} />
-                    ))}
-                  </datalist>
+
                   <FieldError errors={state.fieldErrors?.title?.map((message) => ({ message }))} />
                 </FieldContent>
               </Field>

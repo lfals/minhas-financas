@@ -47,10 +47,7 @@ export default function RootLayout({
       <body className="font-sans">
         <PWARegistration />
         {hasClerkCredentials() ? (
-          <ClerkProvider
-            signInUrl="/sign-in"
-            signUpUrl="/sign-up"
-          >
+          <ClerkProvider>
             {content}
           </ClerkProvider>
         ) : (

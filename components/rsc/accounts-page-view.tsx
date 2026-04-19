@@ -99,7 +99,13 @@ export function AccountsPageView({ data }: { data: AccountsPageData }) {
                           {account.name}
                         </p>
                       </div>
-                      <AccountRemoveButton accountId={account.id} accountName={account.name} />
+                      <AccountRemoveButton
+                        accountId={account.id}
+                        accountName={account.name}
+                        otherAccounts={data.accounts
+                          .filter((a) => a.id !== account.id)
+                          .map((a) => ({ id: a.id, name: a.name }))}
+                      />
                     </div>
 
                     <div className="mt-4 border-t border-white/10 pt-4 sm:mt-5 sm:pt-5">

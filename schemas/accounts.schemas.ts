@@ -61,8 +61,9 @@ export const listAccountsQuerySchema = z.object({
   includeArchived: optionalBooleanSchema.default(false),
 })
 
-export const archiveAccountInputSchema = z.object({
+export const deleteAccountInputSchema = z.object({
   accountId: z.uuid(),
+  targetAccountId: z.uuid().optional(),
 })
 
 export const accountRecordSchema = z.object({
@@ -87,4 +88,4 @@ export type UpdateAccountInput = z.infer<typeof updateAccountInputSchema>
 export type UpdateAccountFormInput = z.infer<typeof updateAccountFormSchema>
 export type ListAccountsQuery = z.infer<typeof listAccountsQuerySchema>
 export type AccountRecord = z.infer<typeof accountRecordSchema>
-export type ArchiveAccountInput = z.infer<typeof archiveAccountInputSchema>
+export type DeleteAccountInput = z.infer<typeof deleteAccountInputSchema>

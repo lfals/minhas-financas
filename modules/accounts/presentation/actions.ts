@@ -5,11 +5,11 @@ import { revalidatePath } from "next/cache"
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
-import { archiveAccountUseCase } from "@/modules/accounts/application/archive-account-use-case"
+import { deleteAccountUseCase } from "@/modules/accounts/application/delete-account-use-case"
 import { createAccountUseCase } from "@/modules/accounts/application/create-account-use-case"
 import { updateAccountUseCase } from "@/modules/accounts/application/update-account-use-case"
 import {
-  archiveAccountInputSchema,
+  deleteAccountInputSchema,
   createAccountFormSchema,
   updateAccountFormSchema,
 } from "@/schemas/accounts.schemas"
@@ -20,9 +20,10 @@ export type CreateAccountActionState = {
   fieldErrors?: Record<string, string[] | undefined>
 }
 
-export type ArchiveAccountActionState = {
+export type DeleteAccountActionState = {
   status: "idle" | "success" | "error"
   message?: string
+  requiresMigration?: boolean
 }
 
 export type UpdateAccountActionState = {
@@ -84,12 +85,13 @@ export async function createAccountAction(
   }
 }
 
-export async function archiveAccountAction(
-  _previousState: ArchiveAccountActionState,
+export async function deleteAccountAction(
+  _previousState: DeleteAccountActionState,
   formData: FormData
-): Promise<ArchiveAccountActionState> {
-  const parsed = archiveAccountInputSchema.safeParse({
+): Promise<DeleteAccountActionState> {
+  const parsed = deleteAccountInputSchema.safeParse({
     accountId: formData.get("accountId"),
+    targetAccountId: formData.get("targetAccountId") || undefined,
   })
 
   if (!parsed.success) {
@@ -102,9 +104,10 @@ export async function archiveAccountAction(
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
 
-    await archiveAccountUseCase({
+    await deleteAccountUseCase({
       clerkUserId,
       accountId: parsed.data.accountId,
+      targetAccountId: parsed.data.targetAccountId,
     })
 
     revalidatePath("/configuracoes/contas")
@@ -115,6 +118,17 @@ export async function archiveAccountAction(
     }
   } catch (error) {
     if (isAppError(error)) {
+      if (
+        error.message.includes("possui despesas ou vínculos ativos") ||
+        error.message.includes("Selecione uma conta")
+      ) {
+        return {
+          status: "error",
+          message: error.message,
+          requiresMigration: true,
+        }
+      }
+
       return {
         status: "error",
         message: error.message,
