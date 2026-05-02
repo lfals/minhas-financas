@@ -330,6 +330,20 @@ export const updateTransactionFormSchema = z.object({
 
 })
 
+export const convertManualExpenseToCreditCardExpenseFormSchema = createTransactionFormSchema
+  .extend({
+    transactionId: z.uuid("Lançamento inválido para atualização."),
+  })
+  .superRefine((value, context) => {
+    if (value.kind !== "card-expense") {
+      context.addIssue({
+        code: "custom",
+        path: ["kind"],
+        message: "Selecione despesa cartão para converter este lançamento.",
+      })
+    }
+  })
+
 export const createCreditCardExpenseInputSchema = z.object({
   clientRequestId: z.uuid().optional(),
   cardId: z.uuid("Selecione um cartão válido."),
@@ -517,6 +531,9 @@ export type CreateTransactionInput = z.infer<typeof createTransactionInputSchema
 export type CreateTransactionFormInput = z.infer<typeof createTransactionFormSchema>
 export type UpdateTransactionInput = z.infer<typeof updateTransactionInputSchema>
 export type UpdateTransactionFormInput = z.infer<typeof updateTransactionFormSchema>
+export type ConvertManualExpenseToCreditCardExpenseFormInput = z.infer<
+  typeof convertManualExpenseToCreditCardExpenseFormSchema
+>
 export type CreateCreditCardExpenseInput = z.infer<typeof createCreditCardExpenseInputSchema>
 export type SettleTransactionInput = z.infer<typeof settleTransactionInputSchema>
 export type ReopenTransactionInput = z.infer<typeof reopenTransactionInputSchema>

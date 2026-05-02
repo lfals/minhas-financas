@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
+import { convertManualExpenseToCreditCardExpenseUseCase } from "@/modules/transactions/application/convert-manual-expense-to-credit-card-expense-use-case"
 import { createCreditCardExpenseUseCase } from "@/modules/transactions/application/create-credit-card-expense-use-case"
 import { changeCreditCardExpenseCardUseCase } from "@/modules/transactions/application/change-credit-card-expense-card-use-case"
 import { updateCreditCardExpenseUseCase } from "@/modules/transactions/application/update-credit-card-expense-use-case"
@@ -17,6 +18,7 @@ import { removeTransactionUseCase } from "@/modules/transactions/application/rem
 import { settleTransactionUseCase } from "@/modules/transactions/application/settle-transaction-use-case"
 import {
   createTransactionFormSchema,
+  convertManualExpenseToCreditCardExpenseFormSchema,
   updateTransactionFormSchema,
   reopenTransactionInputSchema,
   removeTransactionInputSchema,
@@ -222,6 +224,75 @@ export async function updateTransactionAction(
   _previousState: UpdateTransactionActionState,
   formData: FormData
 ): Promise<UpdateTransactionActionState> {
+  const transactionIdRaw = formData.get("transactionId")
+  const transactionId =
+    typeof transactionIdRaw === "string" || typeof transactionIdRaw === "number"
+      ? String(transactionIdRaw)
+      : ""
+  const kindRaw = formData.get("kind")
+  const kind = typeof kindRaw === "string" ? kindRaw : ""
+
+  if (transactionId && kind === "card-expense") {
+    const parsedConvert = convertManualExpenseToCreditCardExpenseFormSchema.safeParse({
+      transactionId,
+      accountId: formData.get("accountId"),
+      cardId: formData.get("cardId"),
+      title: formData.get("title"),
+      category: formData.get("category"),
+      kind,
+      status: formData.get("status"),
+      amount: formData.get("amount"),
+      occurredOn: formData.get("occurredOn"),
+      isFixed: formData.get("isFixed"),
+      fixedExpenseFrequency: formData.get("fixedExpenseFrequency"),
+      installmentNumber: formData.get("installmentNumber"),
+      installmentTotal: formData.get("installmentTotal"),
+      installmentAmountInputMode: formData.get("installmentAmountInputMode"),
+      targetInvoiceMonth: formData.get("targetInvoiceMonth"),
+      notes: formData.get("notes"),
+    })
+
+    if (!parsedConvert.success) {
+      return {
+        status: "error",
+        message: "Revise os campos obrigatórios.",
+        fieldErrors: parsedConvert.error.flatten().fieldErrors,
+      }
+    }
+
+    try {
+      const clerkUserId = await getClerkUserIdOrThrow()
+      const amountCents = parseCurrencyInputToCents(parsedConvert.data.amount)
+
+      await convertManualExpenseToCreditCardExpenseUseCase({
+        clerkUserId,
+        amountCents,
+        ...parsedConvert.data,
+      })
+
+      revalidatePath("/lancamentos")
+      revalidatePath("/configuracoes/contas")
+      revalidatePath("/configuracoes/cartoes")
+
+      return {
+        status: "success",
+        message: "Lançamento convertido para despesa cartão com sucesso.",
+      }
+    } catch (error) {
+      if (isAppError(error)) {
+        return {
+          status: "error",
+          message: error.message,
+        }
+      }
+
+      return {
+        status: "error",
+        message: "Não foi possível atualizar o lançamento agora.",
+      }
+    }
+  }
+
   const parsed = updateTransactionFormSchema.safeParse({
     transactionId: formData.get("transactionId"),
     accountId: formData.get("accountId"),

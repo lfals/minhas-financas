@@ -91,6 +91,27 @@ export function getDefaultTransactionFormValues(
   }
 }
 
+function transactionFormValuesSyncKey(values: TransactionFormValues): string {
+  return [
+    values.transactionId ?? "",
+    values.accountId,
+    values.cardId,
+    values.title,
+    values.category,
+    values.kind,
+    values.status,
+    values.amount,
+    values.occurredOn,
+    values.cadence,
+    String(values.isFixed),
+    values.fixedExpenseFrequency,
+    values.installmentNumber,
+    values.installmentTotal,
+    values.installmentAmountInputMode,
+    values.targetInvoiceMonth,
+  ].join("\u241e")
+}
+
 function formatCurrencyDigitsToInput(value: string) {
   const digits = value.replace(/\D/g, "")
 
@@ -196,6 +217,8 @@ export function TransactionCreateForm({
   const [keepOpen, setKeepOpen] = useState(false)
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const lastAppliedDefaultsKeyRef = useRef<string | null>(null)
+  const lastAppliedEditSnapshotRef = useRef<string | null>(null)
   const defaultAccountId = accountOptions[0]?.id ?? ""
   const defaultCardId = creditCardOptions[0]?.id ?? ""
   const router = useRouter()
@@ -211,7 +234,8 @@ export function TransactionCreateForm({
       targetInvoiceMonth: defaultCardId ? currentIsoMonth : "",
     }
   })
-  const allowCardExpense = actionType === "create"
+  const allowCardExpense =
+    actionType === "create" || (actionType === "update" && initialValues?.kind === "expense")
   const isCardExpense = allowCardExpense && formValues.kind === "card-expense"
   const forcePendingStatus =
     isCardExpense || (formValues.cadence === "fixed" && formValues.kind === "expense")
@@ -259,14 +283,30 @@ export function TransactionCreateForm({
   })
 
   useEffect(() => {
-    if (initialValues) {
-      setFormValues(initialValues)
+    if (initialValues?.transactionId) {
+      lastAppliedDefaultsKeyRef.current = null
+      const snapshot = transactionFormValuesSyncKey(initialValues)
+      if (lastAppliedEditSnapshotRef.current === snapshot) {
+        return
+      }
+      lastAppliedEditSnapshotRef.current = snapshot
+      queueMicrotask(() => {
+        setFormValues(initialValues)
+      })
       return
     }
 
-    setFormValues({
-      ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
-      cardId: defaultCardId,
+    lastAppliedEditSnapshotRef.current = null
+    const defaultsKey = `${defaultAccountId}\u241e${defaultCardId}\u241e${defaultOccurredOn}`
+    if (lastAppliedDefaultsKeyRef.current === defaultsKey) {
+      return
+    }
+    lastAppliedDefaultsKeyRef.current = defaultsKey
+    queueMicrotask(() => {
+      setFormValues({
+        ...getDefaultTransactionFormValues(defaultOccurredOn, defaultAccountId),
+        cardId: defaultCardId,
+      })
     })
   }, [defaultAccountId, defaultCardId, defaultOccurredOn, initialValues])
 
@@ -365,6 +405,12 @@ export function TransactionCreateForm({
                 ) : null}
                 <NativeSelectOption value="income">Receita</NativeSelectOption>
               </NativeSelect>
+              {actionType === "update" && isCardExpense ? (
+                <p className="text-xs text-white/55">
+                  Ao escolher despesa cartão, só esta competência ou parcela vai para a fatura do cartão; as
+                  demais permanecem na conta.
+                </p>
+              ) : null}
               <FieldError errors={state.fieldErrors?.kind?.map((message) => ({ message }))} />
             </FieldContent>
           </Field>

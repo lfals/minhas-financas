@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { Plus } from "lucide-react"
 
 import {
@@ -32,6 +32,9 @@ export function TransactionCreateDialog({
   defaultOccurredOn: string
 }) {
   const [open, setOpen] = useState(false)
+  const handleCreated = useCallback(() => {
+    setOpen(false)
+  }, [])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -51,15 +54,18 @@ export function TransactionCreateDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="modal-scroll-body min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-          <TransactionCreateForm
-            accountOptions={accountOptions}
-            creditCardOptions={creditCardOptions}
-            categoryOptions={categoryOptions}
-            titleSuggestions={titleSuggestions}
-            defaultOccurredOn={defaultOccurredOn}
-            mode="flat"
-            onSuccess={() => setOpen(false)}
-          />
+          {open ? (
+            <TransactionCreateForm
+              key="create-transaction"
+              accountOptions={accountOptions}
+              creditCardOptions={creditCardOptions}
+              categoryOptions={categoryOptions}
+              titleSuggestions={titleSuggestions}
+              defaultOccurredOn={defaultOccurredOn}
+              mode="flat"
+              onSuccess={handleCreated}
+            />
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

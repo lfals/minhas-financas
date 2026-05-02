@@ -282,6 +282,7 @@ export function TransactionsPageView({
                       key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
                       transaction={transaction}
                       accountOptions={accountOptions}
+                      creditCardOptions={creditCardOptions}
                       categoryOptions={categoryOptions}
                       titleSuggestions={titleSuggestions}
                       installments={installmentTransactions}

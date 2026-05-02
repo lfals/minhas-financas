@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, type KeyboardEvent, type ReactNode } from "react"
+import { format } from "date-fns"
+import { useCallback, useMemo, useState, type KeyboardEvent, type ReactNode } from "react"
 
 import {
   TransactionCreateForm,
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionCreditCardOption,
   TransactionPageItem,
   TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
@@ -52,13 +54,14 @@ function buildInitialValues(transaction: TransactionPageItem): TransactionFormVa
     installmentNumber: transaction.installmentNumber ? String(transaction.installmentNumber) : "1",
     installmentTotal: transaction.installmentTotal ? String(transaction.installmentTotal) : "2",
     installmentAmountInputMode: "installment",
-    targetInvoiceMonth: "",
+    targetInvoiceMonth: format(new Date(), "yyyy-MM"),
   }
 }
 
 export function TransactionDetailsDialog({
   transaction,
   accountOptions,
+  creditCardOptions,
   categoryOptions,
   titleSuggestions,
   installments = [],
@@ -66,12 +69,17 @@ export function TransactionDetailsDialog({
 }: {
   transaction: TransactionPageItem
   accountOptions: TransactionAccountOption[]
+  creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
   titleSuggestions: TransactionTitleSuggestion[]
   installments?: TransactionPageItem[]
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const formInitialValues = useMemo(() => buildInitialValues(transaction), [transaction])
+  const handleSaveSuccess = useCallback(() => {
+    setOpen(false)
+  }, [])
   const isInstallmentSeries =
     typeof transaction.installmentTotal === "number" && transaction.installmentTotal > 1
   const installmentItems = installments.length ? installments : [transaction]
@@ -120,18 +128,21 @@ export function TransactionDetailsDialog({
           </div>
         </DialogHeader>
         <div className="modal-scroll-body min-h-0 overflow-y-auto px-6 py-5">
-          <TransactionCreateForm
-            accountOptions={accountOptions}
-            creditCardOptions={[]}
-            categoryOptions={categoryOptions}
-            titleSuggestions={titleSuggestions}
-            defaultOccurredOn={transaction.occurredOn}
-            initialValues={buildInitialValues(transaction)}
-            mode="flat"
-            actionType="update"
-            submitLabel="Salvar alterações"
-            onSuccess={() => setOpen(false)}
-          />
+          {open ? (
+            <TransactionCreateForm
+              key={transaction.id}
+              accountOptions={accountOptions}
+              creditCardOptions={creditCardOptions}
+              categoryOptions={categoryOptions}
+              titleSuggestions={titleSuggestions}
+              defaultOccurredOn={transaction.occurredOn}
+              initialValues={formInitialValues}
+              mode="flat"
+              actionType="update"
+              submitLabel="Salvar alterações"
+              onSuccess={handleSaveSuccess}
+            />
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
