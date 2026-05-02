@@ -22,3 +22,13 @@ export function ensureCreditCardExists(card: CreditCardRecord | null, cardId: st
     throw new NotFoundAppError("Cartão não encontrado.", { cardId })
   }
 }
+
+export function ensureCreditCardCanBeArchived(card: CreditCardRecord | null, cardId: string) {
+  if (!card) {
+    throw new NotFoundAppError("Cartão não encontrado.", { cardId })
+  }
+
+  if (card.isArchived) {
+    throw new ConflictAppError("Este cartão já foi removido.")
+  }
+}

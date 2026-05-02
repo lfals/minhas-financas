@@ -5,6 +5,7 @@ import { useMemo, useState } from "react"
 
 import { CreditCardCreateDialog } from "@/components/client/credit-card-create-dialog.client"
 import { CreditCardEditDialog } from "@/components/client/credit-card-edit-dialog.client"
+import { CreditCardRemoveButton } from "@/components/client/credit-card-remove-button.client"
 import { CreditCardExpenseRemoveButton } from "@/components/client/credit-card-expense-remove-button.client"
 import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client"
 import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
@@ -311,8 +312,8 @@ export function CreditCardSettingsPage({
                         {formatCardSuffix(card.finalDigits)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3 self-start">
-                      <div onClick={(event) => event.stopPropagation()}>
+                    <div className="flex items-center gap-2 self-start sm:gap-3">
+                      <div onClick={(event) => event.stopPropagation()} className="flex items-center gap-2">
                         <CreditCardEditDialog
                           accountOptions={accountOptions}
                           initialValues={{
@@ -327,6 +328,13 @@ export function CreditCardSettingsPage({
                             dueDay: card.dueDay,
                             expenseAccountId: card.expenseAccountId,
                             autoCategorizationEnabled: card.autoCategorizationEnabled,
+                          }}
+                        />
+                        <CreditCardRemoveButton
+                          cardId={card.id}
+                          cardName={card.nickname}
+                          onArchived={() => {
+                            setSelectedCardId((current) => (current === card.id ? null : current))
                           }}
                         />
                       </div>
@@ -382,14 +390,25 @@ export function CreditCardSettingsPage({
       >
         <DialogContent className="max-w-4xl border border-white/10 bg-[#141414] p-0 pt-10 text-white ring-0">
           <DialogHeader className="shrink-0 border-b border-white/10 px-4 pb-4 sm:px-6 sm:pb-5">
-            <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Compras do cartão</p>
-              <DialogTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
-                {selectedCard ? selectedCard.nickname : "Cartão"}
-              </DialogTitle>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 space-y-3">
+                <p className="text-[11px] uppercase tracking-[0.3em] text-white/55">Compras do cartão</p>
+                <DialogTitle className="text-2xl font-semibold uppercase tracking-[-0.07em] text-white sm:text-3xl">
+                  {selectedCard ? selectedCard.nickname : "Cartão"}
+                </DialogTitle>
+                {selectedCard ? (
+                  <div className="text-sm text-white/60">
+                    {selectedCard.createdAtLabel} • {selectedCard.expenseAccountLabel}
+                  </div>
+                ) : null}
+              </div>
               {selectedCard ? (
-                <div className="text-sm text-white/60">
-                  {selectedCard.createdAtLabel} • {selectedCard.expenseAccountLabel}
+                <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                  <CreditCardRemoveButton
+                    cardId={selectedCard.id}
+                    cardName={selectedCard.nickname}
+                    onArchived={() => setSelectedCardId(null)}
+                  />
                 </div>
               ) : null}
             </div>

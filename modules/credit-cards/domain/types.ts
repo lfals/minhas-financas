@@ -18,6 +18,11 @@ export type ListCreditCardsCommand = {
   clerkUserId: string
 }
 
+export type ArchiveCreditCardCommand = {
+  clerkUserId: string
+  cardId: string
+}
+
 export type CreditCardPageItem = {
   id: string
   nickname: string

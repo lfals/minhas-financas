@@ -64,6 +64,10 @@ export const updateCreditCardFormSchema = createCreditCardFormSchema.extend({
   cardId: z.uuid(),
 })
 
+export const archiveCreditCardFormSchema = z.object({
+  cardId: z.uuid(),
+})
+
 export const creditCardRecordSchema = z.object({
   id: z.uuid(),
   clerkUserId: z.string().min(1),

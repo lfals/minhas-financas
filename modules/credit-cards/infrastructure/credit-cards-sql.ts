@@ -177,6 +177,29 @@ export const updateCreditCardSql = `
     updated_at as updated_at
 `
 
+export const archiveCreditCardSql = `
+  update credit_cards
+  set
+    is_archived = true,
+    updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  where clerk_user_id = ?1
+    and id = ?2
+    and is_archived = false
+  returning
+    id,
+    clerk_user_id,
+    nickname,
+    final_digits,
+    limit_cents as limit_cents,
+    closing_day,
+    due_day,
+    expense_account_id,
+    auto_categorization_enabled,
+    is_archived,
+    created_at as created_at,
+    updated_at as updated_at
+`
+
 export const findAccountForCreditCardSql = `
   select
     id,

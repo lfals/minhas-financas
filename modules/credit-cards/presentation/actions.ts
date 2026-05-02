@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache"
 import { getClerkUserIdOrThrow } from "@/lib/auth/server"
 import { isAppError } from "@/lib/errors/app-error"
 import { parseCurrencyInputToCents } from "@/lib/money"
+import { archiveCreditCardUseCase } from "@/modules/credit-cards/application/archive-credit-card-use-case"
 import { createCreditCardUseCase } from "@/modules/credit-cards/application/create-credit-card-use-case"
 import { updateCreditCardUseCase } from "@/modules/credit-cards/application/update-credit-card-use-case"
 import {
+  archiveCreditCardFormSchema,
   createCreditCardFormSchema,
   updateCreditCardFormSchema,
 } from "@/schemas/credit-cards.schemas"
@@ -144,6 +146,63 @@ export async function updateCreditCardAction(
     return {
       status: "error",
       message: "Não foi possível atualizar o cartão agora.",
+    }
+  }
+}
+
+export type ArchiveCreditCardActionState = {
+  status: "idle" | "success" | "error"
+  message?: string
+}
+
+export async function archiveCreditCardAction(
+  _previousState: ArchiveCreditCardActionState,
+  formData: FormData
+): Promise<ArchiveCreditCardActionState> {
+  const parsed = archiveCreditCardFormSchema.safeParse({
+    cardId: formData.get("cardId"),
+  })
+
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Identificador do cartão inválido.",
+    }
+  }
+
+  try {
+    const clerkUserId = await getClerkUserIdOrThrow()
+
+    await archiveCreditCardUseCase({
+      clerkUserId,
+      cardId: parsed.data.cardId,
+    })
+
+    revalidatePath("/lancamentos")
+    revalidatePath("/configuracoes/cartoes")
+
+    return {
+      status: "success",
+      message: "Cartão removido.",
+    }
+  } catch (error) {
+    if (isAppError(error)) {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    if (error instanceof Error && process.env.NODE_ENV !== "production") {
+      return {
+        status: "error",
+        message: error.message,
+      }
+    }
+
+    return {
+      status: "error",
+      message: "Não foi possível remover o cartão agora.",
     }
   }
 }

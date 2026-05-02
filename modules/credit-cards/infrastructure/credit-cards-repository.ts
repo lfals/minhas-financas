@@ -5,6 +5,7 @@ import { withTransaction } from "@/lib/db/tx"
 import { NotFoundAppError } from "@/lib/errors/app-error"
 import type { DatabaseClient } from "@/lib/db/types"
 import type {
+  ArchiveCreditCardCommand,
   CreateCreditCardCommand,
   CreateCreditCardResult,
   CreditCardRecord,
@@ -14,6 +15,7 @@ import type {
 import {
   findAccountForCreditCardSql,
   findCreditCardByClientRequestSql,
+  archiveCreditCardSql,
   findCreditCardByIdSql,
   findCreditCardByNicknameSql,
   insertCreditCardAuditLogSql,
@@ -197,6 +199,44 @@ export class CreditCardsRepository {
         command.clerkUserId,
         "user",
         "credit_card.updated",
+        "credit_cards",
+        command.cardId,
+        JSON.stringify(existingCard),
+        JSON.stringify(card),
+        null,
+        null,
+      ])
+
+      return card
+    })
+  }
+
+  async archive(command: ArchiveCreditCardCommand) {
+    return withTransaction(async (client) => {
+      const existingCard = await queryOne(client, findCreditCardByIdSql, [
+        command.clerkUserId,
+        command.cardId,
+      ])
+
+      if (!existingCard) {
+        return null
+      }
+
+      const archived = await client.query<DbInsertedCreditCardRow>(archiveCreditCardSql, [
+        command.clerkUserId,
+        command.cardId,
+      ])
+
+      if (!archived.rows[0]) {
+        return existingCard
+      }
+
+      const card = await hydrateCreditCard(client, archived.rows[0])
+
+      await client.query(insertCreditCardAuditLogSql, [
+        command.clerkUserId,
+        "user",
+        "credit_card.archived",
         "credit_cards",
         command.cardId,
         JSON.stringify(existingCard),
