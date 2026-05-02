@@ -1,6 +1,7 @@
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
+import { formatCompactCurrency } from "@/lib/formatters"
 import type { AccountRecord } from "@/modules/accounts/domain/types"
 import type { CreditCardRecord } from "@/modules/credit-cards/domain/types"
 import type {
@@ -269,8 +270,12 @@ export function buildTransactionsPageData(
     .filter((transaction) => transaction.kind === "expense" && transaction.status === "compensated")
     .reduce((sum, transaction) => sum + getEffectiveAmount(transaction), 0)
 
-  const pendingAmountCents = transactions
-    .filter((transaction) => transaction.status !== "compensated")
+  const pendingIncomeCents = transactions
+    .filter((transaction) => transaction.kind === "income" && transaction.status !== "compensated")
+    .reduce((sum, transaction) => sum + transaction.amountCents, 0)
+
+  const pendingExpenseCents = transactions
+    .filter((transaction) => transaction.kind === "expense" && transaction.status !== "compensated")
     .reduce((sum, transaction) => sum + transaction.amountCents, 0)
 
   const projectedPendingBalanceCents = transactions
@@ -321,31 +326,25 @@ export function buildTransactionsPageData(
       {
         label: "Entradas",
         valueCents: compensatedIncomeCents,
-        detail: "Receitas compensadas no período",
+        detail: `${formatCompactCurrency(pendingIncomeCents / 100)} pendentes`,
         tone: "income",
       },
       {
         label: "Saídas",
         valueCents: compensatedExpenseCents,
-        detail: "Pagamentos já refletidos no saldo",
+        detail: `${formatCompactCurrency(pendingExpenseCents / 100)} pendentes`,
         tone: "expense",
-      },
-      {
-        label: "Pendente",
-        valueCents: pendingAmountCents,
-        detail: "Lançamentos ainda não compensados",
-        tone: "neutral",
       },
       {
         label: "Saldo atual",
         valueCents: totalAccountBalanceCents,
-        detail: "Saldo atual consolidado de todas as contas",
+        detail: "",
         tone: totalAccountBalanceCents >= 0 ? "income" : "expense",
       },
       {
         label: "Saldo previsto",
         valueCents: estimatedBalanceCents,
-        detail: "Saldo atual das contas + lançamentos pendentes/acumulados",
+        detail: "",
         tone: estimatedBalanceCents >= 0 ? "income" : "expense",
       },
     ],

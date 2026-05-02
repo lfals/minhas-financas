@@ -284,6 +284,7 @@ export function TransactionsPageView({
                       accountOptions={accountOptions}
                       categoryOptions={categoryOptions}
                       titleSuggestions={titleSuggestions}
+                      installments={installmentTransactions}
                     >
                       {listItem}
                     </TransactionDetailsDialog>

@@ -46,6 +46,9 @@ export function TransactionInstallmentsDetailsDialog({
     (sum, installment) => sum + installment.displayAmountCents,
     0
   )
+  const totalPendingAmount = orderedInstallments
+    .filter((installment) => installment.status !== "compensated")
+    .reduce((sum, installment) => sum + installment.displayAmountCents, 0)
 
   return (
     <Dialog>
@@ -64,6 +67,10 @@ export function TransactionInstallmentsDetailsDialog({
             <div className="text-sm text-white/70">
               Total da série:{" "}
               <strong>{formatCompactCurrency(totalAmount / 100)}</strong>
+            </div>
+            <div className="text-sm text-white/70">
+              Total pendente:{" "}
+              <strong>{formatCompactCurrency(totalPendingAmount / 100)}</strong>
             </div>
           </div>
         </DialogHeader>

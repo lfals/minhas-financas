@@ -47,6 +47,12 @@ self.addEventListener('fetch', (event) => {
   // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
+  // HTML document navigations must always hit the network. Cache-first here serves
+  // stale SSR/RSC payloads after mutations or data changes until the cache entry is replaced.
+  if (event.request.mode === 'navigate') {
+    return;
+  }
+
   // Let browser handling of Clerk/Auth URLs and static internal assets that might change
   // We avoid caching sign-in/up and clerk to prevent auth issues
   const url = event.request.url;

@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useActionState, useEffect, useEffectEvent, useRef, useState } from "react"
+import { useActionState, useEffect, useEffectEvent, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useFormStatus } from "react-dom"
 import { format } from "date-fns"
@@ -255,9 +255,7 @@ export function TransactionCreateForm({
       onSuccess?.()
     }
 
-    startTransition(() => {
-      router.refresh()
-    })
+    router.refresh()
   })
 
   useEffect(() => {
@@ -276,7 +274,7 @@ export function TransactionCreateForm({
     if (state.status === "success") {
       handleSuccess()
     }
-  }, [state])
+  }, [state.status, handleSuccess])
 
   const content = (
     <form action={formAction} className="space-y-5" onFocus={() => setShowSuccessMessage(false)}>

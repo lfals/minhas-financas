@@ -1,11 +1,28 @@
+"use client"
+
 import { ptBR } from "date-fns/locale"
 import { format, parseISO } from "date-fns"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
 import type { DashboardData } from "@/modules/dashboard/domain/types"
+import type {
+  CreditCardInvoiceExpenseRecord,
+  TransactionListRecord,
+} from "@/modules/transactions/domain/types"
+
+type ConsolidadoMode = "card_expenses" | "invoice_transactions"
 
 type RowData = {
   type: "Entrada" | "Saída" | "Cartão"
@@ -14,9 +31,21 @@ type RowData = {
   installmentLabel: string // "Fixo", "12x", "—"
 }
 
+function invoiceTransactionAmountCents(t: TransactionListRecord) {
+  return t.settledAmountCents ?? t.amountCents
+}
+
+function monthKeyFromInvoiceTransaction(t: TransactionListRecord) {
+  if (t.invoiceMonth) {
+    return t.invoiceMonth.slice(0, 7)
+  }
+  return t.occurredOn.slice(0, 7)
+}
+
 function getSortedMonths(
-  transactions: import("@/modules/transactions/domain/types").TransactionListRecord[],
-  invoiceExpenses: import("@/modules/transactions/domain/types").CreditCardInvoiceExpenseRecord[]
+  transactions: TransactionListRecord[],
+  invoiceExpenses: CreditCardInvoiceExpenseRecord[],
+  mode: ConsolidadoMode
 ) {
   const months = new Set<string>()
 
@@ -24,10 +53,12 @@ function getSortedMonths(
     months.add(t.occurredOn.slice(0, 7))
   })
 
-  invoiceExpenses.forEach((e) => {
-    const month = e.invoiceMonth?.slice(0, 7) || e.occurredOn.slice(0, 7)
-    months.add(month)
-  })
+  if (mode === "card_expenses") {
+    invoiceExpenses.forEach((e) => {
+      const month = e.invoiceMonth?.slice(0, 7) || e.occurredOn.slice(0, 7)
+      months.add(month)
+    })
+  }
 
   return Array.from(months).sort()
 }
@@ -49,19 +80,19 @@ function resolveInstallmentLabel(isFixed: boolean, installmentTotal: number | nu
   return "—"
 }
 
-export function DashboardView({
-  accounts,
-  rawTransactions,
-  rawInvoiceExpenses,
-}: DashboardData) {
-  const totalInitialBalanceCents = accounts.reduce((sum, a) => sum + a.initialBalanceCents, 0)
-  const sortedMonths = getSortedMonths(rawTransactions, rawInvoiceExpenses)
-  
-  const rowsMap = new Map<string, RowData>()
+function buildConsolidadoModel(params: {
+  totalInitialBalanceCents: number
+  rawTransactions: TransactionListRecord[]
+  rawInvoiceExpenses: CreditCardInvoiceExpenseRecord[]
+  mode: ConsolidadoMode
+}) {
+  const { totalInitialBalanceCents, rawTransactions, rawInvoiceExpenses, mode } = params
 
+  const sortedMonths = getSortedMonths(rawTransactions, rawInvoiceExpenses, mode)
+
+  const rowsMap = new Map<string, RowData>()
   const getRowKey = (type: string, name: string) => `${type}:::${name}`
 
-  // Process manual transactions
   rawTransactions.forEach((t) => {
     if (t.sourceType === "credit_card_invoice") return
 
@@ -69,68 +100,80 @@ export function DashboardView({
     const name = getCleanName(t.title)
     const key = getRowKey(type, name)
     const month = t.occurredOn.slice(0, 7)
-    
+
     if (!rowsMap.has(key)) {
-      rowsMap.set(key, { type: type as any, name, values: {}, installmentLabel: "—" })
+      rowsMap.set(key, { type: type as RowData["type"], name, values: {}, installmentLabel: "—" })
     }
-    
+
     const row = rowsMap.get(key)!
     row.values[month] = (row.values[month] || 0) + t.amountCents
 
-    // Update installment label: fixed takes priority, then installmentTotal
     const label = resolveInstallmentLabel(t.isFixed, t.installmentTotal)
     if (label === "Fixo" || (row.installmentLabel === "—" && label !== "—")) {
       row.installmentLabel = label
     }
   })
 
-  // Track card expense months per key (to infer fixed status)
   const cardExpenseMonths = new Map<string, Set<string>>()
 
-  // Process card expenses
-  rawInvoiceExpenses.forEach((e) => {
-    const type = "Cartão"
-    const name = getCleanName(e.title)
-    const key = getRowKey(type, name)
-    const month = e.invoiceMonth?.slice(0, 7) || e.occurredOn.slice(0, 7)
+  if (mode === "card_expenses") {
+    rawInvoiceExpenses.forEach((e) => {
+      const type = "Cartão"
+      const name = getCleanName(e.title)
+      const key = getRowKey(type, name)
+      const month = e.invoiceMonth?.slice(0, 7) || e.occurredOn.slice(0, 7)
 
-    if (!rowsMap.has(key)) {
-      rowsMap.set(key, { type: type as any, name, values: {}, installmentLabel: "—" })
-    }
-
-    const row = rowsMap.get(key)!
-    row.values[month] = (row.values[month] || 0) + e.amountCents
-
-    // Track installmentTotal for card expenses
-    if (e.installmentTotal && e.installmentTotal > 1 && row.installmentLabel === "—") {
-      row.installmentLabel = `${e.installmentTotal}x`
-    }
-
-    // Track unique months for fixed inference
-    if (!e.installmentTotal) {
-      if (!cardExpenseMonths.has(key)) {
-        cardExpenseMonths.set(key, new Set<string>())
+      if (!rowsMap.has(key)) {
+        rowsMap.set(key, { type, name, values: {}, installmentLabel: "—" })
       }
-      cardExpenseMonths.get(key)!.add(month)
-    }
-  })
 
-  // Infer fixed status for card expenses without installments appearing in 2+ months
-  cardExpenseMonths.forEach((months, key) => {
-    const row = rowsMap.get(key)
-    if (row && row.installmentLabel === "—" && months.size >= 2) {
-      row.installmentLabel = "Fixo"
-    }
-  })
+      const row = rowsMap.get(key)!
+      row.values[month] = (row.values[month] || 0) + e.amountCents
+
+      if (e.installmentTotal && e.installmentTotal > 1 && row.installmentLabel === "—") {
+        row.installmentLabel = `${e.installmentTotal}x`
+      }
+
+      if (!e.installmentTotal) {
+        if (!cardExpenseMonths.has(key)) {
+          cardExpenseMonths.set(key, new Set<string>())
+        }
+        cardExpenseMonths.get(key)!.add(month)
+      }
+    })
+
+    cardExpenseMonths.forEach((months, key) => {
+      const row = rowsMap.get(key)
+      if (row && row.installmentLabel === "—" && months.size >= 2) {
+        row.installmentLabel = "Fixo"
+      }
+    })
+  } else {
+    rawTransactions.forEach((t) => {
+      if (t.sourceType !== "credit_card_invoice") return
+      if (t.kind !== "expense") return
+
+      const type = "Cartão"
+      const name = getCleanName(t.title)
+      const key = getRowKey(type, name)
+      const month = monthKeyFromInvoiceTransaction(t)
+
+      if (!rowsMap.has(key)) {
+        rowsMap.set(key, { type, name, values: {}, installmentLabel: "—" })
+      }
+
+      const row = rowsMap.get(key)!
+      row.values[month] =
+        (row.values[month] || 0) + invoiceTransactionAmountCents(t)
+    })
+  }
 
   const rows = Array.from(rowsMap.values()).sort((a, b) => {
-    // Sort by Type (Entrada -> Saída -> Cartão)
     const typeOrder = { Entrada: 0, Saída: 1, Cartão: 2 }
     if (typeOrder[a.type] !== typeOrder[b.type]) {
       return typeOrder[a.type] - typeOrder[b.type]
     }
 
-    // Within same type: Fixo -> Parcelado -> Único
     const installmentOrder = (label: string) =>
       label === "Fixo" ? 0 : label === "—" ? 2 : 1
     const aOrder = installmentOrder(a.installmentLabel)
@@ -140,35 +183,81 @@ export function DashboardView({
     return a.name.localeCompare(b.name)
   })
 
+  let runningBalanceCents = totalInitialBalanceCents
+  const monthEndBalancesCents = sortedMonths.map((month) => {
+    const monthNetChange = rows.reduce((acc, row) => {
+      const val = row.values[month] || 0
+      return row.type === "Entrada" ? acc + val : acc - val
+    }, 0)
+    runningBalanceCents += monthNetChange
+    return runningBalanceCents
+  })
+
+  return { rows, sortedMonths, monthEndBalancesCents }
+}
+
+type ConsolidadoTableProps = {
+  rows: RowData[]
+  sortedMonths: string[]
+  monthEndBalancesCents: number[]
+}
+
+/** Overrides `TableHead` `h-10` / defaults so sticky + month columns share one row height */
+const dashboardHeadCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-[9px] leading-none font-semibold uppercase tracking-[0.15em] text-white/40"
+
+const dashboardResultStickyCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-[9px] leading-none font-bold uppercase tracking-[0.15em] text-white/40"
+
+const dashboardMonthHeadCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-center text-[9px] leading-none font-semibold uppercase tracking-[0.15em] text-white/40"
+
+const dashboardResultMonthCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-center font-mono text-[9px] font-semibold leading-none tracking-tight tabular-nums"
+
+const dashboardBodyStickyCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-xs leading-none border-b border-white/5"
+
+const dashboardBodyMonthCell =
+  "h-auto min-h-10 align-middle px-2 py-2.5 text-center font-mono text-xs leading-none tabular-nums border-b border-white/5"
+
+function ConsolidadoFinancialTable({ rows, sortedMonths, monthEndBalancesCents }: ConsolidadoTableProps) {
   return (
-    <div className="space-y-6">
-      <Card className="border border-white/5 bg-[#0a0a0a] ring-0 overflow-hidden">
-        <CardHeader className="gap-2 pb-6">
-          <CardDescription className="text-[10px] uppercase tracking-[0.4em] text-white/40">
-            Visão Geral
-          </CardDescription>
-          <CardTitle className="text-3xl font-semibold tracking-[-0.06em] text-white">
-            Consolidado Financeiro
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-2 pb-2 pt-0">
-          <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
-            <Table className="border-separate border-spacing-0 text-xs">
+    <div className="relative overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
+      <Table className="border-separate border-spacing-0 text-xs">
               <TableHeader className="sticky top-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-md">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="sticky md:left-0 top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[100px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead
+                    className={cn(
+                      dashboardHeadCell,
+                      "sticky md:left-0 top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[100px]"
+                    )}
+                  >
                     Tipo
                   </TableHead>
-                  <TableHead className="sticky md:left-[100px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[80px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead
+                    className={cn(
+                      dashboardHeadCell,
+                      "sticky md:left-[100px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[80px]"
+                    )}
+                  >
                     Parcelas
                   </TableHead>
-                  <TableHead className="sticky md:left-[180px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[200px] py-4 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]">
+                  <TableHead
+                    className={cn(
+                      dashboardHeadCell,
+                      "sticky md:left-[180px] top-0 z-40 bg-[#0d0d0d] border-b border-r border-white/5 min-w-[200px]"
+                    )}
+                  >
                     Nome/Mês
                   </TableHead>
                   {sortedMonths.map((month) => (
-                    <TableHead 
-                      key={month} 
-                      className="min-w-[140px] text-center py-4 border-b border-white/5 text-white/40 uppercase tracking-[0.15em] font-semibold text-[9px]"
+                    <TableHead
+                      key={month}
+                      className={cn(
+                        dashboardMonthHeadCell,
+                        "min-w-[140px] border-b border-white/5"
+                      )}
                     >
                       {formatMonth(month)}
                     </TableHead>
@@ -181,45 +270,58 @@ export function DashboardView({
                     key={idx} 
                     className="group border-none transition-colors hover:bg-white/[0.03]"
                   >
-                    <TableCell className={cn(
-                      "sticky md:left-0 z-10 bg-[#0a0a0a] border-r border-white/5 font-medium py-3 group-hover:bg-[#121212] transition-colors",
-                      "border-b border-white/5"
-                    )}>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-[2px] text-[9px] font-bold uppercase tracking-widest",
-                        row.type === "Entrada" ? "bg-[#d8f36a]/10 text-[#d8f36a] border border-[#d8f36a]/20" : 
-                        row.type === "Saída" ? "bg-[#ff9c7a]/10 text-[#ff9c7a] border border-[#ff9c7a]/20" : 
-                        "bg-[#7a99ff]/10 text-[#7a99ff] border border-[#7a99ff]/20"
-                      )}>
+                    <TableCell
+                      className={cn(
+                        dashboardBodyStickyCell,
+                        "sticky md:left-0 z-10 border-r border-white/5 font-medium group-hover:bg-[#121212] transition-colors"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-[2px] px-2 py-px text-[9px] font-bold uppercase leading-none tracking-widest",
+                          row.type === "Entrada"
+                            ? "bg-[#d8f36a]/10 text-[#d8f36a] border border-[#d8f36a]/20"
+                            : row.type === "Saída"
+                              ? "bg-[#ff9c7a]/10 text-[#ff9c7a] border border-[#ff9c7a]/20"
+                              : "bg-[#7a99ff]/10 text-[#7a99ff] border border-[#7a99ff]/20"
+                        )}
+                      >
                         {row.type}
                       </span>
                     </TableCell>
-                    <TableCell className={cn(
-                      "sticky md:left-[100px] z-10 bg-[#0a0a0a] border-r border-white/5 text-center py-3 group-hover:bg-[#121212] transition-colors",
-                      "border-b border-white/5",
-                      row.installmentLabel === "Fixo"
-                        ? "text-[#c4b5fd] font-semibold text-[9px] uppercase tracking-wider"
-                        : row.installmentLabel === "—"
-                          ? "text-white/15"
-                          : "text-white/50 font-mono"
-                    )}>
+                    <TableCell
+                      className={cn(
+                        dashboardBodyStickyCell,
+                        "sticky md:left-[100px] z-10 border-r border-white/5 text-center group-hover:bg-[#121212] transition-colors",
+                        row.installmentLabel === "Fixo"
+                          ? "text-[#c4b5fd] font-semibold text-[9px] uppercase tracking-wider"
+                          : row.installmentLabel === "—"
+                            ? "text-white/15"
+                            : "text-white/50 font-mono"
+                      )}
+                    >
                       {row.installmentLabel}
                     </TableCell>
-                    <TableCell className={cn(
-                      "sticky md:left-[180px] z-10 bg-[#0a0a0a] border-r border-white/5 font-medium text-white/80 py-3 group-hover:bg-[#121212] transition-colors",
-                      "border-b border-white/5"
-                    )}>
+                    <TableCell
+                      className={cn(
+                        dashboardBodyStickyCell,
+                        "sticky md:left-[180px] z-10 border-r border-white/5 font-medium text-white/80 group-hover:bg-[#121212] transition-colors"
+                      )}
+                    >
                       {row.name}
                     </TableCell>
                     {sortedMonths.map((month) => {
                       const value = row.values[month]
                       return (
-                        <TableCell 
-                          key={month} 
+                        <TableCell
+                          key={month}
                           className={cn(
-                            "text-center font-mono py-3 border-b border-white/5",
-                            !value ? "text-white/5" : 
-                            row.type === "Entrada" ? "text-[#d8f36a]/90" : "text-white/70"
+                            dashboardBodyMonthCell,
+                            !value
+                              ? "text-white/5"
+                              : row.type === "Entrada"
+                                ? "text-[#d8f36a]/90"
+                                : "text-white/70"
                           )}
                         >
                           {value ? formatCurrency(value / 100) : "—"}
@@ -231,42 +333,106 @@ export function DashboardView({
               </TableBody>
               <TableFooter className="sticky bottom-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-md border-t border-white/10">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableCell className="sticky md:left-0 z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
+                  <TableCell
+                    className={cn(
+                      dashboardResultStickyCell,
+                      "sticky md:left-0 z-40 bg-[#0d0d0d] border-r border-white/5"
+                    )}
+                  >
                     Resultado
                   </TableCell>
-                  <TableCell className="sticky md:left-[100px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-center text-white/40 font-mono text-[9px]">
+                  <TableCell
+                    className={cn(
+                      dashboardResultStickyCell,
+                      "sticky md:left-[100px] z-40 bg-[#0d0d0d] border-r border-white/5 text-center font-mono font-normal"
+                    )}
+                  >
                     {rows.length}
                   </TableCell>
-                  <TableCell className="sticky md:left-[180px] z-40 bg-[#0d0d0d] border-r border-white/5 py-4 text-white/40 uppercase tracking-[0.15em] font-bold text-[9px]">
+                  <TableCell
+                    className={cn(
+                      dashboardResultStickyCell,
+                      "sticky md:left-[180px] z-40 bg-[#0d0d0d] border-r border-white/5"
+                    )}
+                  >
                     Saldo Mensal
                   </TableCell>
-                  {(() => {
-                    let cumulativeBalance = totalInitialBalanceCents
-                    return sortedMonths.map((month) => {
-                      const monthNetChange = rows.reduce((acc, row) => {
-                        const val = row.values[month] || 0
-                        return row.type === "Entrada" ? acc + val : acc - val
-                      }, 0)
-                      
-                      cumulativeBalance += monthNetChange
-
-                      return (
-                        <TableCell 
-                          key={month} 
-                          className={cn(
-                            "text-center font-mono py-4 text-sm font-semibold tracking-[-0.05em]",
-                            cumulativeBalance >= 0 ? "text-[#d8f36a]" : "text-[#ff9c7a]"
-                          )}
-                        >
-                          {formatCurrency(cumulativeBalance / 100)}
-                        </TableCell>
-                      )
-                    })
-                  })()}
+                  {sortedMonths.map((month, i) => (
+                    <TableCell
+                      key={month}
+                      className={cn(
+                        dashboardResultMonthCell,
+                        "border-b border-white/5",
+                        monthEndBalancesCents[i] >= 0 ? "text-[#d8f36a]" : "text-[#ff9c7a]"
+                      )}
+                    >
+                      {formatCurrency(monthEndBalancesCents[i] / 100)}
+                    </TableCell>
+                  ))}
                 </TableRow>
               </TableFooter>
-            </Table>
-          </div>
+      </Table>
+    </div>
+  )
+}
+
+export function DashboardView({
+  accounts,
+  rawTransactions,
+  rawInvoiceExpenses,
+}: DashboardData) {
+  const totalInitialBalanceCents = accounts.reduce((sum, a) => sum + a.initialBalanceCents, 0)
+
+  const comprasNoCartao = buildConsolidadoModel({
+    totalInitialBalanceCents,
+    rawTransactions,
+    rawInvoiceExpenses,
+    mode: "card_expenses",
+  })
+
+  const porFatura = buildConsolidadoModel({
+    totalInitialBalanceCents,
+    rawTransactions,
+    rawInvoiceExpenses,
+    mode: "invoice_transactions",
+  })
+
+  return (
+    <div className="space-y-6">
+      <Card className="border border-white/5 bg-[#0a0a0a] ring-0 overflow-hidden">
+        <CardHeader className="gap-2 pb-2">
+          <CardDescription className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+            Visão Geral
+          </CardDescription>
+          <CardTitle className="text-3xl font-semibold tracking-[-0.06em] text-white">
+            Consolidado Financeiro
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-2 pb-2 pt-0">
+          <Tabs defaultValue="compras" className="gap-4">
+            <TabsList variant="line" className="mb-3 h-auto flex-wrap justify-start rounded-none bg-transparent p-0">
+              <TabsTrigger value="compras" className="max-w-none shrink-0 text-xs">
+                Compras no cartão
+              </TabsTrigger>
+              <TabsTrigger value="fatura" className="max-w-none shrink-0 text-xs">
+                Por fatura
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="compras" className="mt-0">
+              <ConsolidadoFinancialTable
+                rows={comprasNoCartao.rows}
+                sortedMonths={comprasNoCartao.sortedMonths}
+                monthEndBalancesCents={comprasNoCartao.monthEndBalancesCents}
+              />
+            </TabsContent>
+            <TabsContent value="fatura" className="mt-0">
+              <ConsolidadoFinancialTable
+                rows={porFatura.rows}
+                sortedMonths={porFatura.sortedMonths}
+                monthEndBalancesCents={porFatura.monthEndBalancesCents}
+              />
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

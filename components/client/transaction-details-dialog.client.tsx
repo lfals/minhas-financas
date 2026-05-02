@@ -6,6 +6,8 @@ import {
   TransactionCreateForm,
   type TransactionFormValues,
 } from "@/components/client/transaction-create-form.client"
+import { TransactionInstallmentsDetailsDialog } from "@/components/client/transaction-installments-details-dialog.client"
+import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import type {
   TransactionAccountOption,
@@ -59,15 +61,20 @@ export function TransactionDetailsDialog({
   accountOptions,
   categoryOptions,
   titleSuggestions,
+  installments = [],
   children,
 }: {
   transaction: TransactionPageItem
   accountOptions: TransactionAccountOption[]
   categoryOptions: TransactionCategoryOption[]
   titleSuggestions: TransactionTitleSuggestion[]
+  installments?: TransactionPageItem[]
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const isInstallmentSeries =
+    typeof transaction.installmentTotal === "number" && transaction.installmentTotal > 1
+  const installmentItems = installments.length ? installments : [transaction]
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Enter" && event.key !== " ") {
@@ -91,9 +98,26 @@ export function TransactionDetailsDialog({
       </div>
       <DialogContent className="max-w-2xl border border-white/10 bg-[#141414] p-0 text-white ring-0">
         <DialogHeader className="shrink-0 border-b border-white/10 px-6 py-5">
-          <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
-            Detalhes do lançamento
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-3">
+            <DialogTitle className="text-3xl font-semibold uppercase tracking-[-0.07em] text-white">
+              Detalhes do lançamento
+            </DialogTitle>
+            {isInstallmentSeries ? (
+              <TransactionInstallmentsDetailsDialog
+                transaction={transaction}
+                installments={installmentItems}
+              >
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 border-white/10 bg-white/5 px-3 text-[10px] uppercase tracking-[0.18em] text-white hover:bg-white/10 sm:tracking-[0.2em]"
+                >
+                  Ver parcelas
+                </Button>
+              </TransactionInstallmentsDetailsDialog>
+            ) : null}
+          </div>
         </DialogHeader>
         <div className="modal-scroll-body min-h-0 overflow-y-auto px-6 py-5">
           <TransactionCreateForm
