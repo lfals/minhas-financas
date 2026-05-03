@@ -47,7 +47,9 @@ export default function RootLayout({
       <body className="font-sans">
         <PWARegistration />
         {hasClerkCredentials() ? (
-          <ClerkProvider>
+          <ClerkProvider
+            telemetry={process.env.NODE_ENV === "production" ? false : undefined}
+          >
             {content}
           </ClerkProvider>
         ) : (
