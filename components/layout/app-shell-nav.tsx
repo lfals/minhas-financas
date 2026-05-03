@@ -63,6 +63,7 @@ export function AppShellNav({
             <Link
               key={href}
               href={href}
+              prefetch
               className={cn(
                 "flex items-center gap-2 border px-3 py-2 text-[11px] uppercase tracking-[0.24em] transition-colors",
                 isActive
@@ -124,6 +125,7 @@ export function AppShellNav({
                     <SheetClose key={href} asChild>
                       <Link
                         href={href}
+                        prefetch
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
                           "flex items-center gap-3 border px-4 py-3 text-sm uppercase tracking-[0.18em] transition-colors",

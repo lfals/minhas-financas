@@ -17,19 +17,16 @@ import type {
   TransactionCategoryOption,
   TransactionCreditCardOption,
   TransactionPageItem,
-  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
 
 function InvoiceExpenseList({
   expenses,
   cardOptions,
   categoryOptions,
-  titleSuggestions,
 }: {
   expenses: CreditCardInvoiceExpensePageItem[]
   cardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
 }) {
   if (!expenses.length) {
     return (
@@ -82,12 +79,7 @@ function InvoiceExpenseList({
         }
 
         return (
-          <CreditCardExpenseDetailsDialog
-            key={expense.id}
-            expense={expense}
-            categoryOptions={categoryOptions}
-            titleSuggestions={titleSuggestions}
-          >
+          <CreditCardExpenseDetailsDialog key={expense.id} expense={expense} categoryOptions={categoryOptions}>
             {listItem}
           </CreditCardExpenseDetailsDialog>
         )
@@ -103,7 +95,6 @@ export function CreditCardInvoiceDetailsDialog({
   expenses,
   cardOptions,
   categoryOptions,
-  titleSuggestions,
   children,
 }: {
   transaction: TransactionPageItem
@@ -112,7 +103,6 @@ export function CreditCardInvoiceDetailsDialog({
   expenses: CreditCardInvoiceExpensePageItem[]
   cardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
   children?: ReactNode
 }) {
   const [open, setOpen] = useState(false)
@@ -187,12 +177,7 @@ export function CreditCardInvoiceDetailsDialog({
             <ReceiptText className="size-4" />
             {expenses.length} lançamentos na fatura
           </div>
-          <InvoiceExpenseList
-            expenses={expenses}
-            cardOptions={cardOptions}
-            categoryOptions={categoryOptions}
-            titleSuggestions={titleSuggestions}
-          />
+          <InvoiceExpenseList expenses={expenses} cardOptions={cardOptions} categoryOptions={categoryOptions} />
         </div>
       </DialogContent>
     </Dialog>

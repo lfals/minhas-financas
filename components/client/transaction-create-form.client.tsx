@@ -30,8 +30,8 @@ import type {
   TransactionCategoryOption,
   TransactionCreditCardOption,
   TransactionFormKind,
-  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
+import { useTransactionTitleSuggestions, invalidateTransactionTitleSuggestionsCache } from "@/hooks/use-transaction-title-suggestions"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
@@ -191,7 +191,6 @@ export function TransactionCreateForm({
   accountOptions,
   creditCardOptions,
   categoryOptions,
-  titleSuggestions,
   defaultOccurredOn,
   initialValues,
   mode = "card",
@@ -202,7 +201,6 @@ export function TransactionCreateForm({
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
   defaultOccurredOn: string
   initialValues?: TransactionFormValues
   mode?: "card" | "flat"
@@ -210,6 +208,8 @@ export function TransactionCreateForm({
   onSuccess?: () => void
   submitLabel?: string
 }) {
+  const titleSuggestions = useTransactionTitleSuggestions(true)
+
   const [state, formAction] = useActionState(
     actionType === "update" ? updateTransactionAction : createTransactionAction,
     initialState
@@ -251,6 +251,8 @@ export function TransactionCreateForm({
 
   const currentIsoMonth = format(new Date(), "yyyy-MM")
   const handleSuccess = useEffectEvent(() => {
+    invalidateTransactionTitleSuggestionsCache()
+
     if (keepOpen) {
       // Keep kind, accountId, cardId, and status — only clear text/value fields
       setFormValues((current) => ({

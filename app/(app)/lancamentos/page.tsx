@@ -13,7 +13,6 @@ import {
   buildTransactionCategoryOptions,
   buildTransactionCreditCardOptions,
   buildTransactionPageItem,
-  buildTransactionTitleSuggestions,
   buildTransactionsPageData,
 } from "@/modules/transactions/presentation/view-model"
 
@@ -76,7 +75,6 @@ async function getTransactionsPageState(selectedDateInput: string | null) {
       accountOptions: buildTransactionAccountOptions(accounts),
       creditCardOptions: buildTransactionCreditCardOptions(cards),
       categoryOptions: buildTransactionCategoryOptions(categories),
-      titleSuggestions: buildTransactionTitleSuggestions(transactions.transactions),
       selectedDate,
       error: null,
     }
@@ -132,7 +130,6 @@ export default async function TransactionsPage({
       accountOptions={state.accountOptions}
       creditCardOptions={state.creditCardOptions}
       categoryOptions={state.categoryOptions}
-      titleSuggestions={state.titleSuggestions || []}
       defaultOccurredOn={getTodayIsoDate()}
       selectedDate={state.selectedDate}
     />

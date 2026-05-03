@@ -28,6 +28,7 @@ export default async function SettingsPage() {
         <CardContent className="flex flex-col gap-4 pt-6">
           <Link
             href="/configuracoes/contas"
+            prefetch
             className="group flex items-center justify-between border border-white/10 bg-[#171717] px-4 py-4 transition-colors hover:bg-white/5"
           >
             <div className="flex items-center gap-4">
@@ -44,6 +45,7 @@ export default async function SettingsPage() {
 
           <Link
             href="/configuracoes/cartoes"
+            prefetch
             className="group flex items-center justify-between border border-white/10 bg-[#171717] px-4 py-4 transition-colors hover:bg-white/5"
           >
             <div className="flex items-center gap-4">

@@ -1,33 +1,31 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { Suspense, type ReactNode } from "react"
 
 import { AppShell } from "@/components/layout/app-shell"
+import {
+  AppShellDesktopAccountSkeleton,
+  AppShellMobileAccountSkeleton,
+} from "@/components/layout/app-shell-account-skeleton"
+import {
+  AppShellDesktopClerkAccount,
+  AppShellMobileClerkAccount,
+} from "@/components/rsc/app-shell-clerk-account"
 
-export const dynamic = "force-dynamic"
-
-export default async function AuthenticatedLayout({
+export default function AuthenticatedLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: ReactNode
 }>) {
-  let user = null
-  try {
-    user = await currentUser()
-  } catch (error) {
-    console.error("Erro ao buscar usuário do Clerk:", error)
-    // Se falhar, continuamos como não autenticado ou mostramos erro amigável dependendo da lógica
-  }
-
   return (
     <AppShell
-      user={
-        user
-          ? {
-              fullName:
-                user.fullName ??
-                [user.firstName, user.lastName].filter(Boolean).join(" ") ??
-                "Usuário",
-            }
-          : null
+      desktopAccountSlot={
+        <Suspense fallback={<AppShellDesktopAccountSkeleton />}>
+          <AppShellDesktopClerkAccount />
+        </Suspense>
+      }
+      mobileAccountSlot={
+        <Suspense fallback={<AppShellMobileAccountSkeleton />}>
+          <AppShellMobileClerkAccount />
+        </Suspense>
       }
     >
       {children}

@@ -1,16 +1,14 @@
+import { Suspense } from "react"
 import Link from "next/link"
-import {
-  ArrowRight,
-  CreditCard,
-  Landmark,
-  Sparkles,
-  TrendingUp,
-  Wallet,
-} from "lucide-react"
-import { currentUser } from "@clerk/nextjs/server"
+import { CreditCard, Landmark, TrendingUp, Wallet } from "lucide-react"
 
+import {
+  LandingHeroCtaFallback,
+  LandingHeroCtaResolved,
+  LandingNavAuthFallback,
+  LandingNavAuthResolved,
+} from "@/components/rsc/landing-auth-slots"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Card,
   CardDescription,
@@ -65,9 +63,7 @@ function formatCurrency(value: number) {
 }
 
 
-export default async function Page() {
-  const user = await currentUser()
-
+export default function Page() {
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-[#f7f3ea]">
       {/* Navigation */}
@@ -82,11 +78,9 @@ export default async function Page() {
             </span>
           </div>
           <nav className="flex items-center gap-6 text-[10px] font-medium uppercase tracking-[0.2em] text-white/40">
-            {user ? (
-               <Link href="/dashboard" className="text-[#d8f36a] hover:opacity-80">Dashboard</Link>
-            ) : (
-               <Link href="/sign-in" className="hover:text-white">Entrar</Link>
-            )}
+            <Suspense fallback={<LandingNavAuthFallback />}>
+              <LandingNavAuthResolved />
+            </Suspense>
           </nav>
 
         </div>
@@ -113,15 +107,9 @@ export default async function Page() {
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row pt-4">
-            <Button
-              asChild
-              className="h-12 border border-[#d8f36a] bg-[#d8f36a] px-8 text-[11px] font-bold uppercase tracking-[0.25em] text-black hover:bg-[#c9e45f]"
-            >
-              <Link href={user ? "/dashboard" : "/sign-in"}>
-                {user ? "Acessar Dashboard" : "Entrar agora"}
-                <ArrowRight className="ml-2 size-4" />
-              </Link>
-            </Button>
+            <Suspense fallback={<LandingHeroCtaFallback />}>
+              <LandingHeroCtaResolved />
+            </Suspense>
           </div>
         </div>
       </section>

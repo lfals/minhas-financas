@@ -5,19 +5,19 @@ import { isAppError } from "@/lib/errors/app-error"
 import { listAccountsUseCase } from "@/modules/accounts/application/list-accounts-use-case"
 import { listCreditCardsUseCase } from "@/modules/credit-cards/application/list-credit-cards-use-case"
 import { buildCreditCardsPageData } from "@/modules/credit-cards/presentation/view-model"
-import { listTransactionsUseCase } from "@/modules/transactions/application/list-transactions-use-case"
+import { listCreditCardInvoiceExpensesUseCase } from "@/modules/transactions/application/list-credit-card-invoice-expenses-use-case"
 import { buildTransactionAccountOptions } from "@/modules/transactions/presentation/view-model"
 import type { CreditCardInvoiceExpenseRecord } from "@/modules/transactions/domain/types"
 
 async function getCreditCardsPageState() {
   try {
     const clerkUserId = await getClerkUserIdOrThrow()
-    const [accounts, cards, cardExpensesResult] = await Promise.all([
+    const [accounts, cards, invoiceExpenses] = await Promise.all([
       listAccountsUseCase({ clerkUserId }),
       listCreditCardsUseCase({ clerkUserId }),
-      listTransactionsUseCase({ clerkUserId }),
+      listCreditCardInvoiceExpensesUseCase({ clerkUserId }),
     ])
-    const cardPurchasesByCardId = cardExpensesResult.invoiceExpenses.reduce<
+    const cardPurchasesByCardId = invoiceExpenses.reduce<
       Record<string, CreditCardInvoiceExpenseRecord[]>
     >((acc, expense) => {
       if (!acc[expense.cardId]) {

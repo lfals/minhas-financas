@@ -850,6 +850,17 @@ export class TransactionsRepository {
     }
   }
 
+  async listCreditCardInvoiceExpensesByUser(
+    clerkUserId: string
+  ): Promise<CreditCardInvoiceExpenseRecord[]> {
+    const invoiceExpensesResult = await queryDb<DbCreditCardInvoiceExpenseListRow>(
+      listCreditCardInvoiceExpensesSql,
+      [clerkUserId]
+    )
+
+    return invoiceExpensesResult.rows.map(mapCreditCardInvoiceExpenseRow)
+  }
+
   async listCategories(clerkUserId: string): Promise<TransactionCategoryRecord[]> {
     const result = await queryDb<DbTransactionCategoryRow>(listTransactionCategoriesSql, [clerkUserId])
 

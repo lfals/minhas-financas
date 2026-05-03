@@ -15,20 +15,17 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionCreditCardOption,
-  TransactionTitleSuggestion,
 } from "@/modules/transactions/domain/types"
 
 export function TransactionCreateDialog({
   accountOptions,
   creditCardOptions,
   categoryOptions,
-  titleSuggestions,
   defaultOccurredOn,
 }: {
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
   defaultOccurredOn: string
 }) {
   const [open, setOpen] = useState(false)
@@ -60,7 +57,6 @@ export function TransactionCreateDialog({
               accountOptions={accountOptions}
               creditCardOptions={creditCardOptions}
               categoryOptions={categoryOptions}
-              titleSuggestions={titleSuggestions}
               defaultOccurredOn={defaultOccurredOn}
               mode="flat"
               onSuccess={handleCreated}

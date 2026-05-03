@@ -19,11 +19,11 @@ import {
   updateCreditCardExpenseAction,
   type UpdateCreditCardExpenseActionState,
 } from "@/modules/transactions/presentation/actions"
-import type {
-  CreditCardInvoiceExpensePageItem,
-  TransactionCategoryOption,
-  TransactionTitleSuggestion,
-} from "@/modules/transactions/domain/types"
+import type { CreditCardInvoiceExpensePageItem, TransactionCategoryOption } from "@/modules/transactions/domain/types"
+import {
+  useTransactionTitleSuggestions,
+  invalidateTransactionTitleSuggestionsCache,
+} from "@/hooks/use-transaction-title-suggestions"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -118,20 +118,20 @@ function SubmitButton() {
 export function CreditCardExpenseDetailsDialog({
   expense,
   categoryOptions,
-  titleSuggestions,
   children,
 }: {
   expense: CreditCardInvoiceExpensePageItem
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
   children: ReactNode
 }) {
   const [open, setOpen] = useState(false)
+  const titleSuggestions = useTransactionTitleSuggestions(open)
   const [state, formAction] = useActionState(updateCreditCardExpenseAction, initialState)
   const [formValues, setFormValues] = useState(() => buildInitialValues(expense))
   const router = useRouter()
 
   const handleSuccess = useEffectEvent(() => {
+    invalidateTransactionTitleSuggestionsCache()
     setFormValues(buildInitialValues(expense))
     setOpen(false)
     startTransition(() => {

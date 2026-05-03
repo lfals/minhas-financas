@@ -14,14 +14,12 @@ import { ResponsiveMetrics } from "@/components/client/responsive-metrics.client
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCompactCurrency } from "@/lib/formatters"
-import { cn } from "@/lib/utils"
 import { SummaryMetricCard } from "@/components/rsc/summary-metric-card"
 import type {
   TransactionAccountOption,
   TransactionPageItem,
   TransactionCategoryOption,
   TransactionCreditCardOption,
-  TransactionTitleSuggestion,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
 import {
@@ -106,14 +104,12 @@ export function TransactionsPageView({
   accountOptions,
   creditCardOptions,
   categoryOptions,
-  titleSuggestions,
   defaultOccurredOn,
   selectedDate,
 }: TransactionsPageData & {
   accountOptions: TransactionAccountOption[]
   creditCardOptions: TransactionCreditCardOption[]
   categoryOptions: TransactionCategoryOption[]
-  titleSuggestions: TransactionTitleSuggestion[]
   allTransactions: TransactionPageItem[]
   defaultOccurredOn: string
   selectedDate: string
@@ -170,7 +166,6 @@ export function TransactionsPageView({
                 accountOptions={accountOptions}
                 creditCardOptions={creditCardOptions}
                 categoryOptions={categoryOptions}
-                titleSuggestions={titleSuggestions}
                 defaultOccurredOn={defaultOccurredOn}
               />
             </div>
@@ -264,7 +259,6 @@ export function TransactionsPageView({
                         expenses={invoiceExpensesForTransaction}
                         cardOptions={creditCardOptions}
                         categoryOptions={categoryOptions}
-                        titleSuggestions={titleSuggestions}
                       >
                         <div
                           role="button"
@@ -284,7 +278,6 @@ export function TransactionsPageView({
                       accountOptions={accountOptions}
                       creditCardOptions={creditCardOptions}
                       categoryOptions={categoryOptions}
-                      titleSuggestions={titleSuggestions}
                       installments={installmentTransactions}
                     >
                       {listItem}
