@@ -25,6 +25,8 @@ import type {
   TransactionsListResult,
   TransactionRecord,
 } from "@/modules/transactions/domain/types"
+import { CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE } from "@/modules/transactions/domain/credit-card-invoice-notes"
+import { inferIsFixedCreditCardExpense } from "@/modules/transactions/domain/infer-fixed-credit-card-expense"
 import {
   compensateTransactionSql,
   deleteCreditCardInvoiceSettlementAdjustmentsSql,
@@ -190,6 +192,11 @@ function mapCreditCardInvoiceExpenseRow(
     seriesId: row.series_id,
     title: row.title,
     category: row.category,
+    isFixed: inferIsFixedCreditCardExpense({
+      seriesId: row.series_id,
+      title: row.title,
+      notes: row.notes,
+    }),
     amountCents: row.amount_cents,
     occurredOn: row.occurred_on,
     isEffective: Boolean(row.is_effective),
@@ -661,9 +668,6 @@ async function resolveTransactionCategoryId(
 
   return existing.rows[0]!.id
 }
-
-const CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE = "__credit_card_invoice_settlement_adjustment__"
-
 
 async function syncCreditCardInvoiceSettlementAdjustment(
   client: DatabaseClient,

@@ -22,6 +22,7 @@ import type {
   TransactionCreditCardOption,
   TransactionsPageData,
 } from "@/modules/transactions/domain/types"
+import { sumInvoiceExpenseDebitSplit } from "@/modules/transactions/presentation/invoice-expense-debit-split"
 import {
   getFixedExpenseFrequencyLabel,
   getInstallmentLabel,
@@ -232,13 +233,21 @@ export function TransactionsPageView({
                     </ClickPropagationStopper>
                   )
 
+                  let rowMetadata = `${transaction.category} • ${transaction.accountName} • ${transaction.dateLabel}`
+                  if (isCreditCardInvoice && invoiceExpensesForTransaction.length) {
+                    const split = sumInvoiceExpenseDebitSplit(invoiceExpensesForTransaction)
+                    if (split.totalDebit > 0) {
+                      rowMetadata += ` • Var. −${formatCompactCurrency(split.variable / 100)} · Fixas −${formatCompactCurrency(split.fixed / 100)}`
+                    }
+                  }
+
                   const listItem = (
                     <TransactionListItem
                       title={transaction.title}
                       badgeLabel={badgeLabel}
                       statusLabel={transaction.statusLabel}
                       statusClassName={statusTone(transaction.statusLabel)}
-                      metadata={`${transaction.category} • ${transaction.accountName} • ${transaction.dateLabel}`}
+                      metadata={rowMetadata}
                       amountCents={transaction.amountCents}
                       displayAmountCents={transaction.displayAmountCents}
                       isAmountOverridden={transaction.isAmountOverridden}

@@ -506,6 +506,8 @@ export const creditCardInvoiceExpenseRecordSchema = z.object({
   seriesId: z.uuid().nullable().optional(),
   title: z.string(),
   category: z.string(),
+  /** Compras fixas no cartão (série sem parcelas no título); inferido nos leitores. */
+  isFixed: z.boolean(),
   amountCents: signedCentsSchema,
   occurredOn: isoDateSchema,
   isEffective: z.boolean().default(true),

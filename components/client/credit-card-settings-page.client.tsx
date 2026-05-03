@@ -20,6 +20,7 @@ import { formatCents } from "@/lib/money"
 import type { CreditCardsPageData } from "@/modules/credit-cards/domain/types"
 import type { TransactionAccountOption } from "@/modules/transactions/domain/types"
 import { TransactionListItem } from "@/components/transaction-list-item"
+import { CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE } from "@/modules/transactions/domain/credit-card-invoice-notes"
 import type { CreditCardInvoiceExpenseRecord } from "@/modules/transactions/domain/types"
 
 export type CreditCardFormValues = {
@@ -95,7 +96,7 @@ function buildCardPurchases(expenses: CreditCardInvoiceExpenseRecord[]): CreditC
   const today = new Date().toISOString().split("T")[0]
 
   for (const expense of expenses) {
-    if (expense.notes === "__credit_card_invoice_settlement_adjustment__") {
+    if (expense.notes === CREDIT_CARD_INVOICE_SETTLEMENT_ADJUSTMENT_NOTE) {
       continue
     }
 

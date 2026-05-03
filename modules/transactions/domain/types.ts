@@ -139,6 +139,7 @@ export type CreditCardInvoiceExpensePageItem = {
   title: string
   category: string
   cardName: string
+  isFixed: boolean
   occurredOn: string
   invoiceMonth: string
   dateLabel: string

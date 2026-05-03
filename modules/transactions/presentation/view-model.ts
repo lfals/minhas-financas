@@ -36,6 +36,7 @@ function buildInvoiceExpenses(
       title: expense.title,
       category: expense.category,
       cardName: expense.cardName,
+      isFixed: expense.isFixed,
       occurredOn: expense.occurredOn,
       invoiceMonth: expense.invoiceMonth?.slice(0, 7) ?? expense.occurredOn.slice(0, 7),
       dateLabel: format(new Date(`${expense.occurredOn}T00:00:00`), "dd MMM", { locale: ptBR }),
