@@ -1,9 +1,14 @@
-import { endOfMonth, format, isAfter, isBefore, parseISO } from "date-fns"
+import { eachDayOfInterval, endOfMonth, format, isAfter, isBefore, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
 import { getAccountTone, getAccountTypeLabel } from "@/modules/accounts/domain/account-rules"
 import type { AccountRecord } from "@/modules/accounts/domain/types"
-import type { DashboardData, DashboardFilter, DashboardFilterMode } from "@/modules/dashboard/domain/types"
+import type {
+  DashboardData,
+  DashboardFilter,
+  DashboardFilterMode,
+  DashboardMonthDayForecastPoint,
+} from "@/modules/dashboard/domain/types"
 import type { TransactionListRecord } from "@/modules/transactions/domain/types"
 
 type DashboardSearchParams = {
@@ -161,6 +166,60 @@ function buildObligationStatus(transaction: TransactionListRecord) {
   return "Pendente"
 }
 
+function buildMonthDailyForecast({
+  accounts,
+  transactions,
+  filter,
+}: {
+  accounts: AccountRecord[]
+  transactions: TransactionListRecord[]
+  filter: DashboardFilter
+}): DashboardMonthDayForecastPoint[] | null {
+  if (filter.mode !== "month") {
+    return null
+  }
+
+  const totalBalanceCents = accounts.reduce((sum, account) => sum + account.currentBalanceCents, 0)
+
+  const pendingThroughEnd = transactions.filter(
+    (transaction) => transaction.status !== "compensated" && transaction.occurredOn <= filter.endDate
+  )
+
+  const days = eachDayOfInterval({
+    start: parseISO(filter.startDate),
+    end: parseISO(filter.endDate),
+  })
+
+  return days.map((dayDate) => {
+    const dateIso = format(dayDate, "yyyy-MM-dd")
+    const pendingUpToDay = pendingThroughEnd.filter((transaction) => transaction.occurredOn <= dateIso)
+    const balanceCents =
+      totalBalanceCents + pendingUpToDay.reduce((sum, transaction) => sum + getSignedAmount(transaction), 0)
+
+    const pendingOnDay = pendingThroughEnd.filter((transaction) => transaction.occurredOn === dateIso)
+    let pendingIncomeCents = 0
+    let pendingExpenseCents = 0
+
+    for (const transaction of pendingOnDay) {
+      const amount = getEffectiveAmount(transaction)
+
+      if (transaction.kind === "income") {
+        pendingIncomeCents += amount
+      } else {
+        pendingExpenseCents += amount
+      }
+    }
+
+    return {
+      dateIso,
+      dayLabel: format(dayDate, "d"),
+      balanceCents,
+      pendingIncomeCents,
+      pendingExpenseCents,
+    }
+  })
+}
+
 export function buildDashboardData({
   accounts,
   transactions,
@@ -301,5 +360,6 @@ export function buildDashboardData({
     transactions: transactionsSnapshot,
     obligations,
     categories: buildCategoryBreakdown(transactionsInPeriod),
+    monthDailyForecast: buildMonthDailyForecast({ accounts, transactions, filter }),
   }
 }

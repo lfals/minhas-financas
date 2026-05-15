@@ -34,6 +34,7 @@ import type {
 import { useTransactionTitleSuggestions, invalidateTransactionTitleSuggestionsCache } from "@/hooks/use-transaction-title-suggestions"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { resolveCreditCardInvoiceMonth } from "@/lib/credit-card/invoice"
 
 const initialState: CreateTransactionActionState | UpdateTransactionActionState = {
   status: "idle",
@@ -216,6 +217,7 @@ export function TransactionCreateForm({
   )
   const [keepOpen, setKeepOpen] = useState(false)
   const [showSuccessMessage, setShowSuccessMessage] = useState(false)
+  const [invoiceMonthTouched, setInvoiceMonthTouched] = useState(actionType === "update")
   const titleInputRef = useRef<HTMLInputElement>(null)
   const lastAppliedDefaultsKeyRef = useRef<string | null>(null)
   const lastAppliedEditSnapshotRef = useRef<string | null>(null)
@@ -318,6 +320,38 @@ export function TransactionCreateForm({
     }
   }, [state.status, handleSuccess])
 
+  useEffect(() => {
+    if (!isCardExpense || invoiceMonthTouched) {
+      return
+    }
+
+    const selectedCard = creditCardOptions.find(
+      (option) => option.id === formValues.cardId
+    )
+
+    if (!selectedCard) {
+      return
+    }
+
+    const computedInvoiceMonth = resolveCreditCardInvoiceMonth(
+      formValues.occurredOn,
+      selectedCard.closingDay,
+      selectedCard.dueDay
+    )
+
+    setFormValues((current) =>
+      current.targetInvoiceMonth === computedInvoiceMonth
+        ? current
+        : { ...current, targetInvoiceMonth: computedInvoiceMonth }
+    )
+  }, [
+    isCardExpense,
+    invoiceMonthTouched,
+    creditCardOptions,
+    formValues.cardId,
+    formValues.occurredOn,
+  ])
+
   const content = (
     <form action={formAction} className="space-y-5" onFocus={() => setShowSuccessMessage(false)}>
       {actionType === "update" && formValues.transactionId ? (
@@ -375,6 +409,9 @@ export function TransactionCreateForm({
                 value={formValues.kind}
                 onChange={(event) => {
                   const { value } = event.currentTarget
+                  if (value === "card-expense") {
+                    setInvoiceMonthTouched(false)
+                  }
                   setFormValues((current) => ({
                     ...current,
                     kind: value as TransactionFormKind,
@@ -430,6 +467,7 @@ export function TransactionCreateForm({
                     value={formValues.cardId}
                     onChange={(event) => {
                       const { value } = event.currentTarget
+                      setInvoiceMonthTouched(false)
                       setFormValues((current) => ({
                         ...current,
                         cardId: value,
@@ -618,6 +656,7 @@ export function TransactionCreateForm({
                     <MonthPicker
                       value={formValues.targetInvoiceMonth}
                       onChange={(month) => {
+                        setInvoiceMonthTouched(true)
                         setFormValues((current) => ({
                           ...current,
                           targetInvoiceMonth: month,

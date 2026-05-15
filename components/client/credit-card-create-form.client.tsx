@@ -111,7 +111,7 @@ export function CreditCardCreateForm({
       <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor="nickname" className="text-white/80">
-            Nome de exibição
+            Nome de exibição <span className="text-[#ff9c7a]">*</span>
           </FieldLabel>
           <FieldContent>
             <Input
@@ -161,7 +161,7 @@ export function CreditCardCreateForm({
 
           <Field>
             <FieldLabel htmlFor="limit" className="text-white/80">
-              Limite aprovado
+              Limite aprovado (opcional)
             </FieldLabel>
             <FieldContent>
               <Input
@@ -188,7 +188,7 @@ export function CreditCardCreateForm({
         <div className="grid gap-4 md:grid-cols-3">
           <Field>
             <FieldLabel htmlFor="closingDay" className="text-white/80">
-              Dia de fechamento
+              Dia de fechamento (opcional)
             </FieldLabel>
             <FieldContent>
               <Input
@@ -215,7 +215,7 @@ export function CreditCardCreateForm({
 
           <Field>
             <FieldLabel htmlFor="dueDay" className="text-white/80">
-              Dia de vencimento
+              Dia de vencimento (opcional)
             </FieldLabel>
             <FieldContent>
               <Input

@@ -54,6 +54,18 @@ export type DashboardSummary = {
   netWorthBalanceCents: number
 }
 
+/** Um dia no mês selecionado (foco em mês cheio): saldo previsto acumulado e pendências do dia. */
+export type DashboardMonthDayForecastPoint = {
+  dateIso: string
+  /** Rótulo curto no eixo (ex.: "5"). */
+  dayLabel: string
+  balanceCents: number
+  /** Entradas pendentes (não compensadas) com vencimento neste dia. */
+  pendingIncomeCents: number
+  /** Saídas pendentes (não compensadas) com vencimento neste dia. */
+  pendingExpenseCents: number
+}
+
 export type DashboardData = {
   filter: DashboardFilter
   summary: DashboardSummary
@@ -62,6 +74,8 @@ export type DashboardData = {
   transactions: DashboardTransactionSnapshot[]
   obligations: DashboardObligationSnapshot[]
   categories: DashboardCategorySnapshot[]
+  /** Série diária do mês calendário; `null` fora do modo mês cheio. */
+  monthDailyForecast: DashboardMonthDayForecastPoint[] | null
   rawTransactions: import("@/modules/transactions/domain/types").TransactionListRecord[]
   rawInvoiceExpenses: import("@/modules/transactions/domain/types").CreditCardInvoiceExpenseRecord[]
 }

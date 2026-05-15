@@ -5,6 +5,8 @@ import { ptBR } from "date-fns/locale"
 import { format, parseISO } from "date-fns"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
+import { DashboardChartMonthSelector } from "@/components/client/dashboard-chart-month-selector.client"
+import { DashboardMonthForecastChart } from "@/components/client/dashboard-month-forecast-chart.client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Table,
@@ -575,6 +577,8 @@ function ConsolidadoFinancialTable({ rows, sortedMonths, monthEndBalancesCents }
 }
 
 export function DashboardView({
+  filter,
+  monthDailyForecast,
   accounts,
   rawTransactions,
   rawInvoiceExpenses,
@@ -603,6 +607,29 @@ export function DashboardView({
 
   return (
     <div className="space-y-6">
+      {monthDailyForecast && monthDailyForecast.length > 0 ? (
+        <Card className="overflow-hidden border border-white/5 bg-[#0a0a0a] ring-0">
+          <CardHeader className="gap-3 pb-0 sm:flex sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0 space-y-1">
+              <CardDescription className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+                {filter.periodLabel}
+              </CardDescription>
+              <CardTitle className="text-xl font-semibold tracking-[-0.04em] text-white">
+                Saldo previsto e fluxos por dia
+              </CardTitle>
+              <p className="pt-1 text-xs leading-relaxed text-white/50">
+                Linha do saldo: saldo atual mais o efeito acumulado das pendências até cada data. Entrada e saída: soma
+                dos lançamentos ainda não compensados com vencimento naquele dia.
+              </p>
+            </div>
+            <DashboardChartMonthSelector month={filter.month} />
+          </CardHeader>
+          <CardContent className="pb-4 pt-3">
+            <DashboardMonthForecastChart points={monthDailyForecast} periodLabel={filter.periodLabel} />
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="border border-white/5 bg-[#0a0a0a] ring-0 overflow-hidden">
         <CardHeader className="gap-2 pb-2">
           <CardDescription className="text-[10px] uppercase tracking-[0.4em] text-white/40">

@@ -209,6 +209,8 @@ export function buildTransactionCreditCardOptions(
     .map((card) => ({
       id: card.id,
       label: card.finalDigits ? `${card.nickname} • ${card.finalDigits}` : card.nickname,
+      closingDay: card.closingDay,
+      dueDay: card.dueDay,
     }))
 }
 

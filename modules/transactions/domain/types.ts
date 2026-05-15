@@ -177,6 +177,8 @@ export type TransactionCategoryOption = {
 export type TransactionCreditCardOption = {
   id: string
   label: string
+  closingDay: number
+  dueDay: number
 }
 
 export type TransactionTitleSuggestion = {

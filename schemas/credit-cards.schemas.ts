@@ -28,6 +28,14 @@ const cardDaySchema = z.coerce
   .min(1, "Informe um dia entre 1 e 31.")
   .max(31, "Informe um dia entre 1 e 31.")
 
+function optionalCardDaySchema(fallback: number) {
+  return z.preprocess(
+    (value) =>
+      value === "" || value === undefined || value === null ? fallback : value,
+    cardDaySchema
+  )
+}
+
 const finalDigitsSchema = z
   .string()
   .trim()
@@ -53,9 +61,9 @@ export const updateCreditCardInputSchema = createCreditCardInputSchema.extend({
 export const createCreditCardFormSchema = z.object({
   nickname: z.string().trim().min(1, "Informe o nome do cartão.").max(80),
   finalDigits: finalDigitsSchema,
-  limit: z.string().trim().min(1, "Informe o limite."),
-  closingDay: cardDaySchema,
-  dueDay: cardDaySchema,
+  limit: z.string().trim().default(""),
+  closingDay: optionalCardDaySchema(1),
+  dueDay: optionalCardDaySchema(10),
   expenseAccountId: z.uuid("Selecione uma conta válida."),
   autoCategorizationEnabled: optionalBooleanSchema.default(true),
 })
