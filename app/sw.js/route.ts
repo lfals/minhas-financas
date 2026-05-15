@@ -53,6 +53,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // App Router client navigations are RSC fetches, NOT mode 'navigate' (destination is
+  // empty and they carry an RSC header). They must never be cached: a stale RSC payload
+  // references JS chunk hashes from a previous deploy and crashes React after release.
+  if (
+    event.request.headers.get('RSC') ||
+    event.request.headers.get('Next-Router-Prefetch') ||
+    event.request.destination === 'document' ||
+    event.request.destination === '' ||
+    new URL(event.request.url).search.includes('_rsc=')
+  ) {
+    return;
+  }
+
   // Let browser handling of Clerk/Auth URLs and static internal assets that might change
   // We avoid caching sign-in/up and clerk to prevent auth issues
   const url = event.request.url;
