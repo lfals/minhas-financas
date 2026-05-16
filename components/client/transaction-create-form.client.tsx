@@ -318,7 +318,10 @@ export function TransactionCreateForm({
     if (state.status === "success") {
       handleSuccess()
     }
-  }, [state.status, handleSuccess])
+    // `handleSuccess` is a useEffectEvent and must NOT be a dependency. Keying on
+    // `state` (a fresh object per action result) fires once per submission —
+    // including repeated "salvar e continuar" — without re-running every render.
+  }, [state])
 
   useEffect(() => {
     if (!isCardExpense || invoiceMonthTouched) {
