@@ -1,8 +1,5 @@
+import Link from "next/link"
 import { ReceiptText } from "lucide-react"
-
-import {
-  CreditCardInvoiceDetailsDialog,
-} from "@/components/client/credit-card-invoice-details-dialog.client"
 import { TransactionCreateDialog } from "@/components/client/transaction-create-dialog.client"
 import { TransactionDetailsDialog } from "@/components/client/transaction-details-dialog.client"
 import { TransactionInstallmentsDetailsDialog } from "@/components/client/transaction-installments-details-dialog.client"
@@ -260,23 +257,13 @@ export function TransactionsPageView({
 
                   if (isCreditCardInvoice) {
                     return (
-                      <CreditCardInvoiceDetailsDialog
+                      <Link
                         key={`${transaction.id}:${transaction.status}:${transaction.displayAmountCents}`}
-                        transaction={transaction}
-                        badgeLabel={badgeLabel}
-                        statusClassName={statusTone(transaction.statusLabel)}
-                        expenses={invoiceExpensesForTransaction}
-                        cardOptions={creditCardOptions}
-                        categoryOptions={categoryOptions}
+                        href={`/lancamentos/fatura/${transaction.id}`}
+                        className="block cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#d8f36a]/60 focus-visible:ring-offset-0"
                       >
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className="cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#d8f36a]/60 focus-visible:ring-offset-0"
-                        >
-                          {listItem}
-                        </div>
-                      </CreditCardInvoiceDetailsDialog>
+                        {listItem}
+                      </Link>
                     )
                   }
 
